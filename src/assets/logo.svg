@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+
+<!-- Heart -->
+<path d="M128 220
+C72 178 40 146 40 102
+C40 70 62 48 92 48
+C110 48 123 56 128 68
+C133 56 146 48 164 48
+C194 48 216 70 216 102
+C216 146 184 178 128 220 Z"
+stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+
+<!-- Pulse -->
+<path d="M58 126 H102
+L116 94
+L136 154
+L152 126
+H198"
+stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+
+<!-- Portfolio badge -->
+<g>
+  <rect x="150" y="148" width="92" height="68" rx="14" fill="#1F6B42"/>
+  <!-- handle -->
+  <path d="M178 148
+           v-8
+           c0-10 8-18 18-18
+           h0
+           c10 0 18 8 18 18
+           v8"
+        stroke="#1F6B42" stroke-width="12" stroke-linecap="round" fill="none"/>
+
+  <!-- growing chart -->
+  <path d="M168 198
+           L182 184
+           L196 196
+           L214 174"
+        stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- arrow head -->
+  <path d="M214 174 L214 190 M214 174 L198 174"
+        stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.0"/>
+</g>
+</svg>
