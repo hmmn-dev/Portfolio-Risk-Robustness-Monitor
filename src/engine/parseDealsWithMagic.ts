@@ -59,12 +59,13 @@ const median = (values: number[]) => {
 }
 
 export const parseDealsWithMagic = (
-  buffer: ArrayBuffer,
+  buffer: ArrayBuffer | Uint8Array,
   options: { defaultSleeve?: string } = {}
 ): MagicDealRow[] => {
   const fallbackSleeve = options.defaultSleeve?.trim()
   const decoder = new TextDecoder('utf-16le')
-  const rawText = decoder.decode(buffer).replace(/^\uFEFF/, '')
+  const data = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer
+  const rawText = decoder.decode(data).replace(/^\uFEFF/, '')
   const rows = parseCsv(rawText)
   if (rows.length === 0) return []
 

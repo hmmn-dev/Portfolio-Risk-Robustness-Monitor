@@ -19,8 +19,19 @@ type ReportState = {
   setHasHydrated: (value: boolean) => void
 }
 
+type ReportPersistedState = Omit<
+  ReportState,
+  | 'setReport'
+  | 'setBaseReport'
+  | 'setDeals'
+  | 'setBaseDeals'
+  | 'setMarDegradationPct'
+  | 'clearReport'
+  | 'setHasHydrated'
+>
+
 export const useReportStore = create<ReportState>()(
-  persist(
+  persist<ReportState, [], [], ReportPersistedState>(
     (set) => ({
       report: null,
       baseReport: null,
@@ -42,13 +53,14 @@ export const useReportStore = create<ReportState>()(
       storage: createJSONStorage(() => idbStorage),
       version: 5,
       migrate: (state) => {
-        const report = state?.report as ReportModel | null | undefined
-        const baseReport = state?.baseReport as ReportModel | null | undefined
-        const deals = Array.isArray(state?.deals) ? (state?.deals as DealRow[]) : null
-        const baseDeals = Array.isArray(state?.baseDeals) ? (state?.baseDeals as DealRow[]) : null
+        const stored = state as Partial<ReportPersistedState> | undefined
+        const report = stored?.report as ReportModel | null | undefined
+        const baseReport = stored?.baseReport as ReportModel | null | undefined
+        const deals = Array.isArray(stored?.deals) ? (stored?.deals as DealRow[]) : null
+        const baseDeals = Array.isArray(stored?.baseDeals) ? (stored?.baseDeals as DealRow[]) : null
         const marDegradationPct =
-          typeof state?.marDegradationPct === 'number'
-            ? (state?.marDegradationPct as number)
+          typeof stored?.marDegradationPct === 'number'
+            ? (stored?.marDegradationPct as number)
             : null
         const isValid =
           !!report &&
@@ -57,12 +69,12 @@ export const useReportStore = create<ReportState>()(
           Array.isArray(report.portfolio?.days) &&
           report.portfolio.days.length > 0
         return {
-          ...state,
           report: isValid ? report : null,
           baseReport: isValid ? baseReport ?? (report ?? null) : null,
           deals,
           baseDeals: baseDeals ?? deals,
           marDegradationPct,
+          hasHydrated: stored?.hasHydrated ?? false,
         }
       },
       onRehydrateStorage: () => (state) => {
