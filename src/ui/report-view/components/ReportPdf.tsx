@@ -97,6 +97,7 @@ const ReportPdf = () => {
     pdfCorrelationLabels,
     correlationMatrix,
     correlationLegend,
+    showCorrNumbers,
     lightTheme,
     formatPdfSleeveLabel,
     formatPdfSymbol,
@@ -359,6 +360,8 @@ const ReportPdf = () => {
                     </Typography>
                     {correlationMatrix.values[rowIdx]?.map((value, colIdx) => {
                       const bg = correlationColor(value)
+                      const text = value == null ? '-' : value.toFixed(2)
+                      const isLarge = pdfCorrelationLabels.length > 12
                       const textColor = isLightColor(bg)
                         ? lightTheme.palette.common.black
                         : lightTheme.palette.common.white
@@ -375,8 +378,12 @@ const ReportPdf = () => {
                             borderRadius: 0,
                             backgroundColor: bg,
                             color: textColor,
+                            fontSize: showCorrNumbers ? (isLarge ? 9 : 11) : 0,
+                            lineHeight: 1.2,
                           }}
-                        />
+                        >
+                          {showCorrNumbers ? text : ''}
+                        </Box>
                       )
                     })}
                   </Box>
