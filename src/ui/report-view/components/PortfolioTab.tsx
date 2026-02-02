@@ -112,6 +112,20 @@ const formatWeightValue = (value: number) => value.toFixed(2)
 
 const isWeightInputValue = (value: string) => /^\d*(\.\d{0,2})?$/.test(value)
 
+const resolveGlobalWeightDraft = (draft: Record<string, string>, labels: string[]) => {
+  if (labels.length === 0) return ''
+  let value: string | null = null
+  for (const label of labels) {
+    const next = draft[label] ?? ''
+    if (value == null) {
+      value = next
+      continue
+    }
+    if (next !== value) return ''
+  }
+  return value ?? ''
+}
+
 const PortfolioTab = () => {
   const {
     report,
@@ -156,6 +170,7 @@ const PortfolioTab = () => {
   const [sleeveWeightDraft, setSleeveWeightDraft] = useState<Record<string, string>>(() =>
     Object.fromEntries(sleeveLabels.map((label) => [label, formatWeightValue(1)]))
   )
+  const [globalWeightDraft, setGlobalWeightDraft] = useState(formatWeightValue(1))
 
   useEffect(() => {
     setEnabledSleeves(new Set(sleeveLabels))
@@ -163,18 +178,19 @@ const PortfolioTab = () => {
     setSleeveWeightDraft(
       Object.fromEntries(sleeveLabels.map((label) => [label, formatWeightValue(1)]))
     )
+    setGlobalWeightDraft(formatWeightValue(1))
   }, [sleeveKey])
 
   const openSleeveDialog = () => {
     setSleeveDraft(new Set(enabledSleeves))
-    setSleeveWeightDraft(
-      Object.fromEntries(
-        sleeveLabels.map((label) => [
-          label,
-          formatWeightValue(sleeveWeights[label] ?? 1),
-        ])
-      )
+    const nextDraft = Object.fromEntries(
+      sleeveLabels.map((label) => [
+        label,
+        formatWeightValue(sleeveWeights[label] ?? 1),
+      ])
     )
+    setSleeveWeightDraft(nextDraft)
+    setGlobalWeightDraft(resolveGlobalWeightDraft(nextDraft, sleeveLabels))
     setSleeveDialogOpen(true)
   }
 
@@ -192,13 +208,30 @@ const PortfolioTab = () => {
 
   const updateSleeveWeightDraft = (label: string, value: string) => {
     if (!isWeightInputValue(value)) return
-    setSleeveWeightDraft((prev) => ({ ...prev, [label]: value }))
+    setSleeveWeightDraft((prev) => {
+      const next = { ...prev, [label]: value }
+      setGlobalWeightDraft(resolveGlobalWeightDraft(next, sleeveLabels))
+      return next
+    })
+  }
+
+  const updateGlobalWeightDraft = (value: string) => {
+    if (!isWeightInputValue(value)) return
+    setGlobalWeightDraft(value)
+  }
+
+  const applyGlobalWeightDraft = () => {
+    if (globalWeightDraft === '') return
+    setSleeveWeightDraft(
+      Object.fromEntries(sleeveLabels.map((label) => [label, globalWeightDraft]))
+    )
   }
 
   const resetSleeveWeightDraft = () => {
     setSleeveWeightDraft(
       Object.fromEntries(sleeveLabels.map((label) => [label, formatWeightValue(1)]))
     )
+    setGlobalWeightDraft(formatWeightValue(1))
   }
 
   const applySleeveSelection = () => {
@@ -469,7 +502,7 @@ const PortfolioTab = () => {
       >
         <Stack direction="row" spacing={1} alignItems="center">
           <Button variant="outlined" size="small" onClick={openSleeveDialog}>
-            Change portfolio composition
+              Change portfolio composition
           </Button>
           {isFiltered && (
             <Typography variant="caption" color="text.secondary">
@@ -871,6 +904,24 @@ const PortfolioTab = () => {
             </Button>
             <Button size="small" onClick={resetSleeveWeightDraft}>
               Reset weights
+            </Button>
+          </Stack>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap' }}>
+            <TextField
+              label="All sleeves weight"
+              size="small"
+              value={globalWeightDraft}
+              onChange={(event) => updateGlobalWeightDraft(event.target.value)}
+              inputProps={{ inputMode: 'decimal', step: 0.01 }}
+              sx={{ width: 220 }}
+            />
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={applyGlobalWeightDraft}
+              disabled={globalWeightDraft === ''}
+            >
+              Apply to all
             </Button>
           </Stack>
           <Stack spacing={1.5}>
