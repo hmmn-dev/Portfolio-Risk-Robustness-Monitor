@@ -22,6 +22,7 @@ import {
   TableRow,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
@@ -111,6 +112,13 @@ const buildDefaultWeights = (labels: string[]) =>
 const formatWeightValue = (value: number) => value.toFixed(2)
 
 const isWeightInputValue = (value: string) => /^\d*(\.\d{0,2})?$/.test(value)
+
+const WEIGHT_EPS = 1e-6
+
+const areSortedSleevesEqual = (left: string[], right: string[]) => {
+  if (left.length !== right.length) return false
+  return left.every((value, index) => value === right[index])
+}
 
 const resolveGlobalWeightDraft = (draft: Record<string, string>, labels: string[]) => {
   if (labels.length === 0) return ''
@@ -220,6 +228,18 @@ const PortfolioTab = () => {
     setGlobalWeightDraft(value)
   }
 
+  const resetToBaseline = () => {
+    setEnabledSleeves(new Set(sleeveLabels))
+    setSleeveDraft(new Set(sleeveLabels))
+    const nextWeights = buildDefaultWeights(sleeveLabels)
+    setSleeveWeights(nextWeights)
+    const nextDraft = Object.fromEntries(
+      sleeveLabels.map((label) => [label, formatWeightValue(1)])
+    )
+    setSleeveWeightDraft(nextDraft)
+    setGlobalWeightDraft(formatWeightValue(1))
+  }
+
   const applyGlobalWeightDraft = () => {
     if (globalWeightDraft === '') return
     setSleeveWeightDraft(
@@ -250,6 +270,27 @@ const PortfolioTab = () => {
 
   const enabledCount = enabledSleeves.size
   const totalSleeves = sleeveLabels.length
+  const sortedEnabledSleeves = useMemo(
+    () => stableSort(Array.from(enabledSleeves), (a, b) => a.localeCompare(b)),
+    [enabledSleeves]
+  )
+  const compositionChanged = useMemo(
+    () => !areSortedSleevesEqual(sortedEnabledSleeves, sleeveLabels),
+    [sortedEnabledSleeves, sleeveLabels]
+  )
+  const modifiedWeightCount = useMemo(
+    () =>
+      sleeveLabels.reduce((count, label) => {
+        const weight = sleeveWeights[label] ?? 1
+        if (!Number.isFinite(weight) || Math.abs(weight - 1) <= WEIGHT_EPS) {
+          return count
+        }
+        return count + 1
+      }, 0),
+    [sleeveLabels, sleeveWeights]
+  )
+  const weightsChanged = modifiedWeightCount > 0
+  const isPortfolioModified = compositionChanged || weightsChanged
   const isWeightDraftValid = sleeveLabels.every((label) => {
     const value = sleeveWeightDraft[label]
     if (value == null || value === '') return false
@@ -258,14 +299,25 @@ const PortfolioTab = () => {
   })
   const isApplyDisabled = sleeveDraft.size === 0 || !isWeightDraftValid
   const isFiltered = enabledCount !== totalSleeves
-  const hasCustomWeights = useMemo(
+  const hasCustomWeights = weightsChanged
+  const draftCompositionChanged = useMemo(
+    () => {
+      const sortedDraft = stableSort(Array.from(sleeveDraft), (a, b) => a.localeCompare(b))
+      return !areSortedSleevesEqual(sortedDraft, sleeveLabels)
+    },
+    [sleeveDraft, sleeveLabels]
+  )
+  const draftWeightsChanged = useMemo(
     () =>
       sleeveLabels.some((label) => {
-        const weight = sleeveWeights[label] ?? 1
-        return Number.isFinite(weight) && Math.abs(weight - 1) > 1e-6
+        const raw = sleeveWeightDraft[label]
+        const parsed = Number(raw)
+        if (!Number.isFinite(parsed)) return false
+        return Math.abs(parsed - 1) > WEIGHT_EPS
       }),
-    [sleeveLabels, sleeveWeights]
+    [sleeveLabels, sleeveWeightDraft]
   )
+  const isDraftModified = draftCompositionChanged || draftWeightsChanged
   const usesCustomPortfolio = isFiltered || hasCustomWeights
   const activeContributions = useMemo(
     () => report.contributions.filter((item) => enabledSleeves.has(item.sleeve)),
@@ -492,6 +544,12 @@ const PortfolioTab = () => {
         : theme.palette.error.light
   }
 
+  useEffect(() => {
+    if (isPortfolioModified && drawdownMode === 'mtm') {
+      onDrawdownModeChange('deal')
+    }
+  }, [isPortfolioModified, drawdownMode, onDrawdownModeChange])
+
   return (
     <Stack spacing={2}>
       <Stack
@@ -504,11 +562,23 @@ const PortfolioTab = () => {
           <Button variant="outlined" size="small" onClick={openSleeveDialog}>
               Change portfolio composition
           </Button>
-          {isFiltered && (
+          <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="caption" color="text.secondary">
-              {enabledCount} of {totalSleeves} sleeves enabled
+              {enabledCount} out of {totalSleeves} sleeves selected
             </Typography>
-          )}
+            {weightsChanged && (
+              <Chip
+                size="small"
+                color="warning"
+                variant="outlined"
+                label={
+                  modifiedWeightCount > 0
+                    ? `custom weights (${modifiedWeightCount})`
+                    : 'custom weights'
+                }
+              />
+            )}
+          </Stack>
         </Stack>
         <Stack
           direction="row"
@@ -516,27 +586,41 @@ const PortfolioTab = () => {
           alignItems="center"
           justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
           flexWrap="wrap"
-        >
-          <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-            Portfolio drawdown
-          </Typography>
-          <ToggleButtonGroup
-            size="small"
-            value={drawdownMode}
-            exclusive
-            onChange={(_event, value) => {
-              if (value) onDrawdownModeChange(value)
-            }}
           >
-            <ToggleButton value="deal">Realized</ToggleButton>
-            <ToggleButton value="mtm" disabled={!hasMtmDrawdown}>
-              In-Trade
-            </ToggleButton>
-          </ToggleButtonGroup>
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-          <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-            PnL scale
-          </Typography>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+              Portfolio drawdown
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              value={drawdownMode}
+              exclusive
+              onChange={(_event, value) => {
+                if (value) onDrawdownModeChange(value)
+              }}
+            >
+              <ToggleButton value="deal">Realized</ToggleButton>
+              {isPortfolioModified ? (
+                <Tooltip
+                  title="IN-TRADE drawdown is available only for the original portfolio. Reset composition/weights to enable."
+                  placement="top"
+                  disableInteractive
+                >
+                  <Box component="span" sx={{ display: 'inline-flex' }} tabIndex={0}>
+                    <ToggleButton value="mtm" disabled>
+                      In-Trade
+                    </ToggleButton>
+                  </Box>
+                </Tooltip>
+              ) : (
+                <ToggleButton value="mtm" disabled={!hasMtmDrawdown}>
+                  In-Trade
+                </ToggleButton>
+              )}
+            </ToggleButtonGroup>
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+              PnL scale
+            </Typography>
           <ToggleButtonGroup
             size="small"
             value={pnlScaleMode}
@@ -888,8 +972,43 @@ const PortfolioTab = () => {
           </Box>
         </Stack>
       </Paper>
-      <Dialog open={sleeveDialogOpen} onClose={() => setSleeveDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Change portfolio composition</DialogTitle>
+      <Dialog
+        open={sleeveDialogOpen}
+        onClose={() => setSleeveDialogOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        sx={{ '& .MuiDialog-paper': { maxWidth: 1024 } }}
+      >
+        <DialogTitle>
+          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+            <Box sx={{ minHeight: 38, display: 'flex', alignItems: 'center' }}>
+              <Typography variant="h6">Change portfolio composition</Typography>
+            </Box>
+            {(isPortfolioModified || isDraftModified) && (
+              <Alert
+                severity="info"
+                variant="outlined"
+                action={
+                  <Button size="small" onClick={resetToBaseline}>
+                    Reset to baseline
+                  </Button>
+                }
+                sx={{
+                  height: 38,
+                  minHeight: 38,
+                  py: 0,
+                  alignItems: 'center',
+                  '& .MuiAlert-message': { py: 0, display: 'flex', alignItems: 'center' },
+                  '& .MuiAlert-action': { alignItems: 'center', py: 0, my: 0 },
+                }}
+              >
+                <Typography variant="body2">
+                  IN-TRADE drawdown isn't available for custom portfolios.
+                </Typography>
+              </Alert>
+            )}
+          </Stack>
+        </DialogTitle>
         <DialogContent>
           <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
             <Button
