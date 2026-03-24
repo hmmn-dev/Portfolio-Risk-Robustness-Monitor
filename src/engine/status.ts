@@ -7,11 +7,11 @@ export type StatusResult = {
   shock: ShockFlag
   alphaPercentile: number
   alphaWeakStreakDays: number
-  last3MSharpe: number | null
-  last6MSharpe: number | null
-  last6MWinrate: number | null
+  last1YSharpe: number | null
+  last2YSharpe: number | null
+  overallSharpe: number | null
+  last2YWinrate: number | null
   winratePercentile: number | null
-  last6MExpectancy: number | null
 }
 
 const upperBound = (values: number[], target: number) => {
@@ -60,10 +60,10 @@ const lastFinite = (values: number[]) => {
 export const computeStatus = (inputs: {
   alphaSeries: number[]
   winrateSeries: number[]
-  last3MSharpe: number | null
-  last6MSharpe: number | null
-  last6MWinrate: number | null
-  last6MExpectancy: number | null
+  last1YSharpe: number | null
+  last2YSharpe: number | null
+  overallSharpe: number | null
+  last2YWinrate: number | null
   shock: ShockFlag
   weakWindowDays?: number
 }): StatusResult => {
@@ -78,27 +78,26 @@ export const computeStatus = (inputs: {
     15,
     inputs.weakWindowDays ?? 42
   )
-  const last3MSharpe = toFiniteOrNull(inputs.last3MSharpe)
-  const last6MSharpe = toFiniteOrNull(inputs.last6MSharpe)
-  const last6MWinrate = toFiniteOrNull(inputs.last6MWinrate)
-  const last6MExpectancy = toFiniteOrNull(inputs.last6MExpectancy)
+  const last1YSharpe = toFiniteOrNull(inputs.last1YSharpe)
+  const last2YSharpe = toFiniteOrNull(inputs.last2YSharpe)
+  const overallSharpe = toFiniteOrNull(inputs.overallSharpe)
+  const last2YWinrate = toFiniteOrNull(inputs.last2YWinrate)
   const winratePct = toFiniteOrNull(winratePercentile)
 
   const redCondition =
-    weakStreak >= (inputs.weakWindowDays ?? 42) &&
-    last6MSharpe != null &&
-    last6MSharpe < 0 &&
-    last6MExpectancy != null &&
-    last6MExpectancy < 0 &&
-    winratePct != null &&
-    winratePct < 20
+    inputs.shock === 'RED' ||
+    (overallSharpe != null && overallSharpe < 0)
 
   const greenCondition =
-    (Number.isFinite(alphaPercentile) && alphaPercentile >= 40) ||
-    (last6MSharpe != null && last6MSharpe > 0.5)
+    Number.isFinite(alphaPercentile) &&
+    alphaPercentile >= 40 &&
+    last2YSharpe != null &&
+    last2YSharpe > 0.5
+
   const yellowCondition =
-    (Number.isFinite(alphaPercentile) && alphaPercentile >= 20 && alphaPercentile < 40) ||
-    (last3MSharpe != null && last3MSharpe < 0)
+    (Number.isFinite(alphaPercentile) && alphaPercentile >= 15 && alphaPercentile < 40) ||
+    (last1YSharpe != null && last1YSharpe < 0) ||
+    inputs.shock === 'ORANGE'
 
   let status: StatusFlag = 'YELLOW'
   if (redCondition) {
@@ -112,19 +111,16 @@ export const computeStatus = (inputs: {
   if (inputs.shock === 'ORANGE' && status === 'GREEN') {
     status = 'YELLOW'
   }
-  if (inputs.shock === 'RED') {
-    status = 'RED'
-  }
 
   return {
     status,
     shock: inputs.shock,
     alphaPercentile,
     alphaWeakStreakDays: weakStreak,
-    last3MSharpe,
-    last6MSharpe,
-    last6MWinrate,
+    last1YSharpe,
+    last2YSharpe,
+    overallSharpe,
+    last2YWinrate,
     winratePercentile: winratePct,
-    last6MExpectancy,
   }
 }
