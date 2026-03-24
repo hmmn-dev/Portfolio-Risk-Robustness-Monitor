@@ -7,9 +7,9 @@ export type PerformanceRow = {
   totalPnl: number
   meanAnn: number
   sharpe: number
-  last6mPnl: number
-  last6mMeanAnn: number
-  last6mSharpe: number
+  last2yPnl: number
+  last2yMeanAnn: number
+  last2ySharpe: number
 }
 
 export type RiskRow = {
@@ -20,10 +20,10 @@ export type RiskRow = {
   shock: string
   alphaPct: number | null
   winratePctile: number | null
-  last3mSharpe: number | null
-  last6mSharpe: number | null
-  last6mWinrate: number | null
-  last6mExpectancy: number | null
+  last1ySharpe: number | null
+  last2ySharpe: number | null
+  overallSharpe: number | null
+  last2yWinrate: number | null
   statusReasons: string
   statusAction: string
 }

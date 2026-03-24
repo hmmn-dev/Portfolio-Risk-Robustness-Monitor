@@ -40,6 +40,7 @@ import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined'
 import ShowChartOutlinedIcon from '@mui/icons-material/ShowChartOutlined'
 import PieChartOutlineOutlinedIcon from '@mui/icons-material/PieChartOutlineOutlined'
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined'
+import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
 import { correlation } from '../../engine/correlation'
 import { computeDdShock } from '../../engine/ddShock'
 import { rollingOlsPairs, rollingSharpe, rollingWinrate } from '../../engine/statsRolling'
@@ -80,8 +81,8 @@ type TabValue = 'performance' | 'risk' | 'sleeves' | 'portfolio'
 
 
 const metricWindow = {
-  short: 63,
-  long: 126,
+  short: 252,
+  long: 504,
 }
 
 const ALL_SLEEVES_PLACEHOLDER_HEIGHT = 720
@@ -93,8 +94,8 @@ const computeSleeveMetrics = (
   underlying: UnderlyingDailyReturn[] | null
 ): SleeveMetrics => {
   const returns = sanitizeSeries(getSeriesValues(item.returns))
-  const minObs = window === 126 ? 100 : Math.floor(window * 0.8)
-  const minActive = window === 126 ? 20 : Math.floor(window * 0.2)
+  const minObs = Math.floor(window * 0.8)
+  const minActive = Math.floor(window * 0.2)
   const hasUnderlying = !!underlying && underlying.length > 0
   const returnsMap = hasUnderlying ? buildReturnMap(underlying) : null
   const alignedPrimary = alignPairsByDay(item.returns, returnsMap ?? portfolioReturnMap)
@@ -508,26 +509,26 @@ const ReportView = () => {
         }),
       },
       {
-        header: 'Last 6M PnL',
+        header: 'Last 2Y PnL',
         getCell: (row) => ({
-          text: formatCurrency(row.last6mPnl),
-          negative: row.last6mPnl < 0,
+          text: formatCurrency(row.last2yPnl),
+          negative: row.last2yPnl < 0,
           align: 'right',
         }),
       },
       {
-        header: 'Last 6M Mean ann %',
+        header: 'Last 2Y Mean ann %',
         getCell: (row) => ({
-          text: formatPercent(row.last6mMeanAnn, 2),
-          negative: row.last6mMeanAnn < 0,
+          text: formatPercent(row.last2yMeanAnn, 2),
+          negative: row.last2yMeanAnn < 0,
           align: 'right',
         }),
       },
       {
-        header: 'Last 6M Sharpe',
+        header: 'Last 2Y Sharpe',
         getCell: (row) => ({
-          text: formatNumber(row.last6mSharpe, 2),
-          negative: row.last6mSharpe < 0,
+          text: formatNumber(row.last2ySharpe, 2),
+          negative: row.last2ySharpe < 0,
           align: 'right',
         }),
       },
@@ -550,25 +551,25 @@ const ReportView = () => {
         }),
       },
       {
-        header: 'Last 3M Sharpe',
+        header: 'Last 1Y Sharpe',
         getCell: (row) => ({
-          text: formatNumber(row.last3mSharpe, 2),
-          negative: (row.last3mSharpe ?? 0) < 0,
+          text: formatNumber(row.last1ySharpe, 2),
+          negative: (row.last1ySharpe ?? 0) < 0,
           align: 'right',
         }),
       },
       {
-        header: 'Last 6M Sharpe',
+        header: 'Last 2Y Sharpe',
         getCell: (row) => ({
-          text: formatNumber(row.last6mSharpe, 2),
-          negative: (row.last6mSharpe ?? 0) < 0,
+          text: formatNumber(row.last2ySharpe, 2),
+          negative: (row.last2ySharpe ?? 0) < 0,
           align: 'right',
         }),
       },
       {
-        header: 'Last 6M Winrate',
+        header: 'Last 2Y Winrate',
         getCell: (row) => ({
-          text: formatRate(row.last6mWinrate, 1),
+          text: formatRate(row.last2yWinrate, 1),
           align: 'right',
         }),
       },
@@ -664,11 +665,11 @@ const ReportView = () => {
       const meanReturn = computeMean(returns)
       const meanAnn = meanReturn * 252 * 100
       const sharpe = computeSharpe(returns)
-      const last6mReturns = returns.slice(-metricWindow.long)
-      const last6mPnl = sumFinite(pnl.slice(-metricWindow.long))
-      const last6mMean = computeMean(last6mReturns)
-      const last6mMeanAnn = last6mMean * 252 * 100
-      const last6mSharpe = computeSharpe(last6mReturns)
+      const last2yReturns = returns.slice(-metricWindow.long)
+      const last2yPnl = sumFinite(pnl.slice(-metricWindow.long))
+      const last2yMean = computeMean(last2yReturns)
+      const last2yMeanAnn = last2yMean * 252 * 100
+      const last2ySharpe = computeSharpe(last2yReturns)
       const sleeveParts = splitSleeveLabel(item.sleeve)
 
       return {
@@ -678,9 +679,9 @@ const ReportView = () => {
         totalPnl,
         meanAnn,
         sharpe,
-        last6mPnl,
-        last6mMeanAnn,
-        last6mSharpe,
+        last2yPnl,
+        last2yMeanAnn,
+        last2ySharpe,
       }
     })
   }, [report])
@@ -690,8 +691,8 @@ const ReportView = () => {
     return report.contributions.map((item, index) => {
       const drawdownPercent = getSleeveDrawdown(item)
       const returns = sanitizeSeries(getSeriesValues(item.returns))
-      const minObs = metricWindow.long === 126 ? 100 : Math.floor(metricWindow.long * 0.8)
-      const minActive = metricWindow.long === 126 ? 20 : Math.floor(metricWindow.long * 0.2)
+      const minObs = Math.floor(metricWindow.long * 0.8)
+      const minActive = Math.floor(metricWindow.long * 0.2)
       const underlying = getUnderlyingForSymbol(item.symbol, item.sleeve)
       const returnsMap =
         underlying && underlying.length > 0 ? buildReturnMap(underlying) : portfolioReturnMap
@@ -706,27 +707,55 @@ const ReportView = () => {
       }).alpha
       const alphaPercentiles = computeAlphaPercentiles(alphaSeries)
       const alphaPct = getLastFinite(alphaPercentiles)
-      const last3MSharpe = getLastFinite(rollingSharpe(returns, metricWindow.short))
-      const last6MSharpe = getLastFinite(rollingSharpe(returns, metricWindow.long))
+      const last1YSharpe = getLastFinite(rollingSharpe(returns, metricWindow.short))
+      const last2YSharpe = getLastFinite(rollingSharpe(returns, metricWindow.long))
+      const overallSharpe = computeSharpe(returns)
       const winrateSeries = rollingWinrate(returns, metricWindow.long)
-      const last6MWinrate = getLastFinite(winrateSeries)
-      const last6MExpectancy = computeMean(returns.slice(-metricWindow.long))
+      const last2YWinrate = getLastFinite(winrateSeries)
       const shock = computeDdShock(drawdownPercent).flag
+      const alphaPctFinite = Number.isFinite(alphaPct) ? alphaPct : null
+      const redTriggers: string[] = []
+      const yellowTriggers: string[] = []
+      if (alphaPctFinite != null && alphaPctFinite < 15) {
+        yellowTriggers.push('alpha pctile < 15')
+      } else if (alphaPctFinite != null && alphaPctFinite < 40) {
+        yellowTriggers.push('alpha pctile 15–40')
+      }
+      const negSharpe = Number.isFinite(overallSharpe) && overallSharpe < 0
+      if (negSharpe) {
+        redTriggers.push('Overall Sharpe < 0')
+      }
+      if (Number.isFinite(last1YSharpe) && last1YSharpe < 0) {
+        yellowTriggers.push('1Y Sharpe < 0')
+      }
+      if (shock === 'ORANGE') {
+        yellowTriggers.push('dd shock ORANGE')
+        if (negSharpe) {
+          redTriggers.push('dd shock ORANGE')
+        }
+      }
+      if (shock === 'RED') {
+        redTriggers.push('dd shock RED')
+      }
       const status = computeStatus({
         alphaSeries: alphaSeries,
         winrateSeries,
-        last3MSharpe: Number.isFinite(last3MSharpe) ? last3MSharpe : null,
-        last6MSharpe: Number.isFinite(last6MSharpe) ? last6MSharpe : null,
-        last6MWinrate: Number.isFinite(last6MWinrate) ? last6MWinrate : null,
-        last6MExpectancy: Number.isFinite(last6MExpectancy) ? last6MExpectancy : null,
+        last1YSharpe: Number.isFinite(last1YSharpe) ? last1YSharpe : null,
+        last2YSharpe: Number.isFinite(last2YSharpe) ? last2YSharpe : null,
+        overallSharpe: Number.isFinite(overallSharpe) ? overallSharpe : null,
+        last2YWinrate: Number.isFinite(last2YWinrate) ? last2YWinrate : null,
         shock,
       })
       const reasonSummary =
         status.status === 'RED'
-          ? 'Reason: prolonged weak alpha + negative Sharpe + negative expectancy + low winrate percentile.'
+          ? `Reason: ${
+              redTriggers.length > 0
+                ? redTriggers.join('; ')
+                : 'Overall Sharpe < 0'
+            }.`
           : status.status === 'YELLOW'
-            ? 'Reason: mixed alpha or negative 3M Sharpe.'
-            : 'Reason: strong alpha or 6M Sharpe > 0.5.'
+            ? `Reason: ${yellowTriggers.length > 0 ? yellowTriggers.join('; ') : 'insufficient signal for green'}.`
+            : 'Reason: alpha pctile >= 40 and 2Y Sharpe > 0.5.'
       const reasons = [reasonSummary]
       const action =
         status.status === 'RED'
@@ -744,10 +773,10 @@ const ReportView = () => {
         shock: status.shock,
         alphaPct: Number.isFinite(alphaPct) ? alphaPct : null,
         winratePctile: status.winratePercentile,
-        last3mSharpe: status.last3MSharpe,
-        last6mSharpe: status.last6MSharpe,
-        last6mWinrate: status.last6MWinrate,
-        last6mExpectancy: status.last6MExpectancy,
+        last1ySharpe: status.last1YSharpe,
+        last2ySharpe: status.last2YSharpe,
+        overallSharpe: status.overallSharpe,
+        last2yWinrate: status.last2YWinrate,
         statusReasons: reasons.join('\n'),
         statusAction: action,
       }
@@ -827,36 +856,36 @@ const ReportView = () => {
           ),
       },
       {
-        field: 'last6mPnl',
-        headerName: 'Last 6M PnL',
+        field: 'last2yPnl',
+        headerName: 'Last 2Y PnL',
         flex: 0.8,
         minWidth: 140,
         renderCell: (params) =>
           renderSigned(
-            params.row.last6mPnl as number | null,
-            formatCurrency(params.row.last6mPnl as number | null)
+            params.row.last2yPnl as number | null,
+            formatCurrency(params.row.last2yPnl as number | null)
           ),
       },
       {
-        field: 'last6mMeanAnn',
-        headerName: 'Last 6M Mean ann %',
+        field: 'last2yMeanAnn',
+        headerName: 'Last 2Y Mean ann %',
         flex: 0.9,
         minWidth: 180,
         renderCell: (params) =>
           renderSigned(
-            params.row.last6mMeanAnn as number | null,
-            formatPercent(params.row.last6mMeanAnn as number | null, 2)
+            params.row.last2yMeanAnn as number | null,
+            formatPercent(params.row.last2yMeanAnn as number | null, 2)
           ),
       },
       {
-        field: 'last6mSharpe',
-        headerName: 'Last 6M Sharpe',
+        field: 'last2ySharpe',
+        headerName: 'Last 2Y Sharpe',
         flex: 0.8,
         minWidth: 150,
         renderCell: (params) =>
           renderSigned(
-            params.row.last6mSharpe as number | null,
-            formatNumber(params.row.last6mSharpe as number | null, 2)
+            params.row.last2ySharpe as number | null,
+            formatNumber(params.row.last2ySharpe as number | null, 2)
           ),
       },
     ]
@@ -887,30 +916,120 @@ const ReportView = () => {
         field: 'status',
         headerName: 'Status',
         flex: 0.6,
-        minWidth: 110,
+        minWidth: 180,
+        headerClassName: 'status-header',
+        renderHeader: () => (
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              Status
+            </Typography>
+            <Tooltip
+              placement="top"
+              slotProps={{ tooltip: { sx: { maxWidth: 600 } } }}
+              title={
+                <Box sx={{ p: 1, maxWidth: 600 }}>
+                  <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, mb: 0.5 }}>
+                    Status Legend
+                  </Typography>
+                  <Stack spacing={0.75}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip
+                        size="small"
+                        label="GREEN"
+                        sx={{
+                          backgroundColor: theme.palette.success.main,
+                          color: theme.palette.getContrastText(theme.palette.success.main),
+                        }}
+                      />
+                      <Typography variant="caption">
+                        <strong>Alpha pctile</strong> {'\u2265'} 40 and <strong>2Y Sharpe</strong>{' '}
+                        {'>'} 0.5
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip
+                        size="small"
+                        label="YELLOW"
+                        sx={{
+                          backgroundColor: theme.palette.warning.dark,
+                          color: theme.palette.getContrastText(theme.palette.warning.dark),
+                        }}
+                      />
+                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                        <strong>Alpha pctile</strong> {'<'} 40 or <strong>1Y Sharpe</strong> {'<'} 0
+                        or <strong> DD shock</strong> ORANGE
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip
+                        size="small"
+                        label="RED"
+                        sx={{
+                          backgroundColor: theme.palette.error.dark,
+                          color: theme.palette.getContrastText(theme.palette.error.dark),
+                        }}
+                      />
+                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                        <strong>DD shock</strong> RED or <strong>Overall Sharpe</strong> {'<'} 0
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip
+                        size="small"
+                        label="SHOCK"
+                        sx={{
+                          backgroundColor: theme.palette.warning.dark,
+                          color: theme.palette.getContrastText(theme.palette.warning.dark),
+                        }}
+                      />
+                      <Typography variant="caption">
+                        ORANGE downgrades GREEN → YELLOW; RED forces RED
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                </Box>
+              }
+            >
+              <Box
+                component="span"
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  color: 'text.secondary',
+                }}
+              >
+                <HelpOutlineOutlinedIcon fontSize="small" />
+              </Box>
+            </Tooltip>
+          </Stack>
+        ),
         renderCell: (params) => {
           const value = String(params.row.status ?? '')
           const color =
             value === 'GREEN'
               ? theme.palette.success.main
               : value === 'YELLOW'
-                ? theme.palette.warning.main
+                ? theme.palette.warning.dark
                 : value === 'RED'
-                  ? theme.palette.error.main
+                  ? theme.palette.error.dark
                   : theme.palette.grey[600]
           const textColor = theme.palette.getContrastText(color)
           const shock = String(params.row.shock ?? '')
           const severityColor =
             value === 'RED'
-              ? theme.palette.error.main
+              ? theme.palette.error.light
               : value === 'YELLOW' || shock === 'ORANGE'
-                ? theme.palette.warning.main
-                : theme.palette.error.main
+                ? theme.palette.warning.light
+                : theme.palette.error.light
           const formatMetric = (label: string, raw: string, bad: boolean) => (
             <Typography
               key={label}
               variant="caption"
-              sx={{ display: 'block', color: bad ? severityColor : 'inherit' }}
+              sx={{
+                display: 'block',
+                color: bad ? severityColor : 'inherit',
+                fontWeight: bad ? 700 : 400,
+              }}
             >
               • {label} {raw}
             </Typography>
@@ -919,7 +1038,7 @@ const ReportView = () => {
             formatMetric(
               'alpha pctile',
               params.row.alphaPct != null ? `${Math.round(params.row.alphaPct)}%` : 'n/a',
-              params.row.alphaPct != null && params.row.alphaPct < 15
+              params.row.alphaPct == null || params.row.alphaPct < 40
             ),
             formatMetric(
               'winrate pctile',
@@ -927,28 +1046,26 @@ const ReportView = () => {
               params.row.winratePctile != null && params.row.winratePctile < 20
             ),
             formatMetric(
-              'last 3M sharpe',
-              params.row.last3mSharpe != null ? params.row.last3mSharpe.toFixed(2) : 'n/a',
-              params.row.last3mSharpe != null && params.row.last3mSharpe < 0
+              'last 1Y sharpe',
+              params.row.last1ySharpe != null ? params.row.last1ySharpe.toFixed(2) : 'n/a',
+              params.row.last1ySharpe != null && params.row.last1ySharpe < 0
             ),
             formatMetric(
-              'last 6M sharpe',
-              params.row.last6mSharpe != null ? params.row.last6mSharpe.toFixed(2) : 'n/a',
-              params.row.last6mSharpe != null && params.row.last6mSharpe < 0
+              'last 2Y sharpe',
+              params.row.last2ySharpe != null ? params.row.last2ySharpe.toFixed(2) : 'n/a',
+              params.row.last2ySharpe != null && params.row.last2ySharpe < 0
             ),
             formatMetric(
-              'last 6M winrate',
-              params.row.last6mWinrate != null
-                ? `${Math.round(params.row.last6mWinrate * 100)}%`
+              'overall sharpe',
+              params.row.overallSharpe != null ? params.row.overallSharpe.toFixed(2) : 'n/a',
+              params.row.overallSharpe != null && params.row.overallSharpe < 0
+            ),
+            formatMetric(
+              'last 2Y winrate',
+              params.row.last2yWinrate != null
+                ? `${Math.round(params.row.last2yWinrate * 100)}%`
                 : 'n/a',
               false
-            ),
-            formatMetric(
-              'last 6M expectancy',
-              params.row.last6mExpectancy != null
-                ? `${(params.row.last6mExpectancy * 100).toFixed(2)}%`
-                : 'n/a',
-              params.row.last6mExpectancy != null && params.row.last6mExpectancy < 0
             ),
           ]
           if (shock !== 'NONE') {
@@ -998,7 +1115,74 @@ const ReportView = () => {
         field: 'shock',
         headerName: 'Shock',
         flex: 0.6,
-        minWidth: 110,
+        minWidth: 160,
+        headerClassName: 'shock-header',
+        renderHeader: () => (
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              Shock
+            </Typography>
+            <Tooltip
+              placement="top"
+              slotProps={{ tooltip: { sx: { maxWidth: 360 } } }}
+              title={
+                <Box sx={{ p: 1 }}>
+                  <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, mb: 0.5 }}>
+                    DD Shock Logic
+                  </Typography>
+                  <Stack spacing={0.75}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip
+                        size="small"
+                        label="ORANGE"
+                        sx={{
+                          backgroundColor: theme.palette.warning.main,
+                          color: theme.palette.getContrastText(theme.palette.warning.main),
+                        }}
+                      />
+                      <Typography variant="caption">
+                        Downgrades GREEN → YELLOW
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip
+                        size="small"
+                        label="RED"
+                        sx={{
+                          backgroundColor: theme.palette.error.main,
+                          color: theme.palette.getContrastText(theme.palette.error.main),
+                        }}
+                      />
+                      <Typography variant="caption">Forces RED status</Typography>
+                    </Stack>
+                    <Typography variant="caption">
+                      Based on last <strong>63 trading days</strong> of drawdown magnitude.
+                    </Typography>
+                    <Typography variant="caption">
+                      <strong>ORANGE</strong> when <strong>last-window DD</strong> is ≥{' '}
+                      <strong>1.5×</strong> prior max DD, or ≥ <strong>5%</strong> if no prior DD.
+                    </Typography>
+                    <Typography variant="caption">
+                      <strong>RED</strong> when <strong>last-window DD</strong> is ≥{' '}
+                      <strong>2.0×</strong> prior max DD.
+                    </Typography>
+                  </Stack>
+                </Box>
+              }
+            >
+              <Box
+                component="span"
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  color: 'text.secondary',
+                }}
+              >
+                <HelpOutlineOutlinedIcon fontSize="small" />
+              </Box>
+            </Tooltip>
+          </Stack>
+        ),
         renderCell: (params) => {
           const value = String(params.row.shock ?? '')
           const color =
@@ -1017,7 +1201,7 @@ const ReportView = () => {
               sx={{
                 backgroundColor: color,
                 color: textColor,
-                fontWeight: 500,
+                fontWeight: value === 'YELLOW' || value === 'RED' ? 700 : 600,
                 borderColor: color,
               }}
             />
@@ -1036,33 +1220,33 @@ const ReportView = () => {
           ),
       },
       {
-        field: 'last3mSharpe',
-        headerName: 'Last 3M Sharpe',
+        field: 'last1ySharpe',
+        headerName: 'Last 1Y Sharpe',
         flex: 0.8,
         minWidth: 150,
         renderCell: (params) =>
           renderSigned(
-            params.row.last3mSharpe as number | null,
-            formatNumber(params.row.last3mSharpe as number | null, 2)
+            params.row.last1ySharpe as number | null,
+            formatNumber(params.row.last1ySharpe as number | null, 2)
           ),
       },
       {
-        field: 'last6mSharpe',
-        headerName: 'Last 6M Sharpe',
+        field: 'last2ySharpe',
+        headerName: 'Last 2Y Sharpe',
         flex: 0.8,
         minWidth: 150,
         renderCell: (params) =>
           renderSigned(
-            params.row.last6mSharpe as number | null,
-            formatNumber(params.row.last6mSharpe as number | null, 2)
+            params.row.last2ySharpe as number | null,
+            formatNumber(params.row.last2ySharpe as number | null, 2)
           ),
       },
       {
-        field: 'last6mWinrate',
-        headerName: 'Last 6M Winrate',
+        field: 'last2yWinrate',
+        headerName: 'Last 2Y Winrate',
         flex: 0.8,
         minWidth: 150,
-        renderCell: (params) => formatRate(params.row.last6mWinrate as number | null, 1),
+        renderCell: (params) => formatRate(params.row.last2yWinrate as number | null, 1),
       },
     ]
   }, [isDark, negativeColor])

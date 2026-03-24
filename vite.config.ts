@@ -6,7 +6,7 @@ export default defineConfig(({ command }) => ({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/engine/**/*.test.ts'],
+    include: ['src/**/*.test.ts'],
   },
-  base: command === "build" ? "/Portfolio-Risk-Robustness-Monitor/" : "/",
-}));
+  base: command === 'build' ? '/Portfolio-Risk-Robustness-Monitor/' : '/',
+}))

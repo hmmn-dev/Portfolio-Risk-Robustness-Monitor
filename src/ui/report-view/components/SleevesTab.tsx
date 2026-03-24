@@ -201,8 +201,8 @@ const SleevesTab = () => {
               },
             }}
           >
-            <ToggleButton value={metricWindow.short}>3M</ToggleButton>
-            <ToggleButton value={metricWindow.long}>6M</ToggleButton>
+            <ToggleButton value={metricWindow.short}>1Y</ToggleButton>
+            <ToggleButton value={metricWindow.long}>2Y</ToggleButton>
           </ToggleButtonGroup>
         </Stack>
       </Box>

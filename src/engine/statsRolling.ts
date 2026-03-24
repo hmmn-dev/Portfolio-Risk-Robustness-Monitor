@@ -23,6 +23,7 @@ export const rollingSharpe = (values: number[], window: number): number[] => {
   const sums = prefixSums(values)
   const sumsSq = prefixSums(values.map((value) => value * value))
   const result: number[] = []
+  const annualization = Math.sqrt(252)
 
   for (let i = 0; i < values.length; i += 1) {
     if (i + 1 < window) {
@@ -35,7 +36,7 @@ export const rollingSharpe = (values: number[], window: number): number[] => {
     const mean = sum / window
     const variance = sumSq / window - mean * mean
     const stdev = variance > 0 ? Math.sqrt(variance) : 0
-    result.push(stdev === 0 ? Number.NaN : mean / stdev)
+    result.push(stdev === 0 ? Number.NaN : (mean / stdev) * annualization)
   }
 
   return result
