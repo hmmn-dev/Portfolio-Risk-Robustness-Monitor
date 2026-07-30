@@ -1,0 +1,4 @@
+interface:
+  display_name: 'React Refactor'
+  short_description: 'Refactor React structure without behavior changes'
+  default_prompt: 'Use $react-refactor to prepare and execute this refactor without changing behavior.'

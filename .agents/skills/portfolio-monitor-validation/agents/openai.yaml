@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Portfolio Monitor Validation'
+  short_description: 'Validate portfolio metrics and monitoring UI'
+  default_prompt: 'Use $portfolio-monitor-validation to verify this monitoring behavior and its edge cases.'

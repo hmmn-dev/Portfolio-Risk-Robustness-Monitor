@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Safe React Change'
+  short_description: 'Implement React changes with reliable validation'
+  default_prompt: 'Use $safe-react-change to implement this React change safely and verify it.'
