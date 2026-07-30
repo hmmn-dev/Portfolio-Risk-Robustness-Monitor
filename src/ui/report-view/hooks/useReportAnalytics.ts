@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { stableSort } from '../../../engine/stableSort'
 import type { ReportModel, UnderlyingSeries } from '../../../engine/types'
-import { buildReturnMap, resolveBaseCapital } from '../helpers'
+import { buildReturnMap, resolveBaseCapital } from '../helpers/series'
 import {
   buildCorrelationMatrix,
   buildPerformanceRows,

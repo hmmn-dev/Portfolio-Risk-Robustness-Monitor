@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import type { DailyPoint, ReportModel, UnderlyingDailyReturn } from '../../../engine/types'
 import {
-  alignPairsByDay,
-  computeMean,
   computePadding,
   computeSeriesBounds,
-  computeSharpe,
-  computeWinrate,
   ensureStartPoint,
   fillSeries,
+} from '../helpers/chartSeries'
+import {
+  alignPairsByDay,
+  computeMean,
+  computeSharpe,
+  computeWinrate,
   getLastFinite,
-  invertMatrix,
-  multiplyMatrixVector,
-  portfolioRegression,
   resolveBaseCapital,
   sanitizeSeries,
   sumFinite,
-} from '../helpers'
+} from '../helpers/series'
+import { invertMatrix, multiplyMatrixVector, portfolioRegression } from '../helpers/regression'
 
 const day = (offset: number) => Date.UTC(2024, 0, 1 + offset)
 

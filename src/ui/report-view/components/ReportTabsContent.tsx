@@ -2,10 +2,10 @@ import PerformanceTab from './PerformanceTab'
 import PortfolioTab from './PortfolioTab'
 import RiskTab from './RiskTab'
 import SleevesTab from './SleevesTab'
-import { useReportViewContext } from './ReportViewContext'
+import { useReportNavigation } from './ReportViewContext'
 
 const ReportTabsContent = () => {
-  const { tab } = useReportViewContext()
+  const { tab } = useReportNavigation()
   if (tab === 'performance') {
     return <PerformanceTab />
   }

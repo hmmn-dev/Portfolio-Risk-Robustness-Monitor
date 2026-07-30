@@ -1,26 +1,27 @@
-import { correlation } from '../../engine/correlation'
 import { computeDdShock } from '../../engine/ddShock'
-import { stableSort } from '../../engine/stableSort'
 import { rollingOlsPairs, rollingSharpe, rollingWinrate } from '../../engine/statsRolling'
 import { computeAlphaPercentiles, computeStatus } from '../../engine/status'
 import type { ReportModel, UnderlyingDailyReturn, UnderlyingSeries } from '../../engine/types'
 import type { SleeveMetrics } from './components/SleeveSection'
 import {
-  alignPairsByDay,
   buildObfuscationMap,
-  buildReturnMap,
   buildSleeveKey,
+  normalizeSymbol,
+  splitSleeveLabel,
+} from './helpers/labels'
+import { computeSeriesBounds } from './helpers/chartSeries'
+import { portfolioRegression } from './helpers/regression'
+import {
+  alignPairsByDay,
+  buildReturnMap,
   computeMean,
-  computeSeriesBounds,
   computeSharpe,
   getLastFinite,
   getSeriesValues,
-  normalizeSymbol,
-  portfolioRegression,
   sanitizeSeries,
-  splitSleeveLabel,
   sumFinite,
-} from './helpers'
+} from './helpers/series'
+import { buildContributionCorrelationMatrix } from './portfolio/portfolioCalculations'
 import type { CorrelationMatrix, PerformanceRow, PortfolioSummary, RiskRow } from './types'
 
 export const METRIC_WINDOW = {
@@ -295,39 +296,8 @@ export const buildRiskRows = (
     }
   })
 
-export const buildCorrelationMatrix = (report: ReportModel): CorrelationMatrix => {
-  const labels = stableSort(
-    report.contributions.map((item) => item.sleeve),
-    (a, b) => a.localeCompare(b),
-  )
-  const returnsBySleeve = new Map(
-    report.contributions.map((item) => [item.sleeve, getSeriesValues(item.returns)]),
-  )
-  const safeCorrelation = (seriesA: number[], seriesB: number[]) => {
-    const pairs: [number, number][] = []
-    const length = Math.min(seriesA.length, seriesB.length)
-    for (let index = 0; index < length; index += 1) {
-      const a = seriesA[index]
-      const b = seriesB[index]
-      if (Number.isFinite(a) && Number.isFinite(b)) pairs.push([a, b])
-    }
-    if (pairs.length < 2) return null
-    const value = correlation(
-      pairs.map(([a]) => a),
-      pairs.map(([, b]) => b),
-    )
-    return Number.isFinite(value) ? value : null
-  }
-
-  return {
-    labels,
-    values: labels.map((a) =>
-      labels.map((b) =>
-        safeCorrelation(returnsBySleeve.get(a) ?? [], returnsBySleeve.get(b) ?? []),
-      ),
-    ),
-  }
-}
+export const buildCorrelationMatrix = (report: ReportModel): CorrelationMatrix =>
+  buildContributionCorrelationMatrix(report.contributions)
 
 export const buildReportObfuscation = (
   report: ReportModel,

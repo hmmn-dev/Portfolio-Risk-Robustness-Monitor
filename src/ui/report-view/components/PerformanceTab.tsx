@@ -1,9 +1,9 @@
 import { DataGrid } from '@mui/x-data-grid'
 import dataGridSx from './dataGridSx'
-import { useReportViewContext } from './ReportViewContext'
+import { useReportTables } from './ReportViewContext'
 
 const PerformanceTab = () => {
-  const { performanceRows, gridPerformanceColumns } = useReportViewContext()
+  const { performanceRows, gridPerformanceColumns } = useReportTables()
   return (
     <DataGrid
       autoHeight

@@ -1,6 +1,6 @@
 import type { DailyPoint } from '../../engine/types'
 import { formatAxisDate } from './formatters'
-import { computePadding, ensureStartPoint, fillSeries } from './helpers'
+import { computePadding, ensureStartPoint, fillSeries } from './helpers/chartSeries'
 
 export const buildLineOptions = ({
   data,

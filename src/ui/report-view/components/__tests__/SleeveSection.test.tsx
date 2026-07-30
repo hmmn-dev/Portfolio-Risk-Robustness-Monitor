@@ -29,7 +29,7 @@ describe('SleeveSection', () => {
     renderWithTheme(
       <SleeveSection
         item={item}
-        metrics={context.selectedSleeveMetrics}
+        metrics={context.sleeves.selectedSleeveMetrics}
         baseCapital={10000}
         drawdownSeries={item.drawdown}
         drawdownSource="H1"
@@ -70,7 +70,7 @@ describe('SleeveSectionPrint', () => {
     renderWithTheme(
       <SleeveSectionPrint
         item={item}
-        metrics={context.selectedSleeveMetrics!}
+        metrics={context.sleeves.selectedSleeveMetrics!}
         baseCapital={10000}
         drawdownSeries={item.drawdown}
         drawdownSource="D1"

@@ -1,6 +1,13 @@
 import { createTheme } from '@mui/material/styles'
 import type { ReportModel } from '../engine/types'
-import type { ReportViewContextValue } from '../ui/report-view/components/ReportViewContext'
+import type {
+  ReportNavigationContextValue,
+  ReportPdfContextValue,
+  ReportPortfolioContextValue,
+  ReportSleevesContextValue,
+  ReportTablesContextValue,
+  ReportViewContextValues,
+} from '../ui/report-view/components/ReportViewContext'
 
 const day = (offset: number) => Date.UTC(2024, 0, 1 + offset)
 
@@ -87,9 +94,15 @@ export const createReport = (): ReportModel => ({
 const noop = () => undefined
 const theme = createTheme()
 
+type ReportFixtureValue = ReportNavigationContextValue &
+  ReportTablesContextValue &
+  ReportSleevesContextValue &
+  ReportPortfolioContextValue &
+  ReportPdfContextValue
+
 export const createReportContext = (
-  overrides: Partial<ReportViewContextValue> = {},
-): ReportViewContextValue => {
+  overrides: Partial<ReportFixtureValue> = {},
+): ReportViewContextValues => {
   const report = overrides.report ?? createReport()
   const selectedContribution = overrides.selectedContribution ?? report.contributions[0]
   const metrics = {
@@ -100,7 +113,7 @@ export const createReportContext = (
     winrateSeries: [{ time: day(1), value: 0.6 }],
   }
 
-  return {
+  const value: ReportFixtureValue = {
     tab: 'performance',
     report,
     deals: null,
@@ -210,5 +223,98 @@ export const createReportContext = (
     underlyingTimeframes: {},
     underlyingSeries: [],
     ...overrides,
+  }
+
+  return {
+    navigation: { tab: value.tab },
+    tables: {
+      performanceRows: value.performanceRows,
+      gridPerformanceColumns: value.gridPerformanceColumns,
+      riskRows: value.riskRows,
+      gridRiskColumns: value.gridRiskColumns,
+    },
+    sleeves: {
+      report: value.report,
+      sleeves: value.sleeves,
+      selectedContribution: value.selectedContribution,
+      selectedSleeveMetrics: value.selectedSleeveMetrics,
+      buildSleeveMetrics: value.buildSleeveMetrics,
+      sleeveViewMode: value.sleeveViewMode,
+      onSleeveViewModeChange: value.onSleeveViewModeChange,
+      drawdownMode: value.drawdownMode,
+      onDrawdownModeChange: value.onDrawdownModeChange,
+      hasMtmDrawdown: value.hasMtmDrawdown,
+      pnlScaleMode: value.pnlScaleMode,
+      onPnlScaleModeChange: value.onPnlScaleModeChange,
+      rollingWindow: value.rollingWindow,
+      onRollingWindowChange: value.onRollingWindowChange,
+      metricWindow: value.metricWindow,
+      baseCapital: value.baseCapital,
+      pnlColor: value.pnlColor,
+      axisColor: value.axisColor,
+      gridColor: value.gridColor,
+      theme: value.theme,
+      isDark: value.isDark,
+      getSleeveDrawdown: value.getSleeveDrawdown,
+      getSleeveDrawdownSource: value.getSleeveDrawdownSource,
+      allSleevesPlaceholderHeight: value.allSleevesPlaceholderHeight,
+      onSelectSleeve: value.onSelectSleeve,
+    },
+    portfolio: {
+      report: value.report,
+      deals: value.deals,
+      baseCapital: value.baseCapital,
+      drawdownMode: value.drawdownMode,
+      onDrawdownModeChange: value.onDrawdownModeChange,
+      hasMtmDrawdown: value.hasMtmDrawdown,
+      pnlScaleMode: value.pnlScaleMode,
+      onPnlScaleModeChange: value.onPnlScaleModeChange,
+      pnlColor: value.pnlColor,
+      axisColor: value.axisColor,
+      gridColor: value.gridColor,
+      portfolioDrawdown: value.portfolioDrawdown,
+      portfolioDrawdownSource: value.portfolioDrawdownSource,
+      showCorrNumbers: value.showCorrNumbers,
+      onShowCorrNumbersChange: value.onShowCorrNumbersChange,
+      correlationMatrix: value.correlationMatrix,
+      correlationLegend: value.correlationLegend,
+      cellSize: value.cellSize,
+      theme: value.theme,
+      portfolioSummary: value.portfolioSummary,
+      riskRows: value.riskRows,
+      underlyingTimeframes: value.underlyingTimeframes,
+      underlyingSeries: value.underlyingSeries,
+    },
+    pdf: {
+      report: value.report,
+      riskRows: value.riskRows,
+      baseCapital: value.baseCapital,
+      portfolioDrawdown: value.portfolioDrawdown,
+      portfolioDrawdownSource: value.portfolioDrawdownSource,
+      drawdownMode: value.drawdownMode,
+      pnlScaleMode: value.pnlScaleMode,
+      correlationMatrix: value.correlationMatrix,
+      correlationLegend: value.correlationLegend,
+      showCorrNumbers: value.showCorrNumbers,
+      portfolioSummary: value.portfolioSummary,
+      buildSleeveMetrics: value.buildSleeveMetrics,
+      getSleeveDrawdown: value.getSleeveDrawdown,
+      getSleeveDrawdownSource: value.getSleeveDrawdownSource,
+      pdfPerformanceRows: value.pdfPerformanceRows,
+      pdfRiskRows: value.pdfRiskRows,
+      pdfPerformanceColumns: value.pdfPerformanceColumns,
+      pdfRiskColumns: value.pdfRiskColumns,
+      pdfName: value.pdfName,
+      pdfPageWidth: value.pdfPageWidth,
+      pdfPageMinHeight: value.pdfPageMinHeight,
+      pdfCorrelationCellSize: value.pdfCorrelationCellSize,
+      pdfCorrelationLabels: value.pdfCorrelationLabels,
+      lightTheme: value.lightTheme,
+      printPnlColor: value.printPnlColor,
+      printAxisColor: value.printAxisColor,
+      printGridColor: value.printGridColor,
+      formatPdfSleeveLabel: value.formatPdfSleeveLabel,
+      formatPdfSymbol: value.formatPdfSymbol,
+    },
   }
 }

@@ -1,0 +1,84 @@
+import { describe, expect, it } from 'vitest'
+import { createReport } from '../../../test/reportFixtures'
+import {
+  applyDrawdownToSummary,
+  buildContributionCorrelationMatrix,
+  buildCustomPortfolioSummary,
+  buildDailyReturnPoints,
+  buildIndexAndDrawdown,
+  buildMonthlyReturnRows,
+  buildWeightedPortfolio,
+} from '../portfolio/portfolioCalculations'
+import {
+  buildDefaultWeights,
+  countModifiedWeights,
+  normalizeWeightDraft,
+  resolveGlobalWeightDraft,
+} from '../portfolio/portfolioWeights'
+
+describe('portfolio calculations', () => {
+  it('compounds index, drawdown, and monthly return rows deterministically', () => {
+    const returns = [
+      { time: Date.UTC(2024, 0, 2), value: 0.1 },
+      { time: Date.UTC(2024, 0, 3), value: -0.2 },
+      { time: Date.UTC(2024, 1, 1), value: 0.05 },
+    ]
+    const series = buildIndexAndDrawdown(returns)
+    const rows = buildMonthlyReturnRows(returns, series.drawdown)
+
+    expect(series.index[0].value).toBeCloseTo(1.1)
+    expect(series.index[1].value).toBeCloseTo(0.88)
+    expect(series.index[2].value).toBeCloseTo(0.924)
+    expect(series.drawdown.at(-1)?.value).toBeCloseTo(-16)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].months[0]).toBeCloseTo(-0.12)
+    expect(rows[0].months[1]).toBeCloseTo(0.05)
+    expect(rows[0].total).toBeCloseTo(-0.076)
+    expect(rows[0].maxDrawdown).toBeCloseTo(-20)
+  })
+
+  it('rebuilds a weighted portfolio without mutating report contributions', () => {
+    const report = createReport()
+    const source = structuredClone(report.contributions)
+    const weighted = buildWeightedPortfolio(
+      report.portfolio.days,
+      report.contributions.slice(0, 1),
+      { [report.contributions[0].sleeve]: 0.5 },
+    )
+
+    expect(weighted.returns).toEqual([0, -0.00125])
+    expect(report.contributions).toEqual(source)
+    expect(buildCustomPortfolioSummary(weighted).regression).toBeNull()
+  })
+
+  it('builds correlation and applies the effective drawdown to a summary', () => {
+    const report = createReport()
+    const matrix = buildContributionCorrelationMatrix(report.contributions)
+    const summary = buildCustomPortfolioSummary(
+      buildWeightedPortfolio(
+        report.portfolio.days,
+        report.contributions,
+        buildDefaultWeights(report.contributions.map((item) => item.sleeve)),
+      ),
+    )
+    const effective = applyDrawdownToSummary(summary, [{ time: 1, value: -25 }])
+
+    expect(matrix.labels).toEqual(['Alpha - EURUSD', 'Beta - USDJPY'])
+    expect(effective?.maxDrawdown).toBe(-25)
+    expect(effective?.mar).toBeCloseTo(summary.cagr / 25)
+    expect(buildDailyReturnPoints(report.portfolio.days)).toEqual(
+      report.portfolio.days.map((day) => ({ time: day.time, value: day.return })),
+    )
+  })
+
+  it('normalizes and compares portfolio weight drafts', () => {
+    const labels = ['Alpha', 'Beta']
+    expect(resolveGlobalWeightDraft({ Alpha: '0.50', Beta: '0.50' }, labels)).toBe('0.50')
+    expect(resolveGlobalWeightDraft({ Alpha: '0.50', Beta: '1.00' }, labels)).toBe('')
+    expect(normalizeWeightDraft(labels, { Alpha: '0.126', Beta: '' })).toEqual({
+      Alpha: 0.13,
+      Beta: 0,
+    })
+    expect(countModifiedWeights(labels, { Alpha: 1, Beta: 0.5 })).toBe(1)
+  })
+})

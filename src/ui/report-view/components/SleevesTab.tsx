@@ -1,8 +1,17 @@
-import { Box, Divider, Stack, Tab, Tabs, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import {
+  Box,
+  Divider,
+  Stack,
+  Tab,
+  Tabs,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import LazySection from '../LazySection'
 import SleeveSection from './SleeveSection'
-import { useReportViewContext } from './ReportViewContext'
+import { useReportSleeves } from './ReportViewContext'
 
 const SleevesTab = () => {
   const {
@@ -31,7 +40,7 @@ const SleevesTab = () => {
     getSleeveDrawdown,
     getSleeveDrawdownSource,
     allSleevesPlaceholderHeight,
-  } = useReportViewContext()
+  } = useReportSleeves()
 
   return (
     <Box
@@ -55,7 +64,10 @@ const SleevesTab = () => {
         >
           <Tabs
             orientation="vertical"
-            value={Math.max(0, sleeves.findIndex((sleeve) => sleeve === selectedContribution?.sleeve))}
+            value={Math.max(
+              0,
+              sleeves.findIndex((sleeve) => sleeve === selectedContribution?.sleeve),
+            )}
             onChange={(_event, value) => onSelectSleeve(sleeves[value])}
             variant="scrollable"
             sx={{

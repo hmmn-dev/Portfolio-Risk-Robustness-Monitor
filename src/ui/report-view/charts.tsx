@@ -2,7 +2,7 @@ import ReactECharts from 'echarts-for-react'
 import type { DailyPoint } from '../../engine/types'
 import { buildLineOptions } from './chartOptions'
 import { formatAxisDate } from './formatters'
-import { ensureStartPoint, fillSeries } from './helpers'
+import { ensureStartPoint, fillSeries } from './helpers/chartSeries'
 
 export const EquityChart = ({
   data,
