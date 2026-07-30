@@ -4,7 +4,8 @@ import { renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { describe, expect, it } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
-import { ReportViewProvider, useReportViewContext } from '../ReportViewContext'
+import { useReportViewContext } from '../ReportViewContext'
+import ReportViewProvider from '../ReportViewProvider'
 
 describe('ReportViewContext', () => {
   it('provides the report view contract to descendants', () => {

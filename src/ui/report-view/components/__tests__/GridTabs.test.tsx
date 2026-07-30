@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
 import { renderWithTheme } from '../../../../test/render'
 import PerformanceTab from '../PerformanceTab'
-import { ReportViewProvider } from '../ReportViewContext'
+import ReportViewProvider from '../ReportViewProvider'
 import RiskTab from '../RiskTab'
 
 vi.mock('@mui/x-data-grid', () => ({

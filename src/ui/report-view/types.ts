@@ -1,5 +1,7 @@
 import type { DailyPoint } from '../../engine/types'
 
+export type ReportTab = 'performance' | 'risk' | 'sleeves' | 'portfolio'
+
 export type PerformanceRow = {
   id: number
   sleeve: string

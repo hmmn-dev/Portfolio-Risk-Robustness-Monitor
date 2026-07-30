@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
 import { renderWithTheme } from '../../../../test/render'
-import { ReportViewProvider } from '../ReportViewContext'
+import ReportViewProvider from '../ReportViewProvider'
 import SleevesTab from '../SleevesTab'
 
 vi.mock('../SleeveSection', () => ({

@@ -1,7 +1,8 @@
 import { Paper, Stack, Typography } from '@mui/material'
 import ReactECharts from 'echarts-for-react'
 import type { DailyPoint, ReportModel } from '../../../engine/types'
-import { buildLineOptions, DrawdownChart, EquityChart } from '../charts'
+import { buildLineOptions } from '../chartOptions'
+import { DrawdownChart, EquityChart } from '../charts'
 import { formatAxisNumber, formatDrawdownSourceLabel } from '../formatters'
 
 export type SleeveMetrics = {

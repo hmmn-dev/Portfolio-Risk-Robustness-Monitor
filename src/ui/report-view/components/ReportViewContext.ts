@@ -1,6 +1,5 @@
 import type { Theme } from '@mui/material/styles'
 import type { GridColDef } from '@mui/x-data-grid'
-import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import type { DealRow, ReportModel, UnderlyingSeries } from '../../../engine/types'
 import type { SleeveMetrics } from './SleeveSection'
@@ -35,9 +34,11 @@ export type ReportViewContextValue = {
   gridColor: string
   theme: Theme
   isDark: boolean
-  getSleeveDrawdown: (item: ReportModel['contributions'][number]) => ReportModel['contributions'][number]['drawdown']
+  getSleeveDrawdown: (
+    item: ReportModel['contributions'][number],
+  ) => ReportModel['contributions'][number]['drawdown']
   getSleeveDrawdownSource: (
-    item: ReportModel['contributions'][number]
+    item: ReportModel['contributions'][number],
   ) => ReportModel['contributions'][number]['drawdownSource']
   allSleevesPlaceholderHeight: number
   portfolioDrawdown: ReportModel['portfolio']['drawdown']
@@ -68,15 +69,7 @@ export type ReportViewContextValue = {
   underlyingSeries: UnderlyingSeries[]
 }
 
-const ReportViewContext = createContext<ReportViewContextValue | null>(null)
-
-export const ReportViewProvider = ({
-  value,
-  children,
-}: {
-  value: ReportViewContextValue
-  children: ReactNode
-}) => <ReportViewContext.Provider value={value}>{children}</ReportViewContext.Provider>
+export const ReportViewContext = createContext<ReportViewContextValue | null>(null)
 
 export const useReportViewContext = () => {
   const context = useContext(ReportViewContext)

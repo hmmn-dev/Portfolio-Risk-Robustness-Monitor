@@ -8,9 +8,12 @@ import SleeveSection from '../SleeveSection'
 import SleeveSectionPrint from '../SleeveSectionPrint'
 
 vi.mock('../../charts', () => ({
-  buildLineOptions: () => ({}),
   EquityChart: () => <div data-testid="equity-chart" />,
   DrawdownChart: () => <div data-testid="drawdown-chart" />,
+}))
+
+vi.mock('../../chartOptions', () => ({
+  buildLineOptions: () => ({}),
 }))
 
 vi.mock('echarts-for-react', () => ({

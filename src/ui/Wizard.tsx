@@ -16,7 +16,7 @@ import {
   Typography,
 } from '@mui/material'
 import type { DragEvent } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined'
 import { useWizardStore } from '../store/wizard'
 import { parseDealsWithMagic } from '../engine/parseDealsWithMagic'
@@ -52,20 +52,11 @@ const Wizard = () => {
   const [underlyingMode, setUnderlyingMode] = useState<'perSymbol' | 'bulk'>('perSymbol')
   const [underlyingFiles, setUnderlyingFiles] = useState<Record<string, File>>({})
 
-  const timeoutRef = useRef<number | null>(null)
   const isLoading = useMemo(() => Object.values(loading).some(Boolean), [loading])
   const loadingMessage = useMemo(() => {
     const activeKey = Object.keys(loading).find((key) => loading[key as keyof typeof loading])
     return activeKey ? loadingMessages[activeKey as keyof typeof loadingMessages] : ''
   }, [loading])
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current)
-      }
-    }
-  }, [])
 
   const handleNext = async () => {
     if (activeStep === 0) {
@@ -74,7 +65,6 @@ const Wizard = () => {
       try {
         const buffer = await dealsFile.arrayBuffer()
         const rows = parseDealsWithMagic(buffer)
-        console.log('Parsed deals rows:', rows)
         setParsedDeals(rows)
         setUnderlyingFiles({})
         clearUnderlying()
@@ -144,7 +134,7 @@ const Wizard = () => {
   const handleDrop = (
     event: DragEvent<HTMLLabelElement>,
     onFile: (file: File) => void,
-    multiple = false
+    multiple = false,
   ) => {
     event.preventDefault()
     const files = Array.from(event.dataTransfer.files)
@@ -173,7 +163,7 @@ const Wizard = () => {
 
   const missingSymbols = useMemo(
     () => symbols.filter((symbol) => !underlyingFiles[symbol]),
-    [symbols, underlyingFiles]
+    [symbols, underlyingFiles],
   )
 
   const canProceedUnderlying = symbols.length > 0 && missingSymbols.length === 0
@@ -209,17 +199,17 @@ const Wizard = () => {
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center">
               {dealsFile && (
-                  <IconButton
-                    size="small"
-                    onClick={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      setDealsFile(null)
-                      setParsedDeals([])
-                      setUnderlyingFiles({})
-                    }}
-                    aria-label="Remove deals file"
-                  >
+                <IconButton
+                  size="small"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setDealsFile(null)
+                    setParsedDeals([])
+                    setUnderlyingFiles({})
+                  }}
+                  aria-label="Remove deals file"
+                >
                   <ClearOutlinedIcon fontSize="small" />
                 </IconButton>
               )}
@@ -289,8 +279,7 @@ const Wizard = () => {
                   <Stack spacing={0.5}>
                     <Typography variant="subtitle2">{symbol}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {underlyingFiles[symbol]?.name ??
-                        'Drag & drop file here or click to browse'}
+                      {underlyingFiles[symbol]?.name ?? 'Drag & drop file here or click to browse'}
                     </Typography>
                   </Stack>
                   <Stack direction="row" spacing={1} alignItems="center">
@@ -352,7 +341,7 @@ const Wizard = () => {
                       if (!symbol) return
                       setUnderlyingFiles((prev) => ({ ...prev, [symbol]: file }))
                     },
-                    true
+                    true,
                   )
                 }
               >

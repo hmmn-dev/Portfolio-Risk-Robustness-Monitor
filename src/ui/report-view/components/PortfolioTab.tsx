@@ -33,15 +33,24 @@ import type { DailyPoint } from '../../../engine/types'
 import { computeDdShock } from '../../../engine/ddShock'
 import { correlationColor, isLightColor } from '../colors'
 import { DrawdownChart, EquityChart } from '../charts'
-import {
-  formatDrawdownModeLabel,
-  formatDrawdownSourceLabel,
-  formatSigned,
-} from '../formatters'
+import { formatDrawdownModeLabel, formatDrawdownSourceLabel, formatSigned } from '../formatters'
 import { computeSharpe, getSeriesValues } from '../helpers'
 import { useReportViewContext } from './ReportViewContext'
 
-const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const monthLabels = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
 
 type MonthlyReturnRow = {
   year: number
@@ -69,7 +78,7 @@ const buildIndexAndDrawdown = (returns: DailyPoint[]) => {
 
 const buildMonthlyReturnRows = (
   dailyReturns: DailyPoint[],
-  drawdown: DailyPoint[]
+  drawdown: DailyPoint[],
 ): MonthlyReturnRow[] => {
   const yearMap = new Map<number, { months: (number | null)[]; yearProduct: number | null }>()
   dailyReturns.forEach((point) => {
@@ -134,7 +143,7 @@ const resolveGlobalWeightDraft = (draft: Record<string, string>, labels: string[
   return value ?? ''
 }
 
-const PortfolioTab = () => {
+const PortfolioTabContent = () => {
   const {
     report,
     deals,
@@ -162,40 +171,26 @@ const PortfolioTab = () => {
   } = useReportViewContext()
   const sleeveLabels = useMemo(
     () =>
-      stableSort(
-        Array.from(new Set(report.contributions.map((item) => item.sleeve))),
-        (a, b) => a.localeCompare(b)
+      stableSort(Array.from(new Set(report.contributions.map((item) => item.sleeve))), (a, b) =>
+        a.localeCompare(b),
       ),
-    [report.contributions]
+    [report.contributions],
   )
-  const sleeveKey = sleeveLabels.join('||')
   const [enabledSleeves, setEnabledSleeves] = useState<Set<string>>(() => new Set(sleeveLabels))
   const [sleeveDialogOpen, setSleeveDialogOpen] = useState(false)
   const [sleeveDraft, setSleeveDraft] = useState<Set<string>>(new Set(sleeveLabels))
   const [sleeveWeights, setSleeveWeights] = useState<Record<string, number>>(() =>
-    buildDefaultWeights(sleeveLabels)
+    buildDefaultWeights(sleeveLabels),
   )
   const [sleeveWeightDraft, setSleeveWeightDraft] = useState<Record<string, string>>(() =>
-    Object.fromEntries(sleeveLabels.map((label) => [label, formatWeightValue(1)]))
+    Object.fromEntries(sleeveLabels.map((label) => [label, formatWeightValue(1)])),
   )
   const [globalWeightDraft, setGlobalWeightDraft] = useState(formatWeightValue(1))
-
-  useEffect(() => {
-    setEnabledSleeves(new Set(sleeveLabels))
-    setSleeveWeights(buildDefaultWeights(sleeveLabels))
-    setSleeveWeightDraft(
-      Object.fromEntries(sleeveLabels.map((label) => [label, formatWeightValue(1)]))
-    )
-    setGlobalWeightDraft(formatWeightValue(1))
-  }, [sleeveKey])
 
   const openSleeveDialog = () => {
     setSleeveDraft(new Set(enabledSleeves))
     const nextDraft = Object.fromEntries(
-      sleeveLabels.map((label) => [
-        label,
-        formatWeightValue(sleeveWeights[label] ?? 1),
-      ])
+      sleeveLabels.map((label) => [label, formatWeightValue(sleeveWeights[label] ?? 1)]),
     )
     setSleeveWeightDraft(nextDraft)
     setGlobalWeightDraft(resolveGlobalWeightDraft(nextDraft, sleeveLabels))
@@ -233,9 +228,7 @@ const PortfolioTab = () => {
     setSleeveDraft(new Set(sleeveLabels))
     const nextWeights = buildDefaultWeights(sleeveLabels)
     setSleeveWeights(nextWeights)
-    const nextDraft = Object.fromEntries(
-      sleeveLabels.map((label) => [label, formatWeightValue(1)])
-    )
+    const nextDraft = Object.fromEntries(sleeveLabels.map((label) => [label, formatWeightValue(1)]))
     setSleeveWeightDraft(nextDraft)
     setGlobalWeightDraft(formatWeightValue(1))
   }
@@ -243,13 +236,13 @@ const PortfolioTab = () => {
   const applyGlobalWeightDraft = () => {
     if (globalWeightDraft === '') return
     setSleeveWeightDraft(
-      Object.fromEntries(sleeveLabels.map((label) => [label, globalWeightDraft]))
+      Object.fromEntries(sleeveLabels.map((label) => [label, globalWeightDraft])),
     )
   }
 
   const resetSleeveWeightDraft = () => {
     setSleeveWeightDraft(
-      Object.fromEntries(sleeveLabels.map((label) => [label, formatWeightValue(1)]))
+      Object.fromEntries(sleeveLabels.map((label) => [label, formatWeightValue(1)])),
     )
     setGlobalWeightDraft(formatWeightValue(1))
   }
@@ -272,11 +265,11 @@ const PortfolioTab = () => {
   const totalSleeves = sleeveLabels.length
   const sortedEnabledSleeves = useMemo(
     () => stableSort(Array.from(enabledSleeves), (a, b) => a.localeCompare(b)),
-    [enabledSleeves]
+    [enabledSleeves],
   )
   const compositionChanged = useMemo(
     () => !areSortedSleevesEqual(sortedEnabledSleeves, sleeveLabels),
-    [sortedEnabledSleeves, sleeveLabels]
+    [sortedEnabledSleeves, sleeveLabels],
   )
   const modifiedWeightCount = useMemo(
     () =>
@@ -287,7 +280,7 @@ const PortfolioTab = () => {
         }
         return count + 1
       }, 0),
-    [sleeveLabels, sleeveWeights]
+    [sleeveLabels, sleeveWeights],
   )
   const weightsChanged = modifiedWeightCount > 0
   const isPortfolioModified = compositionChanged || weightsChanged
@@ -300,13 +293,10 @@ const PortfolioTab = () => {
   const isApplyDisabled = sleeveDraft.size === 0 || !isWeightDraftValid
   const isFiltered = enabledCount !== totalSleeves
   const hasCustomWeights = weightsChanged
-  const draftCompositionChanged = useMemo(
-    () => {
-      const sortedDraft = stableSort(Array.from(sleeveDraft), (a, b) => a.localeCompare(b))
-      return !areSortedSleevesEqual(sortedDraft, sleeveLabels)
-    },
-    [sleeveDraft, sleeveLabels]
-  )
+  const draftCompositionChanged = useMemo(() => {
+    const sortedDraft = stableSort(Array.from(sleeveDraft), (a, b) => a.localeCompare(b))
+    return !areSortedSleevesEqual(sortedDraft, sleeveLabels)
+  }, [sleeveDraft, sleeveLabels])
   const draftWeightsChanged = useMemo(
     () =>
       sleeveLabels.some((label) => {
@@ -315,13 +305,13 @@ const PortfolioTab = () => {
         if (!Number.isFinite(parsed)) return false
         return Math.abs(parsed - 1) > WEIGHT_EPS
       }),
-    [sleeveLabels, sleeveWeightDraft]
+    [sleeveLabels, sleeveWeightDraft],
   )
   const isDraftModified = draftCompositionChanged || draftWeightsChanged
   const usesCustomPortfolio = isFiltered || hasCustomWeights
   const activeContributions = useMemo(
     () => report.contributions.filter((item) => enabledSleeves.has(item.sleeve)),
-    [report.contributions, enabledSleeves]
+    [report.contributions, enabledSleeves],
   )
   const customPortfolio = useMemo(() => {
     if (!usesCustomPortfolio) return null
@@ -365,8 +355,7 @@ const PortfolioTab = () => {
       }
     }
     const portfolioIndex = customPortfolio.index
-    const totalReturnPct =
-      (portfolioIndex[portfolioIndex.length - 1].value - 1) * 100
+    const totalReturnPct = (portfolioIndex[portfolioIndex.length - 1].value - 1) * 100
     const startIndex = portfolioIndex[0]?.value ?? Number.NaN
     const endIndex = portfolioIndex[portfolioIndex.length - 1]?.value ?? Number.NaN
     const startTime = portfolioIndex[0]?.time ?? Number.NaN
@@ -386,7 +375,7 @@ const PortfolioTab = () => {
         : Number.NaN
     const maxDrawdown = customPortfolio.drawdown.reduce(
       (min, point) => (point.value < min ? point.value : min),
-      0
+      0,
     )
     const mar = maxDrawdown < 0 ? cagr / Math.abs(maxDrawdown) : Number.NaN
     const sharpe = computeSharpe(customPortfolio.returns)
@@ -403,10 +392,10 @@ const PortfolioTab = () => {
   const filteredCorrelationMatrix = useMemo(() => {
     const labels = stableSort(
       activeContributions.map((item) => item.sleeve),
-      (a, b) => a.localeCompare(b)
+      (a, b) => a.localeCompare(b),
     )
     const returnsBySleeve = new Map(
-      activeContributions.map((item) => [item.sleeve, getSeriesValues(item.returns)])
+      activeContributions.map((item) => [item.sleeve, getSeriesValues(item.returns)]),
     )
     const safeCorrelation = (seriesA: number[], seriesB: number[]) => {
       const pairs: [number, number][] = []
@@ -429,7 +418,7 @@ const PortfolioTab = () => {
         const seriesA = returnsBySleeve.get(a) ?? []
         const seriesB = returnsBySleeve.get(b) ?? []
         return safeCorrelation(seriesA, seriesB)
-      })
+      }),
     )
     return { labels, values }
   }, [activeContributions])
@@ -467,14 +456,25 @@ const PortfolioTab = () => {
   const hasPortfolioMtm = (report.portfolio.drawdownMtm?.length ?? 0) > 0
   const effectiveDrawdownMode =
     drawdownMode === 'mtm' && (!isFiltered ? hasPortfolioMtm : hasFilteredMtm) ? 'mtm' : 'deal'
-  const effectivePortfolioDrawdown =
-    effectiveDrawdownMode === 'mtm'
-      ? isFiltered
-        ? filteredMtm?.drawdown ?? []
-        : report.portfolio.drawdownMtm ?? portfolioDrawdown
-      : usesCustomPortfolio
-        ? customPortfolio?.drawdown ?? []
-        : portfolioDrawdown
+  const effectivePortfolioDrawdown = useMemo(
+    () =>
+      effectiveDrawdownMode === 'mtm'
+        ? isFiltered
+          ? (filteredMtm?.drawdown ?? [])
+          : (report.portfolio.drawdownMtm ?? portfolioDrawdown)
+        : usesCustomPortfolio
+          ? (customPortfolio?.drawdown ?? [])
+          : portfolioDrawdown,
+    [
+      effectiveDrawdownMode,
+      filteredMtm?.drawdown,
+      isFiltered,
+      portfolioDrawdown,
+      report.portfolio.drawdownMtm,
+      usesCustomPortfolio,
+      customPortfolio?.drawdown,
+    ],
+  )
   const effectivePortfolioDrawdownSource =
     effectiveDrawdownMode === 'mtm'
       ? isFiltered
@@ -482,7 +482,7 @@ const PortfolioTab = () => {
         : report.portfolio.drawdownMtmSource
       : portfolioDrawdownSource
   const effectivePortfolioIndex = usesCustomPortfolio
-    ? customPortfolio?.index ?? []
+    ? (customPortfolio?.index ?? [])
     : report.portfolio.index
   const effectiveDailyReturns = useMemo(() => {
     if (usesCustomPortfolio) {
@@ -502,7 +502,7 @@ const PortfolioTab = () => {
     if (!baseSummary) return null
     const maxDrawdown = effectivePortfolioDrawdown.reduce(
       (min, point) => (point.value < min ? point.value : min),
-      0
+      0,
     )
     const mar =
       maxDrawdown < 0 && Number.isFinite(baseSummary.cagr)
@@ -513,17 +513,12 @@ const PortfolioTab = () => {
       maxDrawdown,
       mar,
     }
-  }, [
-    usesCustomPortfolio,
-    customPortfolioSummary,
-    portfolioSummary,
-    effectivePortfolioDrawdown,
-  ])
+  }, [usesCustomPortfolio, customPortfolioSummary, portfolioSummary, effectivePortfolioDrawdown])
   const effectiveCorrelationMatrix = isFiltered ? filteredCorrelationMatrix : correlationMatrix
   const effectiveBaseCapital = baseCapital
   const monthlyReturns = useMemo(
     () => buildMonthlyReturnRows(effectiveDailyReturns, effectivePortfolioDrawdown),
-    [effectiveDailyReturns, effectivePortfolioDrawdown]
+    [effectiveDailyReturns, effectivePortfolioDrawdown],
   )
   const heatCellColor = (value: number | null) => {
     if (!Number.isFinite(value ?? NaN)) return theme.palette.action.hover
@@ -560,7 +555,7 @@ const PortfolioTab = () => {
       >
         <Stack direction="row" spacing={1} alignItems="center">
           <Button variant="outlined" size="small" onClick={openSleeveDialog}>
-              Change portfolio composition
+            Change portfolio composition
           </Button>
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="caption" color="text.secondary">
@@ -586,41 +581,41 @@ const PortfolioTab = () => {
           alignItems="center"
           justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
           flexWrap="wrap"
+        >
+          <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+            Portfolio drawdown
+          </Typography>
+          <ToggleButtonGroup
+            size="small"
+            value={drawdownMode}
+            exclusive
+            onChange={(_event, value) => {
+              if (value) onDrawdownModeChange(value)
+            }}
           >
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-              Portfolio drawdown
-            </Typography>
-            <ToggleButtonGroup
-              size="small"
-              value={drawdownMode}
-              exclusive
-              onChange={(_event, value) => {
-                if (value) onDrawdownModeChange(value)
-              }}
-            >
-              <ToggleButton value="deal">Realized</ToggleButton>
-              {isPortfolioModified ? (
-                <Tooltip
-                  title="IN-TRADE drawdown is available only for the original portfolio. Reset composition/weights to enable."
-                  placement="top"
-                  disableInteractive
-                >
-                  <Box component="span" sx={{ display: 'inline-flex' }} tabIndex={0}>
-                    <ToggleButton value="mtm" disabled>
-                      In-Trade
-                    </ToggleButton>
-                  </Box>
-                </Tooltip>
-              ) : (
-                <ToggleButton value="mtm" disabled={!hasMtmDrawdown}>
-                  In-Trade
-                </ToggleButton>
-              )}
-            </ToggleButtonGroup>
-            <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-              PnL scale
-            </Typography>
+            <ToggleButton value="deal">Realized</ToggleButton>
+            {isPortfolioModified ? (
+              <Tooltip
+                title="IN-TRADE drawdown is available only for the original portfolio. Reset composition/weights to enable."
+                placement="top"
+                disableInteractive
+              >
+                <Box component="span" sx={{ display: 'inline-flex' }} tabIndex={0}>
+                  <ToggleButton value="mtm" disabled>
+                    In-Trade
+                  </ToggleButton>
+                </Box>
+              </Tooltip>
+            ) : (
+              <ToggleButton value="mtm" disabled={!hasMtmDrawdown}>
+                In-Trade
+              </ToggleButton>
+            )}
+          </ToggleButtonGroup>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+            PnL scale
+          </Typography>
           <ToggleButtonGroup
             size="small"
             value={pnlScaleMode}
@@ -686,7 +681,9 @@ const PortfolioTab = () => {
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, minWidth: 64, borderRight: 1, borderColor: 'divider' }}>
+                  <TableCell
+                    sx={{ fontWeight: 700, minWidth: 64, borderRight: 1, borderColor: 'divider' }}
+                  >
                     Year
                   </TableCell>
                   {monthLabels.map((label) => (
@@ -698,7 +695,10 @@ const PortfolioTab = () => {
                       {label}
                     </TableCell>
                   ))}
-                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 72, borderRight: 1, borderColor: 'divider' }}>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 700, minWidth: 72, borderRight: 1, borderColor: 'divider' }}
+                  >
                     Total
                   </TableCell>
                   <TableCell align="center" sx={{ fontWeight: 700, minWidth: 80 }}>
@@ -913,7 +913,8 @@ const PortfolioTab = () => {
             </Box>
             <Box>
               <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                Max DD % ({formatDrawdownModeLabel(effectiveDrawdownMode)}, {formatDrawdownSourceLabel(effectivePortfolioDrawdownSource)})
+                Max DD % ({formatDrawdownModeLabel(effectiveDrawdownMode)},{' '}
+                {formatDrawdownSourceLabel(effectivePortfolioDrawdownSource)})
               </Typography>
               <Typography variant="h6">
                 {formatSigned(effectivePortfolioSummary?.maxDrawdown ?? Number.NaN, 2, '%')}
@@ -942,7 +943,8 @@ const PortfolioTab = () => {
                 Portfolio regression (n={effectivePortfolioSummary.regression.n})
               </Typography>
               <Typography variant="body1" color="text.primary">
-                alpha_ann={formatSigned(effectivePortfolioSummary.regression.alphaAnn, 2, '%/yr')}; betas:{' '}
+                alpha_ann={formatSigned(effectivePortfolioSummary.regression.alphaAnn, 2, '%/yr')};
+                betas:{' '}
                 {effectivePortfolioSummary.regression.betas
                   .map((item) => `${item.symbol}: ${formatSigned(item.beta, 2)}`)
                   .join(', ')}
@@ -1079,6 +1081,16 @@ const PortfolioTab = () => {
       </Dialog>
     </Stack>
   )
+}
+
+const PortfolioTab = () => {
+  const { report } = useReportViewContext()
+  const sleeveKey = stableSort(
+    Array.from(new Set(report.contributions.map((item) => item.sleeve))),
+    (a, b) => a.localeCompare(b),
+  ).join('||')
+
+  return <PortfolioTabContent key={sleeveKey} />
 }
 
 export default PortfolioTab

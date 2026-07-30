@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
 import { renderWithTheme } from '../../../../test/render'
 import ReportTabsContent from '../ReportTabsContent'
-import { ReportViewProvider } from '../ReportViewContext'
+import ReportViewProvider from '../ReportViewProvider'
 
 vi.mock('../PerformanceTab', () => ({ default: () => <div>Performance content</div> }))
 vi.mock('../RiskTab', () => ({ default: () => <div>Risk content</div> }))

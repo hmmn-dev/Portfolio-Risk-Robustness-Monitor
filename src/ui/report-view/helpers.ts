@@ -16,7 +16,7 @@ export const buildSleeveKey = (sleeve: string, symbol: string) =>
 export const buildObfuscationMap = (values: string[], prefix: string) => {
   const uniqueValues = stableSort(
     Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))),
-    (a, b) => a.localeCompare(b)
+    (a, b) => a.localeCompare(b),
   )
   const map = new Map<string, string>()
   uniqueValues.forEach((value, index) => {
@@ -90,8 +90,7 @@ export const computeSharpe = (values: number[]) => {
   const finite = values.filter((value) => Number.isFinite(value))
   if (finite.length === 0) return Number.NaN
   const mean = finite.reduce((acc, value) => acc + value, 0) / finite.length
-  const variance =
-    finite.reduce((acc, value) => acc + Math.pow(value - mean, 2), 0) / finite.length
+  const variance = finite.reduce((acc, value) => acc + Math.pow(value - mean, 2), 0) / finite.length
   const stdev = variance > 0 ? Math.sqrt(variance) : 0
   return stdev === 0 ? Number.NaN : (mean / stdev) * Math.sqrt(252)
 }
@@ -117,7 +116,7 @@ export const computePadding = (
   max: number,
   ratio: number,
   minPadding = 0,
-  minClamp = 1
+  minClamp = 1,
 ) => {
   const range = max - min
   const base = Math.max(Math.abs(max), Math.abs(min), 1)
@@ -135,7 +134,7 @@ export const fillSeries = (data: DailyPoint[]) => {
       filled[i].value = last
     }
   }
-  let firstFinite = filled.find((point) => Number.isFinite(point.value))?.value
+  const firstFinite = filled.find((point) => Number.isFinite(point.value))?.value
   if (!Number.isFinite(firstFinite)) return filled
   for (let i = 0; i < filled.length; i += 1) {
     if (!Number.isFinite(filled[i].value)) {
@@ -166,16 +165,14 @@ export const computeSeriesBounds = (values: number[], paddingRatio = 0.1, minPad
   const max = Math.max(...finite)
   const range = max - min
   const pad =
-    range > 0
-      ? Math.max(range * paddingRatio, minPad)
-      : Math.max(Math.abs(max) * 0.1, minPad, 0.01)
+    range > 0 ? Math.max(range * paddingRatio, minPad) : Math.max(Math.abs(max) * 0.1, minPad, 0.01)
   return { min: min - pad, max: max + pad }
 }
 
 export const invertMatrix = (matrix: number[][]) => {
   const n = matrix.length
   const identity = Array.from({ length: n }, (_, i) =>
-    Array.from({ length: n }, (_, j) => (i === j ? 1 : 0))
+    Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)),
   )
   const augmented = matrix.map((row, i) => [...row, ...identity[i]])
 
@@ -211,7 +208,7 @@ export const multiplyMatrixVector = (matrix: number[][], vector: number[]) =>
 export const portfolioRegression = (
   portfolioDays: ReportModel['portfolio']['days'],
   symbolList: string[],
-  underlyingBySymbol: Record<string, UnderlyingDailyReturn[]>
+  underlyingBySymbol: Record<string, UnderlyingDailyReturn[]>,
 ) => {
   if (symbolList.length === 0) return null
   const returnMaps: Record<string, Map<number, number>> = {}

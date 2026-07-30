@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
 import { renderWithTheme } from '../../../../test/render'
 import ReportPdf from '../ReportPdf'
-import { ReportViewProvider } from '../ReportViewContext'
+import ReportViewProvider from '../ReportViewProvider'
 
 vi.mock('../../charts', () => ({
   EquityChart: () => <div data-testid="pdf-equity-chart" />,
