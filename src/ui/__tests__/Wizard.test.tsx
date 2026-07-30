@@ -55,6 +55,16 @@ const deal: MagicDealRow = {
   _seq: 0,
 }
 
+const usdJpyDeal: MagicDealRow = {
+  ...deal,
+  deal: 'D2',
+  sleeve: 'Beta - USDJPY',
+  symbol: 'USDJPY',
+  positionId: 2,
+  magic: 43,
+  _seq: 1,
+}
+
 const underlying: UnderlyingSeries = {
   symbol: 'EURUSD',
   timeframe: 'D1',
@@ -87,14 +97,13 @@ describe('Wizard', () => {
     parseUnderlyingMock.mockReset().mockReturnValue(underlying)
     normalizeUnderlyingMock.mockReset().mockReturnValue(underlying)
     buildReportMock.mockReset().mockReturnValue(createReport())
-    vi.spyOn(console, 'log').mockImplementation(() => undefined)
   })
 
   it('keeps parsing disabled until a deals file is selected and supports removal', async () => {
     const user = userEvent.setup()
-    const { container } = renderWithTheme(<Wizard />)
+    renderWithTheme(<Wizard />)
     const parseButton = screen.getByRole('button', { name: 'Parse deals' })
-    const dealsInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const dealsInput = screen.getByLabelText('Deals CSV file input')
 
     expect(parseButton).toBeDisabled()
     await user.upload(dealsInput, fileWith('deals.csv', 'arrayBuffer', new ArrayBuffer(4)))
@@ -112,9 +121,9 @@ describe('Wizard', () => {
     const user = userEvent.setup()
     const report = createReport()
     buildReportMock.mockReturnValue(report)
-    const { container } = renderWithTheme(<Wizard />)
+    renderWithTheme(<Wizard />)
 
-    const dealsInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const dealsInput = screen.getByLabelText('Deals CSV file input')
     await user.upload(dealsInput, fileWith('deals.csv', 'arrayBuffer', new ArrayBuffer(4)))
     await user.click(screen.getByRole('button', { name: 'Parse deals' }))
 
@@ -123,7 +132,7 @@ describe('Wizard', () => {
       screen.getByText('Missing candle files for: EURUSD. Upload them to continue.'),
     ).toBeVisible()
 
-    const underlyingInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const underlyingInput = screen.getByLabelText('EURUSD file input')
     await user.upload(
       underlyingInput,
       fileWith('EURUSD_D1.csv', 'text', 'date,open,high,low,close'),
@@ -150,5 +159,71 @@ describe('Wizard', () => {
     expect(useReportStore.getState().report).toBe(report)
     expect(useReportStore.getState().baseReport).toBe(report)
     expect(useReportStore.getState().deals).toEqual([deal])
+  })
+
+  it('supports bulk uploads and derives symbols from file names', async () => {
+    const user = userEvent.setup()
+    parseDealsMock.mockReturnValue([deal, usdJpyDeal])
+    parseUnderlyingMock.mockImplementation((_text: string, options: { sourceName: string }) => ({
+      ...underlying,
+      symbol: options.sourceName.startsWith('USDJPY') ? 'USDJPY' : 'EURUSD',
+      timeframe: options.sourceName.includes('_H1') ? 'H1' : 'D1',
+    }))
+    renderWithTheme(<Wizard />)
+
+    await user.upload(
+      screen.getByLabelText('Deals CSV file input'),
+      fileWith('deals.csv', 'arrayBuffer', new ArrayBuffer(4)),
+    )
+    await user.click(screen.getByRole('button', { name: 'Parse deals' }))
+    await user.click(screen.getByRole('radio', { name: 'Bulk upload' }))
+
+    await user.upload(screen.getByLabelText('Bulk upload file input'), [
+      fileWith('EURUSD_D1.csv', 'text', 'eurusd'),
+      fileWith('USDJPY_H1.csv', 'text', 'usdjpy'),
+    ])
+
+    expect(screen.getByText('EURUSD_D1.csv')).toBeInTheDocument()
+    expect(screen.getByText('USDJPY_H1.csv')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Parse underlying' }))
+
+    expect(await screen.findByText('Ready to generate')).toBeInTheDocument()
+    expect(parseUnderlyingMock).toHaveBeenCalledWith(
+      'eurusd',
+      expect.objectContaining({ symbol: undefined, sourceName: 'EURUSD_D1.csv' }),
+    )
+    expect(parseUnderlyingMock).toHaveBeenCalledWith(
+      'usdjpy',
+      expect.objectContaining({ symbol: undefined, sourceName: 'USDJPY_H1.csv' }),
+    )
+    expect(Object.keys(useUnderlyingStore.getState().seriesBySymbol)).toEqual(['EURUSD', 'USDJPY'])
+  })
+
+  it('clears underlying selections when the upload mode changes and preserves deals on back', async () => {
+    const user = userEvent.setup()
+    renderWithTheme(<Wizard />)
+
+    await user.upload(
+      screen.getByLabelText('Deals CSV file input'),
+      fileWith('deals.csv', 'arrayBuffer', new ArrayBuffer(4)),
+    )
+    await user.click(screen.getByRole('button', { name: 'Parse deals' }))
+    await user.upload(
+      screen.getByLabelText('EURUSD file input'),
+      fileWith('EURUSD_D1.csv', 'text', 'eurusd'),
+    )
+
+    expect(screen.getByText('EURUSD_D1.csv')).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Bulk upload' }))
+
+    expect(screen.queryByText('EURUSD_D1.csv')).not.toBeInTheDocument()
+    expect(
+      screen.getByText('Missing candle files for: EURUSD. Upload them to continue.'),
+    ).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+
+    expect(screen.getByText('Upload the deals file')).toBeInTheDocument()
+    expect(screen.getByText('deals.csv')).toBeInTheDocument()
   })
 })
