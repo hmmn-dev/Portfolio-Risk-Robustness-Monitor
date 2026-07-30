@@ -29,7 +29,7 @@ import {
 import { alpha } from '@mui/material/styles'
 import type { GridColDef } from '@mui/x-data-grid'
 import type { SyntheticEvent } from 'react'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'
@@ -56,7 +56,7 @@ import type { PdfColumn } from './components/PdfTable'
 import ReportPdf from './components/ReportPdf'
 import ReportTabsContent from './components/ReportTabsContent'
 import type { SleeveMetrics } from './components/SleeveSection'
-import { ReportViewProvider } from './components/ReportViewContext'
+import { ReportViewProvider, type ReportViewContextValue } from './components/ReportViewContext'
 import {
   alignPairsByDay,
   buildObfuscationMap,
@@ -79,7 +79,6 @@ import type { CorrelationMatrix, PerformanceRow, PortfolioSummary, RiskRow } fro
 
 type TabValue = 'performance' | 'risk' | 'sleeves' | 'portfolio'
 
-
 const metricWindow = {
   short: 252,
   long: 504,
@@ -91,7 +90,7 @@ const computeSleeveMetrics = (
   item: ReportModel['contributions'][number],
   portfolioReturnMap: Map<number, number>,
   window: number,
-  underlying: UnderlyingDailyReturn[] | null
+  underlying: UnderlyingDailyReturn[] | null,
 ): SleeveMetrics => {
   const returns = sanitizeSeries(getSeriesValues(item.returns))
   const minObs = Math.floor(window * 0.8)
@@ -111,12 +110,20 @@ const computeSleeveMetrics = (
     time: alphaTimes[idx] ?? idx,
     value: Number.isFinite(value) ? value * 252 * 100 : value,
   }))
-  const alphaBounds = computeSeriesBounds(alphaSeries.map((point) => point.value), 0.15, 0.01)
+  const alphaBounds = computeSeriesBounds(
+    alphaSeries.map((point) => point.value),
+    0.15,
+    0.01,
+  )
   const sharpeSeries = rollingSharpe(returns, window).map((value, idx) => ({
     time: item.returns[idx]?.time ?? idx,
     value,
   }))
-  const sharpeBounds = computeSeriesBounds(sharpeSeries.map((point) => point.value), 0.2, 0.05)
+  const sharpeBounds = computeSeriesBounds(
+    sharpeSeries.map((point) => point.value),
+    0.2,
+    0.05,
+  )
   const winrateSeries = rollingWinrate(returns, window).map((value, idx) => ({
     time: item.returns[idx]?.time ?? idx,
     value: Math.min(1, Math.max(0, value)),
@@ -176,7 +183,7 @@ const ReportView = () => {
       `linear-gradient(90deg, ${heatmapPalette
         .map((color, idx) => `${color} ${(idx / (heatmapPalette.length - 1)) * 100}%`)
         .join(', ')})`,
-    []
+    [],
   )
   const cellSize = 28
   const pdfPageWidth = pdfOrientation === 'landscape' ? 1120 : 840
@@ -184,43 +191,52 @@ const ReportView = () => {
   const printAxisColor = alpha(lightTheme.palette.text.primary, 0.45)
   const printGridColor = alpha(lightTheme.palette.text.primary, 0.12)
   const printPnlColor = lightTheme.palette.primary.main
-  const portfolioReturnMap = useMemo(
-    () => buildReturnMap(report?.portfolio.days ?? []),
-    [report]
-  )
+  const portfolioReturnMap = useMemo(() => buildReturnMap(report?.portfolio.days ?? []), [report])
   const baseCapital = useMemo(
     () => resolveBaseCapital(report?.portfolio.days ?? [], 10000),
-    [report]
+    [report],
   )
   const hasMtmDrawdown = !!report?.portfolio.drawdownMtm?.length
   useEffect(() => {
     if (!report) return
     setDrawdownMode(hasMtmDrawdown ? 'mtm' : 'deal')
   }, [report, hasMtmDrawdown])
-  const portfolioDrawdown =
-    drawdownMode === 'mtm' && report?.portfolio.drawdownMtm?.length
-      ? report.portfolio.drawdownMtm
-      : report?.portfolio.drawdown ?? []
-  const portfolioDrawdownSource =
-    drawdownMode === 'mtm' && report?.portfolio.drawdownMtmSource
-      ? report.portfolio.drawdownMtmSource
-      : report?.portfolio.drawdownSource
+  const portfolioDrawdown = useMemo(
+    () =>
+      drawdownMode === 'mtm' && report?.portfolio.drawdownMtm?.length
+        ? report.portfolio.drawdownMtm
+        : (report?.portfolio.drawdown ?? []),
+    [drawdownMode, report],
+  )
+  const portfolioDrawdownSource = useMemo(
+    () =>
+      drawdownMode === 'mtm' && report?.portfolio.drawdownMtmSource
+        ? report.portfolio.drawdownMtmSource
+        : report?.portfolio.drawdownSource,
+    [drawdownMode, report],
+  )
 
-  const getSleeveDrawdown = (item: ReportModel['contributions'][number] | null) => {
-    if (!item) return []
-    if (drawdownMode === 'mtm' && item.drawdownMtm?.length) {
-      return item.drawdownMtm
-    }
-    return item.drawdown ?? []
-  }
+  const getSleeveDrawdown = useCallback(
+    (item: ReportModel['contributions'][number] | null) => {
+      if (!item) return []
+      if (drawdownMode === 'mtm' && item.drawdownMtm?.length) {
+        return item.drawdownMtm
+      }
+      return item.drawdown ?? []
+    },
+    [drawdownMode],
+  )
 
-  const getSleeveDrawdownSource = (item: ReportModel['contributions'][number] | null) => {
-    if (!item) return undefined
-    if (drawdownMode === 'mtm' && item.drawdownMtmSource) {
-      return item.drawdownMtmSource
-    }
-    return item.drawdownSource
-  }
+  const getSleeveDrawdownSource = useCallback(
+    (item: ReportModel['contributions'][number] | null) => {
+      if (!item) return undefined
+      if (drawdownMode === 'mtm' && item.drawdownMtmSource) {
+        return item.drawdownMtmSource
+      }
+      return item.drawdownSource
+    },
+    [drawdownMode],
+  )
 
   const buildSleeveMetrics = (item: ReportModel['contributions'][number]) =>
     report
@@ -228,7 +244,7 @@ const ReportView = () => {
           item,
           portfolioReturnMap,
           rollingWindow,
-          getUnderlyingForSymbol(item.symbol, item.sleeve)
+          getUnderlyingForSymbol(item.symbol, item.sleeve),
         )
       : null
 
@@ -261,10 +277,7 @@ const ReportView = () => {
     return map
   }, [underlyingBySymbol])
 
-  const underlyingSeries = useMemo(
-    () => Object.values(underlyingBySymbol),
-    [underlyingBySymbol]
-  )
+  const underlyingSeries = useMemo(() => Object.values(underlyingBySymbol), [underlyingBySymbol])
 
   const underlyingTimeframes = useMemo(() => {
     const map: Record<string, 'H1' | 'D1'> = {}
@@ -274,12 +287,15 @@ const ReportView = () => {
     return map
   }, [underlyingBySymbol])
 
-  const getUnderlyingForSymbol = (symbol: string, sleeveLabel: string) => {
-    const base = symbol || splitSleeveLabel(sleeveLabel).symbol
-    if (!base) return null
-    const key = normalizeSymbol(base)
-    return normalizedUnderlying[key] ?? null
-  }
+  const getUnderlyingForSymbol = useCallback(
+    (symbol: string, sleeveLabel: string) => {
+      const base = symbol || splitSleeveLabel(sleeveLabel).symbol
+      if (!base) return null
+      const key = normalizeSymbol(base)
+      return normalizedUnderlying[key] ?? null
+    },
+    [normalizedUnderlying],
+  )
 
   const portfolioSummary = useMemo<PortfolioSummary | null>(() => {
     if (!report) return null
@@ -313,7 +329,7 @@ const ReportView = () => {
         : Number.NaN
     const maxDrawdown = portfolioDrawdown.reduce(
       (min, point) => (point.value < min ? point.value : min),
-      0
+      0,
     )
     const mar = maxDrawdown < 0 ? cagr / Math.abs(maxDrawdown) : Number.NaN
     const sharpe = computeSharpe(returns)
@@ -323,10 +339,10 @@ const ReportView = () => {
         new Set(
           report.contributions
             .map((item) => normalizeSymbol(item.symbol))
-            .filter((value) => value.length > 0)
-        )
+            .filter((value) => value.length > 0),
+        ),
       ),
-      normalizedUnderlying
+      normalizedUnderlying,
     )
     return {
       totalReturnPct,
@@ -397,7 +413,6 @@ const ReportView = () => {
     }
   }, [])
 
-
   const handlePrintReport = () => {
     setPdfDialogOpen(true)
   }
@@ -421,7 +436,7 @@ const ReportView = () => {
 
     return new Promise<void>((resolve, reject) => {
       const handleMessage = (
-        event: MessageEvent<{ requestId: number; report: ReportModel; appliedPct: number | null }>
+        event: MessageEvent<{ requestId: number; report: ReportModel; appliedPct: number | null }>,
       ) => {
         if (event.data.requestId !== payload.requestId) return
         worker.removeEventListener('message', handleMessage)
@@ -533,7 +548,7 @@ const ReportView = () => {
         }),
       },
     ],
-    []
+    [],
   )
 
   const pdfRiskColumns = useMemo<PdfColumn<RiskRow>[]>(
@@ -574,7 +589,7 @@ const ReportView = () => {
         }),
       },
     ],
-    []
+    [],
   )
 
   const handleGeneratePdf = async () => {
@@ -627,14 +642,13 @@ const ReportView = () => {
     }
   }
 
-
   const sleeves = useMemo(() => {
     if (!report) return []
     return stableSort(
       report.contributions.map((item) => item.sleeve),
-      (a, b) => a.localeCompare(b)
+      (a, b) => a.localeCompare(b),
     )
-  }, [report, portfolioReturnMap, underlyingBySymbol])
+  }, [report])
 
   const selectedContribution = useMemo(() => {
     if (!report) return null
@@ -646,15 +660,10 @@ const ReportView = () => {
     if (!report || !selectedContribution) return null
     const underlying = getUnderlyingForSymbol(
       selectedContribution.symbol,
-      selectedContribution.sleeve
+      selectedContribution.sleeve,
     )
-    return computeSleeveMetrics(
-      selectedContribution,
-      portfolioReturnMap,
-      rollingWindow,
-      underlying
-    )
-  }, [report, selectedContribution, portfolioReturnMap, rollingWindow, underlyingBySymbol])
+    return computeSleeveMetrics(selectedContribution, portfolioReturnMap, rollingWindow, underlying)
+  }, [report, selectedContribution, portfolioReturnMap, rollingWindow, getUnderlyingForSymbol])
 
   const performanceRows = useMemo<PerformanceRow[]>(() => {
     if (!report) return []
@@ -748,11 +757,7 @@ const ReportView = () => {
       })
       const reasonSummary =
         status.status === 'RED'
-          ? `Reason: ${
-              redTriggers.length > 0
-                ? redTriggers.join('; ')
-                : 'Overall Sharpe < 0'
-            }.`
+          ? `Reason: ${redTriggers.length > 0 ? redTriggers.join('; ') : 'Overall Sharpe < 0'}.`
           : status.status === 'YELLOW'
             ? `Reason: ${yellowTriggers.length > 0 ? yellowTriggers.join('; ') : 'insufficient signal for green'}.`
             : 'Reason: alpha pctile >= 40 and 2Y Sharpe > 0.5.'
@@ -781,7 +786,7 @@ const ReportView = () => {
         statusAction: action,
       }
     })
-  }, [report, drawdownMode])
+  }, [report, getSleeveDrawdown, getUnderlyingForSymbol, portfolioReturnMap])
 
   const pdfPerformanceRows = useMemo(() => {
     if (!pdfObfuscate || !pdfObfuscation) return performanceRows
@@ -830,7 +835,7 @@ const ReportView = () => {
         renderCell: (params) =>
           renderSigned(
             params.row.totalPnl as number | null,
-            formatCurrency(params.row.totalPnl as number | null)
+            formatCurrency(params.row.totalPnl as number | null),
           ),
       },
       {
@@ -841,7 +846,7 @@ const ReportView = () => {
         renderCell: (params) =>
           renderSigned(
             params.row.meanAnn as number | null,
-            formatPercent(params.row.meanAnn as number | null, 2)
+            formatPercent(params.row.meanAnn as number | null, 2),
           ),
       },
       {
@@ -852,7 +857,7 @@ const ReportView = () => {
         renderCell: (params) =>
           renderSigned(
             params.row.sharpe as number | null,
-            formatNumber(params.row.sharpe as number | null, 2)
+            formatNumber(params.row.sharpe as number | null, 2),
           ),
       },
       {
@@ -863,7 +868,7 @@ const ReportView = () => {
         renderCell: (params) =>
           renderSigned(
             params.row.last2yPnl as number | null,
-            formatCurrency(params.row.last2yPnl as number | null)
+            formatCurrency(params.row.last2yPnl as number | null),
           ),
       },
       {
@@ -874,7 +879,7 @@ const ReportView = () => {
         renderCell: (params) =>
           renderSigned(
             params.row.last2yMeanAnn as number | null,
-            formatPercent(params.row.last2yMeanAnn as number | null, 2)
+            formatPercent(params.row.last2yMeanAnn as number | null, 2),
           ),
       },
       {
@@ -885,7 +890,7 @@ const ReportView = () => {
         renderCell: (params) =>
           renderSigned(
             params.row.last2ySharpe as number | null,
-            formatNumber(params.row.last2ySharpe as number | null, 2)
+            formatNumber(params.row.last2ySharpe as number | null, 2),
           ),
       },
     ]
@@ -1038,40 +1043,38 @@ const ReportView = () => {
             formatMetric(
               'alpha pctile',
               params.row.alphaPct != null ? `${Math.round(params.row.alphaPct)}%` : 'n/a',
-              params.row.alphaPct == null || params.row.alphaPct < 40
+              params.row.alphaPct == null || params.row.alphaPct < 40,
             ),
             formatMetric(
               'winrate pctile',
               params.row.winratePctile != null ? `${Math.round(params.row.winratePctile)}%` : 'n/a',
-              params.row.winratePctile != null && params.row.winratePctile < 20
+              params.row.winratePctile != null && params.row.winratePctile < 20,
             ),
             formatMetric(
               'last 1Y sharpe',
               params.row.last1ySharpe != null ? params.row.last1ySharpe.toFixed(2) : 'n/a',
-              params.row.last1ySharpe != null && params.row.last1ySharpe < 0
+              params.row.last1ySharpe != null && params.row.last1ySharpe < 0,
             ),
             formatMetric(
               'last 2Y sharpe',
               params.row.last2ySharpe != null ? params.row.last2ySharpe.toFixed(2) : 'n/a',
-              params.row.last2ySharpe != null && params.row.last2ySharpe < 0
+              params.row.last2ySharpe != null && params.row.last2ySharpe < 0,
             ),
             formatMetric(
               'overall sharpe',
               params.row.overallSharpe != null ? params.row.overallSharpe.toFixed(2) : 'n/a',
-              params.row.overallSharpe != null && params.row.overallSharpe < 0
+              params.row.overallSharpe != null && params.row.overallSharpe < 0,
             ),
             formatMetric(
               'last 2Y winrate',
               params.row.last2yWinrate != null
                 ? `${Math.round(params.row.last2yWinrate * 100)}%`
                 : 'n/a',
-              false
+              false,
             ),
           ]
           if (shock !== 'NONE') {
-            metrics.push(
-              formatMetric('dd shock', shock, shock === 'RED' || shock === 'ORANGE')
-            )
+            metrics.push(formatMetric('dd shock', shock, shock === 'RED' || shock === 'ORANGE'))
           }
           return (
             <Tooltip
@@ -1085,10 +1088,7 @@ const ReportView = () => {
                     {params.row.statusReasons || 'n/a'}
                   </Typography>
                   {metrics}
-                  <Typography
-                    variant="caption"
-                    sx={{ display: 'block', fontWeight: 600, mt: 0.5 }}
-                  >
+                  <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, mt: 0.5 }}>
                     Action
                   </Typography>
                   <Typography variant="caption" sx={{ display: 'block' }}>
@@ -1140,9 +1140,7 @@ const ReportView = () => {
                           color: theme.palette.getContrastText(theme.palette.warning.main),
                         }}
                       />
-                      <Typography variant="caption">
-                        Downgrades GREEN → YELLOW
-                      </Typography>
+                      <Typography variant="caption">Downgrades GREEN → YELLOW</Typography>
                     </Stack>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Chip
@@ -1216,7 +1214,7 @@ const ReportView = () => {
         renderCell: (params) =>
           renderSigned(
             params.row.alphaPct as number | null,
-            formatPercent(params.row.alphaPct as number | null, 0)
+            formatPercent(params.row.alphaPct as number | null, 0),
           ),
       },
       {
@@ -1227,7 +1225,7 @@ const ReportView = () => {
         renderCell: (params) =>
           renderSigned(
             params.row.last1ySharpe as number | null,
-            formatNumber(params.row.last1ySharpe as number | null, 2)
+            formatNumber(params.row.last1ySharpe as number | null, 2),
           ),
       },
       {
@@ -1238,7 +1236,7 @@ const ReportView = () => {
         renderCell: (params) =>
           renderSigned(
             params.row.last2ySharpe as number | null,
-            formatNumber(params.row.last2ySharpe as number | null, 2)
+            formatNumber(params.row.last2ySharpe as number | null, 2),
           ),
       },
       {
@@ -1249,16 +1247,16 @@ const ReportView = () => {
         renderCell: (params) => formatRate(params.row.last2yWinrate as number | null, 1),
       },
     ]
-  }, [isDark, negativeColor])
+  }, [isDark, negativeColor, theme.palette])
 
   const correlationMatrix = useMemo<CorrelationMatrix>(() => {
     if (!report) return { labels: [], values: [] }
     const labels = stableSort(
       report.contributions.map((item) => item.sleeve),
-      (a, b) => a.localeCompare(b)
+      (a, b) => a.localeCompare(b),
     )
     const returnsBySleeve = new Map(
-      report.contributions.map((item) => [item.sleeve, getSeriesValues(item.returns)])
+      report.contributions.map((item) => [item.sleeve, getSeriesValues(item.returns)]),
     )
     const safeCorrelation = (seriesA: number[], seriesB: number[]) => {
       const pairs: [number, number][] = []
@@ -1281,7 +1279,7 @@ const ReportView = () => {
         const seriesA = returnsBySleeve.get(a) ?? []
         const seriesB = returnsBySleeve.get(b) ?? []
         return safeCorrelation(seriesA, seriesB)
-      })
+      }),
     )
     return { labels, values }
   }, [report])
@@ -1308,123 +1306,64 @@ const ReportView = () => {
 
   if (!report) return null
 
-  const contextValue = useMemo(
-    () => ({
-      tab,
-      report,
-      deals,
-      performanceRows,
-      gridPerformanceColumns: metricColumns,
-      riskRows,
-      gridRiskColumns: riskColumns,
-      sleeves,
-      selectedContribution,
-      selectedSleeveMetrics,
-      buildSleeveMetrics,
-      sleeveViewMode,
-      onSleeveViewModeChange: handleSleeveViewModeChange,
-      drawdownMode,
-      onDrawdownModeChange: handleDrawdownModeChange,
-      hasMtmDrawdown,
-      pnlScaleMode,
-      onPnlScaleModeChange: handlePnlScaleModeChange,
-      rollingWindow,
-      onRollingWindowChange: handleRollingWindowChange,
-      metricWindow,
-      baseCapital,
-      pnlColor,
-      axisColor,
-      gridColor,
-      theme,
-      isDark,
-      getSleeveDrawdown,
-      getSleeveDrawdownSource,
-      allSleevesPlaceholderHeight: ALL_SLEEVES_PLACEHOLDER_HEIGHT,
-      portfolioDrawdown,
-      portfolioDrawdownSource,
-      showCorrNumbers,
-      onShowCorrNumbersChange: handleShowCorrNumbersChange,
-      correlationMatrix,
-      correlationLegend,
-      cellSize,
-      portfolioSummary,
-      pdfPerformanceRows,
-      pdfRiskRows,
-      pdfPerformanceColumns,
-      pdfRiskColumns,
-      pdfName,
-      pdfPageWidth,
-      pdfPageMinHeight,
-      pdfCorrelationCellSize,
-      pdfCorrelationLabels,
-      lightTheme,
-      printPnlColor,
-      printAxisColor,
-      printGridColor,
-      formatPdfSleeveLabel,
-      formatPdfSymbol,
-      onSelectSleeve: handleSelectSleeve,
-      underlyingTimeframes,
-      underlyingSeries,
-    }),
-    [
-      tab,
-      report,
-      deals,
-      performanceRows,
-      metricColumns,
-      riskRows,
-      riskColumns,
-      sleeves,
-      selectedContribution,
-      selectedSleeveMetrics,
-      buildSleeveMetrics,
-      sleeveViewMode,
-      handleSleeveViewModeChange,
-      drawdownMode,
-      handleDrawdownModeChange,
-      hasMtmDrawdown,
-      pnlScaleMode,
-      handlePnlScaleModeChange,
-      rollingWindow,
-      handleRollingWindowChange,
-      metricWindow,
-      baseCapital,
-      pnlColor,
-      axisColor,
-      gridColor,
-      theme,
-      isDark,
-      getSleeveDrawdown,
-      getSleeveDrawdownSource,
-      portfolioDrawdown,
-      portfolioDrawdownSource,
-      showCorrNumbers,
-      handleShowCorrNumbersChange,
-      correlationMatrix,
-      correlationLegend,
-      cellSize,
-      portfolioSummary,
-      pdfPerformanceRows,
-      pdfRiskRows,
-      pdfName,
-      pdfPageWidth,
-      pdfPageMinHeight,
-      pdfCorrelationCellSize,
-      pdfCorrelationLabels,
-      lightTheme,
-      printPnlColor,
-      printAxisColor,
-      printGridColor,
-      formatPdfSleeveLabel,
-      formatPdfSymbol,
-      handleSelectSleeve,
-      pdfPerformanceColumns,
-      pdfRiskColumns,
-      underlyingTimeframes,
-      underlyingSeries,
-    ]
-  )
+  const contextValue: ReportViewContextValue = {
+    tab,
+    report,
+    deals,
+    performanceRows,
+    gridPerformanceColumns: metricColumns,
+    riskRows,
+    gridRiskColumns: riskColumns,
+    sleeves,
+    selectedContribution,
+    selectedSleeveMetrics,
+    buildSleeveMetrics,
+    sleeveViewMode,
+    onSleeveViewModeChange: handleSleeveViewModeChange,
+    drawdownMode,
+    onDrawdownModeChange: handleDrawdownModeChange,
+    hasMtmDrawdown,
+    pnlScaleMode,
+    onPnlScaleModeChange: handlePnlScaleModeChange,
+    rollingWindow,
+    onRollingWindowChange: handleRollingWindowChange,
+    metricWindow,
+    baseCapital,
+    pnlColor,
+    axisColor,
+    gridColor,
+    theme,
+    isDark,
+    getSleeveDrawdown,
+    getSleeveDrawdownSource,
+    allSleevesPlaceholderHeight: ALL_SLEEVES_PLACEHOLDER_HEIGHT,
+    portfolioDrawdown,
+    portfolioDrawdownSource,
+    showCorrNumbers,
+    onShowCorrNumbersChange: handleShowCorrNumbersChange,
+    correlationMatrix,
+    correlationLegend,
+    cellSize,
+    portfolioSummary,
+    pdfPerformanceRows,
+    pdfRiskRows,
+    pdfPerformanceColumns,
+    pdfRiskColumns,
+    pdfName,
+    pdfPageWidth,
+    pdfPageMinHeight,
+    pdfCorrelationCellSize,
+    pdfCorrelationLabels,
+    lightTheme,
+    printPnlColor,
+    printAxisColor,
+    printGridColor,
+    formatPdfSleeveLabel,
+    formatPdfSymbol,
+    onSelectSleeve: handleSelectSleeve,
+    underlyingTimeframes,
+    underlyingSeries,
+  }
 
   return (
     <ReportViewProvider value={contextValue}>
@@ -1448,7 +1387,7 @@ const ReportView = () => {
                 size="medium"
                 label={`MAR Degradation -${marDegradationPct}%`}
                 sx={{ ml: { md: 1 } }}
-                variant='outlined'
+                variant="outlined"
                 onDelete={handleRemoveMarDegradation}
               />
             )}
@@ -1471,11 +1410,7 @@ const ReportView = () => {
             >
               Regenerate report
             </Button>
-            <IconButton
-              aria-label="Report actions"
-              onClick={handleMenuOpen}
-              size="small"
-            >
+            <IconButton aria-label="Report actions" onClick={handleMenuOpen} size="small">
               <MoreVertOutlinedIcon />
             </IconButton>
             <Menu
@@ -1490,9 +1425,7 @@ const ReportView = () => {
                   handleMenuClose()
                   setMarDialogOpen(true)
                 }}
-                disabled={
-                  marDegradationPct != null || !canApplyMarDegradation || isMarApplying
-                }
+                disabled={marDegradationPct != null || !canApplyMarDegradation || isMarApplying}
               >
                 <TrendingDownOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
                 Apply MAR degradation
@@ -1603,7 +1536,7 @@ const ReportView = () => {
                 type="number"
                 value={marDegradeInput}
                 onChange={(event) => setMarDegradeInput(event.target.value)}
-                inputProps={{ min: 0, step: 1 }}
+                slotProps={{ htmlInput: { min: 0, step: 1 } }}
                 helperText="Adds slippage to all trades to reduce MAR by the chosen percentage."
                 fullWidth
               />

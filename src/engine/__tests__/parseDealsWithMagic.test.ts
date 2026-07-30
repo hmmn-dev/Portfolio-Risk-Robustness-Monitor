@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { parseDealsWithMagic } from '../parseDealsWithMagic'
 
-const makeBuffer = (text: string) => Buffer.from(text, 'utf16le')
+const makeBuffer = (text: string) => {
+  const buffer = new ArrayBuffer(text.length * 2)
+  const view = new DataView(buffer)
+  for (let index = 0; index < text.length; index += 1) {
+    view.setUint16(index * 2, text.charCodeAt(index), true)
+  }
+  return buffer
+}
 
 describe('parseDealsWithMagic', () => {
   it('handles empty comments and missing position_id with magic fallback', () => {
