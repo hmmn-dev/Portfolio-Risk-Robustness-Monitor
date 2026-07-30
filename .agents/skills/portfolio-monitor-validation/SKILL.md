@@ -41,6 +41,8 @@ Verify these invariants:
 - Filtered composition and custom weights do not mutate the base report.
 - Unknown or insufficient evidence never becomes a healthy status.
 - PDF obfuscation changes labels only, never calculation data.
+- Interactive and PDF output consume the same tested calculation when their financial semantics are identical.
+- Base, filtered, and custom portfolio paths delegate shared formulas rather than maintaining copies.
 
 Test pure rules directly in `src/engine/__tests__/` or the nearest focused helper test.
 
@@ -71,6 +73,7 @@ Use React Testing Library and `user-event` to verify:
 - risk/status text in addition to color;
 - chart and grid behavior with missing or non-finite data;
 - PDF settings and obfuscation behavior at the component boundary.
+- exact dialog and control accessible names after presentation extraction.
 
 Prefer `renderWithTheme` and shared report fixtures. Query by role and accessible name. Mock workers, IndexedDB, browser observers, ECharts, file APIs, PDF capture, and object URLs only at their boundaries.
 

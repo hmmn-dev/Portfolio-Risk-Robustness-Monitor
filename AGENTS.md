@@ -20,6 +20,11 @@ Do not trade correctness or explicit domain behavior for a shorter implementatio
 - `src/workers/` and `src/ui/report-view/workers/`: worker protocols and expensive background calculations.
 - `src/ui/` and `src/routes/`: React orchestration and user interface.
 - `src/ui/report-view/components/`: report views and presentation-oriented components.
+- `src/ui/report-view/components/portfolio/`: prop-driven interactive portfolio panels.
+- `src/ui/report-view/components/pdf/`: PDF page composition and PDF-specific layout.
+- `src/ui/report-view/hooks/`: cohesive report feature state and orchestration.
+- `src/ui/report-view/portfolio/`: pure view-level portfolio calculations and weight rules.
+- `src/ui/report-view/helpers/`: focused chart, label, regression, and series helpers.
 - `src/test/`: shared render helpers, setup, mocks, and report fixtures.
 - `src/**/__tests__/`: unit, component, and integration tests.
 
@@ -74,6 +79,17 @@ Never claim a command passed unless it was executed successfully.
 
 ## Architecture
 
+### Module Cohesion
+
+Organize code by responsibility and reason to change, not by file length alone.
+
+- Before adding logic to a feature component, classify it as domain calculation, view-level transformation, stateful workflow, orchestration, or presentation.
+- Keep one canonical implementation of each calculation. Search existing engine and feature modules before adding another version.
+- Do not create catch-all `helpers.ts` or `utils.ts` modules. Use focused names such as `series`, `labels`, `regression`, `portfolioWeights`, or the relevant domain concept.
+- Co-locate a helper with its feature until it is genuinely shared. Move reusable financial behavior into `src/engine/`.
+- Treat file length as a diagnostic signal, not a refactoring target. Moving an entire mixed component into one large hook is not an architectural improvement.
+- Preserve a small public surface. Export only functions and types required by real callers.
+
 ### Domain Logic
 
 Keep portfolio calculations, parsing, alignment, sorting, metrics, drawdown, attribution, and status rules in pure TypeScript outside React.
@@ -85,6 +101,8 @@ Keep portfolio calculations, parsing, alignment, sorting, metrics, drawdown, att
 - Test boundary conditions close to the domain function.
 
 Do not add substantial inline calculations to `ReportView`, `PortfolioTab`, `Wizard`, or another component. Extract and test them first.
+
+Interactive views and PDF output must not maintain separate implementations of the same calculation. Share tested data preparation and formatting-independent rules; keep only output-specific composition separate.
 
 ### Presentation Components
 
@@ -110,6 +128,16 @@ Feature or container components:
 
 Do not create a container/view pair for every trivial component. Extract a boundary when it removes business logic, side effects, substantial transformation, reuse pressure, or testing difficulty from the view.
 
+For report features:
+
+- `ReportView` assembles report-level dependencies and provider values.
+- Tab components coordinate focused hooks and presentation sections.
+- Hooks own cohesive editable workflows or derived feature analytics.
+- Portfolio and PDF section components render typed props and emit commands.
+- PDF page components own page boundaries and PDF-only layout.
+
+Do not bypass these boundaries by importing stores or broad contexts into presentation sections.
+
 ### Hooks
 
 Use custom hooks for cohesive reusable stateful behavior, not merely to reduce file length.
@@ -118,6 +146,17 @@ Use custom hooks for cohesive reusable stateful behavior, not merely to reduce f
 - Hooks must expose domain-oriented values and commands, not JSX.
 - Keep pure calculations as ordinary functions.
 - Avoid hiding a large component inside one equally large hook.
+- Group returned values and commands by a cohesive workflow when a hook exposes several operations.
+- Keep independent workflows in separate hooks rather than growing one feature-wide hook.
+
+### Context
+
+- Prefer explicit props inside a feature subtree.
+- Use context at stable feature boundaries where many descendants need the same contract.
+- Split contexts by consumer domain, such as navigation, tables, sleeves, portfolio, and PDF.
+- A consumer should not subscribe to unrelated report state.
+- Do not reintroduce a single all-purpose report context as new features are added.
+- Keep provider and fixture contracts aligned so focused consumers remain easy to test.
 
 ### State Ownership
 
@@ -205,6 +244,10 @@ For a refactor:
 - Preserve public behavior and component contracts.
 - Add characterization coverage before moving insufficiently covered behavior.
 - Do not rewrite tests merely because implementation moved.
+- Keep parent integration tests as characterization coverage.
+- Add direct React Testing Library coverage for extracted interaction-heavy presentation components.
+- Do not add isolated tests for trivial wrappers that have no behavior or meaningful rendering contract.
+- Treat a failed exact accessible-name query as a possible semantic markup defect before weakening the query.
 
 Cover applicable states:
 
@@ -267,9 +310,11 @@ Before a substantial refactor:
 
 1. Identify behavioral invariants and exported interfaces.
 2. Establish a passing targeted baseline.
-3. Add characterization tests where coverage is weak.
-4. Choose one ownership boundary to improve.
-5. Keep intermediate steps buildable and tested.
+3. Inventory local calculations, state workflows, effects, context dependencies, and visible sections.
+4. Define the intended module ownership before moving code.
+5. Add characterization tests where coverage is weak.
+6. Choose one ownership boundary to improve.
+7. Keep intermediate steps buildable and tested.
 
 Preferred direction:
 
@@ -287,6 +332,10 @@ Do not:
 - Move code only to reduce file length.
 - Add forwarding helpers or abstractions with no clear ownership benefit.
 - Create generic frameworks inside the application.
+- Duplicate a calculation for screen, PDF, filtered, or custom-portfolio output.
+- Replace one broad component with one broad hook or context.
+
+After moving code, search for obsolete imports, old broad context hooks, duplicate formulas, and unreachable compatibility paths before considering the refactor complete.
 
 ## Definition of Done
 

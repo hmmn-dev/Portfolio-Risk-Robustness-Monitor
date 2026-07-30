@@ -28,9 +28,12 @@ Do not edit until the current ownership and behavior are understood.
 
 ## Implement
 
+- Search for the canonical calculation or transformation before adding another implementation.
 - Keep pure calculations outside React and stores.
 - Keep presentation components driven by typed props and callbacks.
 - Keep store, worker, file, routing, and persistence coordination in feature/container code or focused hooks.
+- Do not deepen an already mixed component. Make the smallest useful ownership extraction or also use `$react-refactor`.
+- Do not add new catch-all helper modules; place code with the domain or focused feature responsibility that owns it.
 - Use effects only for external synchronization.
 - Preserve unrelated changes and avoid broad cleanup.
 - Do not weaken types, lint rules, accessibility, or assertions.
@@ -73,6 +76,9 @@ Inspect the final diff for:
 - skipped, focused, or weakened tests;
 - unsafe casts and non-null assertions;
 - duplicated sources of truth;
+- duplicate screen/PDF or base/custom calculation paths;
+- new broad context fields consumed by only one feature;
+- mixed components made shorter only by moving their contents into one broad hook;
 - missing cleanup for workers, timers, listeners, observers, and object URLs;
 - accidental behavior changes.
 

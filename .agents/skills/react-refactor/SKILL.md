@@ -17,6 +17,21 @@ Improve ownership and testability incrementally while keeping the application be
 
 Do not begin a large move while observable behavior is ambiguous.
 
+## Map Before Moving
+
+Inventory the target before editing:
+
+1. List local pure calculations and transformations.
+2. List independent state or draft workflows.
+3. List effects and external-system boundaries.
+4. List visible UI sections and output-specific layouts.
+5. List context fields and the consumers that actually need them.
+6. Choose the target owner for each responsibility.
+
+Use focused module names. Do not replace a large component with a catch-all `helpers.ts`, `utils.ts`, one feature-wide hook, or one feature-wide context.
+
+Search for an existing calculation before extracting a new one. Keep one tested implementation for interactive views, filtered/custom portfolios, and PDF output whenever their semantics are identical.
+
 ## Choose an Ownership Boundary
 
 Classify code before moving it:
@@ -26,6 +41,7 @@ Classify code before moving it:
 - **Feature/container component:** reads stores, coordinates commands, selects view state, and maps domain results to presentation props.
 - **Custom hook:** owns one cohesive reusable lifecycle involving React state or an external system. It returns values and commands, not JSX.
 - **Store:** owns genuinely shared or persisted client state, not temporary view drafts or derived values.
+- **Output composition:** owns screen or PDF layout boundaries while reusing shared calculations and truly identical presentation sections.
 
 Do not create a container/view pair for a trivial component. Extract only when the boundary reduces mixed responsibilities, side effects, transformation, reuse pressure, or testing difficulty.
 
@@ -33,13 +49,16 @@ Do not create a container/view pair for a trivial component. Extract only when t
 
 Prefer this sequence:
 
-1. Extract pure financial or formatting-independent logic and add unit tests.
-2. Stabilize types and explicit input/output contracts.
-3. Extract cohesive external lifecycles, such as worker or browser-resource management, into focused hooks when useful.
-4. Create presentation components around existing user-visible sections.
-5. Leave a small feature container that wires stores, hooks, and callbacks.
-6. Narrow broad context values or replace them with explicit props where it improves ownership.
-7. Remove obsolete code only after callers and tests have moved.
+1. Record the ownership map and preserved behavior.
+2. Extract pure financial or formatting-independent logic and add unit tests.
+3. Stabilize types and explicit input/output contracts.
+4. Extract each cohesive state workflow or external lifecycle into a focused hook when useful.
+5. Create presentation components around existing user-visible sections.
+6. Separate output composition, such as interactive panels and PDF page boundaries.
+7. Leave a small feature container that wires hooks, domain values, and callbacks.
+8. Narrow broad contexts by consumer domain or replace them with explicit props.
+9. Remove obsolete code only after callers and tests have moved.
+10. Search for old imports, broad context hooks, duplicate formulas, and dead compatibility paths.
 
 Keep every intermediate step compiling and tested.
 
@@ -49,17 +68,22 @@ Keep every intermediate step compiling and tested.
 - Prefer event handlers, render-time derivation, initializers, reducers, or clearer component ownership.
 - Avoid copying store values into component state unless the user is editing an independent draft.
 - Do not hide a large component inside an equally large custom hook.
+- Do not hide unrelated editable workflows inside one hook.
 - Do not memoize automatically; use memoization only for expensive work or required stable identity.
 - Keep hook dependencies complete.
 - Preserve accessible names, keyboard behavior, responsive layout, and status semantics.
 - Keep ECharts option building and financial calculations pure.
 - Keep interactive report and PDF presentation concerns separate.
+- Reuse shared pure calculations between interactive and PDF output instead of copying formulas.
+- Keep contexts focused by consumer domain; presentation components should prefer typed props.
 
 ## Tests During Refactoring
 
 - Keep behavior tests stable while implementation moves.
 - Test extracted pure functions directly.
-- Test presentation components with representative props and user events.
+- Keep parent integration tests as characterization coverage.
+- Test interaction-heavy presentation components directly with representative props and user events.
+- Skip isolated tests for trivial forwarding wrappers with no behavior.
 - Test the container at store, route, worker, or persistence boundaries.
 - Mock external systems rather than extracted internal components by default.
 - Avoid snapshots that make structural movement look like behavioral change.
@@ -80,7 +104,11 @@ Verify that:
 - the container is orchestration-focused;
 - presentation components are independently renderable;
 - pure logic is independently testable;
+- helpers are focused by domain rather than collected in a catch-all module;
+- interactive and PDF paths do not duplicate calculation logic;
+- contexts expose only values required by their consumer domain;
+- hooks each own one cohesive workflow;
 - there are no forwarding abstractions with no ownership value;
 - no duplicate state or calculation path was introduced.
 
-Report preserved invariants, new boundaries, tests used as safety rails, and any remaining mixed responsibility that should be handled in a later refactor.
+Judge success by ownership and testability, not line-count reduction. Report preserved invariants, new boundaries, tests used as safety rails, and any remaining mixed responsibility that should be handled in a later refactor.
