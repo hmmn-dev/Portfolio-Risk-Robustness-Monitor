@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Monitoring UI Design'
+  short_description: 'Design coherent portfolio monitoring interfaces'
+  default_prompt: 'Use $monitoring-ui-design to design or refine this MUI interface with clear monitoring UX.'

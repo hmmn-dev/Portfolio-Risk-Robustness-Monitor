@@ -358,6 +358,7 @@ Use the applicable repo skill for nontrivial work:
 
 - `$safe-react-change`: features, fixes, and general React/TypeScript changes.
 - `$react-refactor`: structural refactors or preparation for future refactoring.
+- `$monitoring-ui-design`: Material UI layout, visual hierarchy, interaction design, responsive behavior, accessibility, and UX refinement.
 - `$portfolio-monitor-validation`: calculations, status logic, parsing, portfolio composition, charts, persistence, workers, or report behavior.
 
 Multiple skills may apply to the same task. Follow this root file at all times; skills add workflow detail rather than replacing these rules.
