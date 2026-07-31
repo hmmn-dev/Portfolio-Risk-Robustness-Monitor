@@ -62,6 +62,38 @@ describe('report charts', () => {
     expect(option.tooltip.formatter([{ dataIndex: 1 }])).toContain('DD: -2.00%')
   })
 
+  it('anchors log equity to starting capital so small returns keep useful bounds', () => {
+    renderWithTheme(
+      <EquityChart
+        data={[
+          { time: Date.UTC(2024, 0, 1), value: 1 },
+          { time: Date.UTC(2024, 0, 2), value: 1.04 },
+        ]}
+        scaleMode="percent"
+        pnlScaleMode="log"
+        baseValue={10000}
+        color="#123456"
+        axisColor="#555555"
+        gridColor="#dddddd"
+      />,
+    )
+
+    const option = echartsSpy.mock.calls[0][0].option as {
+      series: Array<{ data: number[] }>
+      yAxis: {
+        min: number
+        max: number
+        axisLabel: { formatter: (value: number) => string }
+      }
+    }
+    expect(option.series[0].data[0]).toBeCloseTo(0)
+    expect(option.series[0].data[1]).toBeCloseTo(Math.log(1.04))
+    expect(option.yAxis.min).toBeGreaterThan(-0.02)
+    expect(option.yAxis.max).toBeLessThan(0.06)
+    expect(option.yAxis.axisLabel.formatter(0)).toBe('0.0')
+    expect(option.yAxis.axisLabel.formatter(Math.log(1.04))).toBe('4.0')
+  })
+
   it('pins drawdown charts at zero and formats tooltip values', () => {
     renderWithTheme(
       <DrawdownChart

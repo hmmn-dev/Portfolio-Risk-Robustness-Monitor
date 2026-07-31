@@ -31,7 +31,8 @@ export const EquityChart = ({
   gridColor: string
 }) => {
   const theme = useTheme()
-  const base = Number.isFinite(baseValue) ? (baseValue as number) : 10000
+  const base =
+    Number.isFinite(baseValue) && (baseValue as number) > 0 ? (baseValue as number) : 10000
   const formatCurrency = (value: number) =>
     value.toLocaleString(undefined, { maximumFractionDigits: 0 })
   const displaySeries =
@@ -61,7 +62,9 @@ export const EquityChart = ({
       ? equitySeries.map((point) => ({
           time: point.time,
           value:
-            Number.isFinite(point.value) && point.value > 0 ? Math.log(point.value) : Number.NaN,
+            Number.isFinite(point.value) && point.value > 0
+              ? Math.log(point.value / base)
+              : Number.NaN,
         }))
       : displaySeries
   const percentValues =
@@ -95,7 +98,7 @@ export const EquityChart = ({
     return resolvedDrawdown[Math.max(0, high)].value
   }
   const logAxisFormatter = (value: number) => {
-    const equity = Math.exp(value)
+    const equity = Math.exp(value) * base
     if (scaleMode === 'percent') {
       const percentValue = (equity / base - 1) * 100
       return formatPercentAxis(percentValue)
