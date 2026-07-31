@@ -152,6 +152,7 @@ export const usePortfolioAnalytics = ({
     effectiveDrawdown,
     effectiveDrawdownSource,
     effectiveIndex,
+    effectiveReturns: dailyReturns,
     effectiveSummary,
     effectiveCorrelationMatrix: isFiltered ? filteredCorrelationMatrix : correlationMatrix,
     monthlyReturns,

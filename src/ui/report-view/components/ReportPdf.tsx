@@ -39,10 +39,8 @@ const ReportPdf = () => {
     getSleeveDrawdown,
     getSleeveDrawdownSource,
   } = useReportPdf()
-  const monthlyReturns = buildMonthlyReturnRows(
-    buildDailyReturnPoints(report.portfolio.days),
-    portfolioDrawdown,
-  )
+  const dailyReturns = buildDailyReturnPoints(report.portfolio.days)
+  const monthlyReturns = buildMonthlyReturnRows(dailyReturns, portfolioDrawdown)
 
   return (
     <>
@@ -106,6 +104,8 @@ const ReportPdf = () => {
         width={pdfPageWidth}
         minHeight={pdfPageMinHeight}
         summary={portfolioSummary}
+        index={report.portfolio.index}
+        returns={dailyReturns}
         drawdown={portfolioDrawdown}
         drawdownMode={drawdownMode}
         drawdownSource={portfolioDrawdownSource}

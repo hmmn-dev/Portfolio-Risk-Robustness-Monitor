@@ -33,8 +33,21 @@ describe('PortfolioTab', () => {
     expect(screen.getByText('Portfolio equity')).toBeInTheDocument()
     expect(screen.getByText('Portfolio monthly returns')).toBeInTheDocument()
     expect(screen.getByText('Portfolio summary')).toBeInTheDocument()
-    expect(screen.getByText('Portfolio regression (n=20)')).toBeInTheDocument()
-    expect(screen.getByText(/GREEN=1/)).toBeInTheDocument()
+    const health = screen.getByRole('region', { name: 'Portfolio health' })
+    const factors = screen.getByRole('region', { name: 'Factor diagnostics' })
+    const summary = screen.getByRole('region', { name: 'Portfolio summary' })
+    const equityHeading = screen.getByText('Portfolio equity')
+    const correlationHeading = screen.getByText('Cross-sleeve correlation')
+    expect(
+      equityHeading.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      correlationHeading.compareDocumentPosition(factors) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(within(factors).getByText('Observations')).toBeInTheDocument()
+    expect(within(factors).getByText('20')).toBeInTheDocument()
+    expect(within(health).getByText('Healthy')).toBeInTheDocument()
+    expect(within(health).getByText('1')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Log' }))
     await user.click(screen.getByRole('switch', { name: 'Show values' }))
@@ -58,7 +71,7 @@ describe('PortfolioTab', () => {
 
     expect(screen.getByText('1 out of 2 sleeves selected')).toBeInTheDocument()
     expect(
-      screen.getByText(/Results are based on the selected sleeve series and weights/),
+      screen.getByText(/Results use the selected sleeve series and weights/),
     ).toBeInTheDocument()
   })
 })

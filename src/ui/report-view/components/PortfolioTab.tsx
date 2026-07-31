@@ -8,6 +8,7 @@ import PortfolioCompositionDialog from './portfolio/PortfolioCompositionDialog'
 import PortfolioCorrelationPanel from './portfolio/PortfolioCorrelationPanel'
 import PortfolioSummaryPanel from './portfolio/PortfolioSummaryPanel'
 import PortfolioToolbar from './portfolio/PortfolioToolbar'
+import PortfolioRegressionSummary from './portfolio/summary/PortfolioRegressionSummary'
 import { useReportPortfolio } from './ReportViewContext'
 
 const PortfolioTabContent = () => {
@@ -85,6 +86,16 @@ const PortfolioTabContent = () => {
         axisColor={axisColor}
         gridColor={gridColor}
       />
+      <PortfolioSummaryPanel
+        summary={analytics.effectiveSummary}
+        index={analytics.effectiveIndex}
+        returns={analytics.effectiveReturns}
+        drawdown={analytics.effectiveDrawdown}
+        drawdownMode={analytics.effectiveDrawdownMode}
+        drawdownSource={analytics.effectiveDrawdownSource}
+        riskRows={riskRows}
+        customPortfolio={analytics.usesCustomPortfolio}
+      />
       <MonthlyReturnsTable rows={analytics.monthlyReturns} theme={theme} />
       <PortfolioCorrelationPanel
         matrix={analytics.effectiveCorrelationMatrix}
@@ -94,14 +105,7 @@ const PortfolioTabContent = () => {
         theme={theme}
         onShowNumbersChange={onShowCorrNumbersChange}
       />
-      <PortfolioSummaryPanel
-        summary={analytics.effectiveSummary}
-        drawdown={analytics.effectiveDrawdown}
-        drawdownMode={analytics.effectiveDrawdownMode}
-        drawdownSource={analytics.effectiveDrawdownSource}
-        riskRows={riskRows}
-        customPortfolio={analytics.usesCustomPortfolio}
-      />
+      <PortfolioRegressionSummary regression={analytics.effectiveSummary?.regression ?? null} />
       <PortfolioCompositionDialog
         open={composition.dialog.open}
         labels={sleeveLabels}

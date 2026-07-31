@@ -1,5 +1,4 @@
-import { Box, Chip, Paper, Stack, Typography } from '@mui/material'
-import { computeDdShock } from '../../../../engine/ddShock'
+import { Box, Paper, Stack, Typography } from '@mui/material'
 import type { DailyPoint, ReportModel } from '../../../../engine/types'
 import { DrawdownChart, EquityChart } from '../../charts'
 import { formatDrawdownSourceLabel } from '../../formatters'
@@ -32,7 +31,9 @@ const PortfolioChartsPanel = ({
   <Paper variant="outlined" sx={{ p: 2 }}>
     <Stack spacing={2}>
       <Box>
-        <Typography variant="subtitle2">Portfolio equity</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+          Portfolio equity
+        </Typography>
         <EquityChart
           data={index}
           scaleMode="percent"
@@ -48,7 +49,7 @@ const PortfolioChartsPanel = ({
         />
       </Box>
       <Box>
-        <Typography variant="subtitle2">
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
           Portfolio drawdown ({formatDrawdownSourceLabel(drawdownSource)})
         </Typography>
         <DrawdownChart
@@ -57,10 +58,6 @@ const PortfolioChartsPanel = ({
           axisColor={axisColor}
           gridColor={gridColor}
         />
-      </Box>
-      <Box>
-        <Typography variant="subtitle2">Drawdown shock</Typography>
-        <Chip label={computeDdShock(drawdown).flag} />
       </Box>
     </Stack>
   </Paper>

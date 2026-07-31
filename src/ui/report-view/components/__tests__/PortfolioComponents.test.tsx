@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { createTheme } from '@mui/material/styles'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
@@ -12,6 +12,7 @@ import PortfolioCompositionDialog from '../portfolio/PortfolioCompositionDialog'
 import PortfolioCorrelationPanel from '../portfolio/PortfolioCorrelationPanel'
 import PortfolioSummaryPanel from '../portfolio/PortfolioSummaryPanel'
 import PortfolioToolbar from '../portfolio/PortfolioToolbar'
+import PortfolioRegressionSummary from '../portfolio/summary/PortfolioRegressionSummary'
 
 vi.mock('../../charts', () => ({
   EquityChart: ({ data }: { data: unknown[] }) => (
@@ -143,11 +144,22 @@ describe('portfolio presentation components', () => {
         />
         <PortfolioSummaryPanel
           summary={context.portfolio.portfolioSummary}
+          index={[
+            { time: Date.UTC(2024, 0, 1), value: 1 },
+            { time: Date.UTC(2024, 0, 2), value: 1.1 },
+          ]}
+          returns={[
+            { time: Date.UTC(2024, 0, 1), value: 0.1 },
+            { time: Date.UTC(2024, 0, 2), value: -0.05 },
+          ]}
           drawdown={drawdown}
           drawdownMode="deal"
           drawdownSource="D1"
           riskRows={context.portfolio.riskRows}
           customPortfolio
+        />
+        <PortfolioRegressionSummary
+          regression={context.portfolio.portfolioSummary?.regression ?? null}
           formatSymbol={(symbol) => `TEST-${symbol}`}
         />
       </>,
@@ -155,11 +167,27 @@ describe('portfolio presentation components', () => {
 
     expect(screen.getByTestId('portfolio-equity-chart')).toHaveTextContent('1')
     expect(screen.getByTestId('portfolio-drawdown-chart')).toHaveTextContent('1')
-    expect(screen.getAllByText('10.00%')).toHaveLength(2)
-    expect(screen.getByText(/TEST-EURUSD: 0.70/)).toBeInTheDocument()
+    const summary = screen.getByRole('region', { name: 'Portfolio summary' })
+    const health = within(summary).getByRole('region', { name: 'Portfolio health' })
+    const factors = screen.getByRole('region', { name: 'Factor diagnostics' })
+
+    expect(screen.getAllByText('10.00%')).toHaveLength(3)
+    expect(within(summary).getByText('Daily SQN')).toBeInTheDocument()
+    expect(within(summary).queryByText('ACF')).not.toBeInTheDocument()
+    expect(within(health).getByText('Healthy')).toBeInTheDocument()
+    expect(within(health).getByText('No shock')).toBeInTheDocument()
     expect(
-      screen.getByText(/Results are based on the selected sleeve series and weights/),
+      within(summary).queryByRole('region', { name: 'Factor diagnostics' }),
+    ).not.toBeInTheDocument()
+    expect(within(factors).getByLabelText('Factor betas')).toBeInTheDocument()
+    expect(within(factors).getByText('TEST-EURUSD')).toBeInTheDocument()
+    expect(within(factors).getByText('0.70')).toBeInTheDocument()
+    expect(
+      within(summary).getByText(/Results use the selected sleeve series and weights/),
     ).toBeInTheDocument()
+
+    await user.hover(within(summary).getByRole('button', { name: 'Explain Daily SQN' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('daily-return measure')
 
     await user.click(screen.getByRole('switch', { name: 'Show values' }))
     expect(onShowNumbersChange).toHaveBeenCalledWith(false)
