@@ -8,6 +8,7 @@ import { createReportContext } from '../../../../test/reportFixtures'
 import { renderWithTheme } from '../../../../test/render'
 import { calculateCorrelationCellSize } from '../../helpers/correlationLayout'
 import MonthlyReturnsTable from '../portfolio/MonthlyReturnsTable'
+import PortfolioAnalyticsFrame from '../portfolio/PortfolioAnalyticsFrame'
 import PortfolioChartsPanel from '../portfolio/PortfolioChartsPanel'
 import PortfolioCompositionDialog from '../portfolio/PortfolioCompositionDialog'
 import PortfolioCorrelationPanel from '../portfolio/PortfolioCorrelationPanel'
@@ -25,6 +26,22 @@ vi.mock('../../charts', () => ({
 }))
 
 describe('portfolio presentation components', () => {
+  it('marks the complete portfolio surface as refreshing while retaining its content', () => {
+    renderWithTheme(
+      <PortfolioAnalyticsFrame refreshing>
+        <div>Current portfolio chart</div>
+        <div>Current portfolio summary</div>
+      </PortfolioAnalyticsFrame>,
+    )
+
+    const analytics = screen.getByRole('region', { name: 'Portfolio analytics' })
+    expect(analytics).toHaveAttribute('aria-busy', 'true')
+    expect(within(analytics).getByRole('status')).toHaveTextContent('Refreshing portfolio view')
+    expect(within(analytics).getByText('Updating charts and analytics sections')).toBeVisible()
+    expect(within(analytics).getByText('Current portfolio chart')).toBeVisible()
+    expect(within(analytics).getByText('Current portfolio summary')).toBeVisible()
+  })
+
   it('scales correlation cells from double area toward the baseline as portfolios grow', () => {
     const resolveSize = (portfolioSize: number) =>
       calculateCorrelationCellSize({
@@ -72,31 +89,18 @@ describe('portfolio presentation components', () => {
     expect(onPnlScaleModeChange).toHaveBeenCalledWith('log')
   })
 
-  it('keeps the composition dialog driven by values and callbacks', async () => {
+  it('keeps composition edits local and emits a normalized draft on apply', async () => {
     const user = userEvent.setup()
-    const onToggleSleeve = vi.fn()
-    const onUpdateWeight = vi.fn()
-    const onUpdateGlobalWeight = vi.fn()
     const onApply = vi.fn()
     const onResetToBaseline = vi.fn()
 
     renderWithTheme(
       <PortfolioCompositionDialog
-        open
         labels={['Alpha', 'Beta']}
-        sleeveDraft={new Set(['Alpha'])}
-        weightDraft={{ Alpha: '1.00', Beta: '0.50' }}
-        globalWeightDraft=""
+        enabledSleeves={new Set(['Alpha'])}
+        sleeveWeights={{ Alpha: 1, Beta: 0.5 }}
         modified
-        applyDisabled={false}
         onClose={vi.fn()}
-        onToggleSleeve={onToggleSleeve}
-        onSelectAll={vi.fn()}
-        onClear={vi.fn()}
-        onUpdateWeight={onUpdateWeight}
-        onUpdateGlobalWeight={onUpdateGlobalWeight}
-        onApplyGlobalWeight={vi.fn()}
-        onResetWeights={vi.fn()}
         onResetToBaseline={onResetToBaseline}
         onApply={onApply}
       />,
@@ -104,21 +108,28 @@ describe('portfolio presentation components', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Change portfolio composition' })
     await user.click(screen.getByRole('checkbox', { name: 'Beta' }))
-    fireEvent.change(screen.getAllByRole('textbox', { name: 'Weight' })[1], {
-      target: { value: '0.75' },
-    })
     fireEvent.change(screen.getByRole('textbox', { name: 'All sleeves weight' }), {
       target: { value: '0.80' },
     })
-    await user.click(screen.getByRole('button', { name: 'Reset to baseline' }))
+    await user.click(screen.getByRole('button', { name: 'Apply to all' }))
+    fireEvent.change(screen.getAllByRole('textbox', { name: 'Weight' })[1], {
+      target: { value: '0.75' },
+    })
     await user.click(screen.getByRole('button', { name: 'Apply' }))
 
     expect(dialog).toBeInTheDocument()
-    expect(onToggleSleeve).toHaveBeenCalledWith('Beta')
-    expect(onUpdateWeight).toHaveBeenCalledWith('Beta', '0.75')
-    expect(onUpdateGlobalWeight).toHaveBeenCalledWith('0.80')
+    const [enabledSleeves, sleeveWeights] = onApply.mock.calls[0] as [
+      ReadonlySet<string>,
+      Record<string, number>,
+    ]
+    expect(Array.from(enabledSleeves)).toEqual(['Alpha', 'Beta'])
+    expect(sleeveWeights).toEqual({ Alpha: 0.8, Beta: 0.75 })
+
+    await user.click(screen.getByRole('button', { name: 'Reset to baseline' }))
     expect(onResetToBaseline).toHaveBeenCalledOnce()
-    expect(onApply).toHaveBeenCalledOnce()
+    screen.getAllByRole('checkbox').forEach((checkbox) => expect(checkbox).toBeChecked())
+    expect(screen.getAllByRole('textbox', { name: 'Weight' })[0]).toHaveValue('1.00')
+    expect(screen.getAllByRole('textbox', { name: 'Weight' })[1]).toHaveValue('1.00')
   })
 
   it('filters portfolio equity and drawdown with the same date-range preset', async () => {

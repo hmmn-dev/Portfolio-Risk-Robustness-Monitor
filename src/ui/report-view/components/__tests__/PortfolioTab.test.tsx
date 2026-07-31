@@ -2,18 +2,34 @@
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
 import { renderWithTheme } from '../../../../test/render'
 import PortfolioTab from '../PortfolioTab'
 import ReportViewProvider from '../ReportViewProvider'
 
+const chartRenderSpies = vi.hoisted(() => ({
+  equity: vi.fn(),
+  drawdown: vi.fn(),
+}))
+
 vi.mock('../../charts', () => ({
-  EquityChart: () => <div data-testid="equity-chart" />,
-  DrawdownChart: () => <div data-testid="drawdown-chart" />,
+  EquityChart: () => {
+    chartRenderSpies.equity()
+    return <div data-testid="equity-chart" />
+  },
+  DrawdownChart: () => {
+    chartRenderSpies.drawdown()
+    return <div data-testid="drawdown-chart" />
+  },
 }))
 
 describe('PortfolioTab', () => {
+  beforeEach(() => {
+    chartRenderSpies.equity.mockClear()
+    chartRenderSpies.drawdown.mockClear()
+  })
+
   it('renders portfolio analytics and forwards view controls', async () => {
     const user = userEvent.setup()
     const onPnlScaleModeChange = vi.fn()
@@ -69,10 +85,46 @@ describe('PortfolioTab', () => {
     await user.click(within(dialog).getByRole('checkbox', { name: 'Beta - USDJPY' }))
     await user.click(within(dialog).getByRole('button', { name: 'Apply' }))
 
-    expect(screen.getByText('1 out of 2 sleeves selected')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Change portfolio composition' })).toBeNull()
+    await waitFor(() => {
+      expect(screen.getByText('1 out of 2 sleeves selected')).toBeInTheDocument()
+    })
     expect(
       screen.getByText(/Results use the selected sleeve series and weights/),
     ).toBeInTheDocument()
+  })
+
+  it('keeps composition draft edits from rerendering the portfolio charts', async () => {
+    const user = userEvent.setup()
+    renderWithTheme(
+      <ReportViewProvider value={createReportContext()}>
+        <PortfolioTab />
+      </ReportViewProvider>,
+    )
+
+    const equityRendersBeforeOpening = chartRenderSpies.equity.mock.calls.length
+    const drawdownRendersBeforeOpening = chartRenderSpies.drawdown.mock.calls.length
+    await user.click(screen.getByRole('button', { name: 'Change portfolio composition' }))
+    const dialog = screen.getByRole('dialog', { name: 'Change portfolio composition' })
+    expect(chartRenderSpies.equity).toHaveBeenCalledTimes(equityRendersBeforeOpening)
+    expect(chartRenderSpies.drawdown).toHaveBeenCalledTimes(drawdownRendersBeforeOpening)
+
+    fireEvent.change(within(dialog).getAllByRole('textbox', { name: 'Weight' })[0], {
+      target: { value: '1.25' },
+    })
+
+    expect(within(dialog).getAllByRole('textbox', { name: 'Weight' })[0]).toHaveValue('1.25')
+    expect(chartRenderSpies.equity).toHaveBeenCalledTimes(equityRendersBeforeOpening)
+    expect(chartRenderSpies.drawdown).toHaveBeenCalledTimes(drawdownRendersBeforeOpening)
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Change portfolio composition' }))
+    expect(
+      within(screen.getByRole('dialog', { name: 'Change portfolio composition' })).getAllByRole(
+        'textbox',
+        { name: 'Weight' },
+      )[0],
+    ).toHaveValue('1.00')
   })
 
   it('applies custom chart dates to the portfolio analytics sections', async () => {

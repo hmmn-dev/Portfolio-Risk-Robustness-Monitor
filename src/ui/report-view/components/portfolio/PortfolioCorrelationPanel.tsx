@@ -9,7 +9,7 @@ import {
   useMediaQuery,
 } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { correlationColor, isLightColor } from '../../colors'
 import {
   calculateCorrelationCellSize,
@@ -241,4 +241,4 @@ const PortfolioCorrelationPanel = ({
   )
 }
 
-export default PortfolioCorrelationPanel
+export default memo(PortfolioCorrelationPanel)

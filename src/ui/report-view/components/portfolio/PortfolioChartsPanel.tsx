@@ -1,5 +1,5 @@
 import { Box, Paper, Stack, Typography } from '@mui/material'
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { DailyPoint, ReportModel } from '../../../../engine/types'
 import { DrawdownChart, EquityChart } from '../../charts'
 import { formatDrawdownSourceLabel } from '../../formatters'
@@ -104,4 +104,4 @@ const PortfolioChartsPanel = ({
   )
 }
 
-export default PortfolioChartsPanel
+export default memo(PortfolioChartsPanel)

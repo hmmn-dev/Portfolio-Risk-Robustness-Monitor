@@ -11,6 +11,7 @@ import {
   Typography,
 } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
+import { memo } from 'react'
 import { isLightColor } from '../../colors'
 import { formatSigned } from '../../formatters'
 import { MONTH_LABELS, type MonthlyReturnRow } from '../../portfolio/portfolioCalculations'
@@ -118,4 +119,4 @@ const MonthlyReturnsTable = ({ rows, theme }: { rows: MonthlyReturnRow[]; theme:
   </Paper>
 )
 
-export default MonthlyReturnsTable
+export default memo(MonthlyReturnsTable)

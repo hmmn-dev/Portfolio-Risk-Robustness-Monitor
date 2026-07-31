@@ -1,4 +1,5 @@
 import { Alert, Box, Chip, Paper, Stack, Typography } from '@mui/material'
+import { memo } from 'react'
 import type { DailyPoint, ReportModel } from '../../../../engine/types'
 import { formatDrawdownModeLabel, formatDrawdownSourceLabel, formatSigned } from '../../formatters'
 import {
@@ -228,4 +229,4 @@ const PortfolioSummaryPanel = ({
   )
 }
 
-export default PortfolioSummaryPanel
+export default memo(PortfolioSummaryPanel)

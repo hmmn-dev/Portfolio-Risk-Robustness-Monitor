@@ -1,5 +1,6 @@
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { Box, IconButton, Paper, Stack, Tooltip, Typography } from '@mui/material'
+import { memo } from 'react'
 import type { PortfolioRegression } from '../../../types'
 import { formatSigned } from '../../../formatters'
 import SummaryMetricCell from './SummaryMetricCell'
@@ -165,4 +166,4 @@ const PortfolioRegressionSummary = ({
   )
 }
 
-export default PortfolioRegressionSummary
+export default memo(PortfolioRegressionSummary)
