@@ -1,4 +1,5 @@
 import ReactECharts from 'echarts-for-react'
+import { useTheme } from '@mui/material/styles'
 import type { DailyPoint } from '../../engine/types'
 import { buildLineOptions } from './chartOptions'
 import { formatAxisDate } from './formatters'
@@ -29,6 +30,7 @@ export const EquityChart = ({
   axisColor: string
   gridColor: string
 }) => {
+  const theme = useTheme()
   const base = Number.isFinite(baseValue) ? (baseValue as number) : 10000
   const formatCurrency = (value: number) =>
     value.toLocaleString(undefined, { maximumFractionDigits: 0 })
@@ -107,7 +109,8 @@ export const EquityChart = ({
           data: chartSeries,
           height,
           color,
-          area: false,
+          area: true,
+          areaOpacity: theme.palette.mode === 'light' ? 0.09 : 0.14,
           showAxes: true,
           paddingRatio: 0.02,
           minClamp: pnlScaleMode === 'log' ? 0 : 1,
@@ -167,6 +170,7 @@ export const DrawdownChart = ({
   yAxisName?: string
   yAxisFormatter?: (value: number) => string
 }) => {
+  const theme = useTheme()
   const filled = fillSeries(ensureStartPoint(data))
   return (
     <ReactECharts
@@ -175,6 +179,8 @@ export const DrawdownChart = ({
           data,
           height,
           color: '#c0392b',
+          area: true,
+          areaOpacity: theme.palette.mode === 'light' ? 0.09 : 0.14,
           showAxes: true,
           smooth: false,
           axisType: 'category',

@@ -1,9 +1,17 @@
 import { Paper, Stack, Typography } from '@mui/material'
 import ReactECharts from 'echarts-for-react'
+import { useMemo, useState } from 'react'
 import type { DailyPoint, ReportModel } from '../../../engine/types'
 import { buildLineOptions } from '../chartOptions'
 import { DrawdownChart, EquityChart } from '../charts'
 import { formatAxisNumber, formatDrawdownSourceLabel } from '../formatters'
+import {
+  ALL_CHART_RANGE,
+  filterEquityAndDrawdownRange,
+  getChartRangeBounds,
+  type ChartRangeSelection,
+} from '../helpers/chartRange'
+import ChartRangeSelector from './ChartRangeSelector'
 
 export type SleeveMetrics = {
   alphaSeries: DailyPoint[]
@@ -39,18 +47,40 @@ const SleeveSection = ({
   const sleeveBaseCapital = Number.isFinite(item.baseCapital)
     ? (item.baseCapital as number)
     : baseCapital
+  const [range, setRange] = useState<ChartRangeSelection>(ALL_CHART_RANGE)
+  const rangeBounds = useMemo(
+    () => getChartRangeBounds(item.index ?? [], drawdownSeries),
+    [drawdownSeries, item.index],
+  )
+  const visibleSeries = useMemo(
+    () => filterEquityAndDrawdownRange(item.index ?? [], drawdownSeries, range),
+    [drawdownSeries, item.index, range],
+  )
 
   return (
     <Stack spacing={2}>
       {showTitle && <Typography variant="h6">{item.sleeve}</Typography>}
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle2">Contribution equity</Typography>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1}
+          alignItems={{ sm: 'center' }}
+          justifyContent="space-between"
+        >
+          <Typography variant="subtitle2">Contribution equity</Typography>
+          <ChartRangeSelector
+            value={range}
+            bounds={rangeBounds}
+            onChange={setRange}
+            ariaLabel={`${item.sleeve} equity date range`}
+          />
+        </Stack>
         <EquityChart
-          data={item.index ?? []}
+          data={visibleSeries.equity}
           scaleMode="percent"
           pnlScaleMode={pnlScaleMode}
           baseValue={sleeveBaseCapital}
-          drawdownSeries={drawdownSeries}
+          drawdownSeries={visibleSeries.drawdown}
           color={pnlColor}
           axisColor={axisColor}
           gridColor={gridColor}
@@ -60,7 +90,7 @@ const SleeveSection = ({
         <Typography variant="subtitle2">
           Contribution drawdown ({formatDrawdownSourceLabel(drawdownSource)})
         </Typography>
-        <DrawdownChart data={drawdownSeries} axisColor={axisColor} gridColor={gridColor} />
+        <DrawdownChart data={visibleSeries.drawdown} axisColor={axisColor} gridColor={gridColor} />
       </Paper>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
         <Paper variant="outlined" sx={{ p: 2, flex: 1 }}>

@@ -3,7 +3,7 @@ import { buildIndexAndDrawdown } from '../../../engine/portfolioSeriesHelpers'
 import { stableSort } from '../../../engine/stableSort'
 import type { DailyPoint, ReportModel } from '../../../engine/types'
 import { computeSharpe, getSeriesValues } from '../helpers/series'
-import type { CorrelationMatrix, PortfolioSummary } from '../types'
+import type { CorrelationMatrix, PortfolioRegression, PortfolioSummary } from '../types'
 
 export const MONTH_LABELS = [
   'Jan',
@@ -135,6 +135,49 @@ export const buildCustomPortfolioSummary = (
     mar: maxDrawdown < 0 ? cagr / Math.abs(maxDrawdown) : Number.NaN,
     sharpe: computeSharpe(portfolio.returns),
     regression: null,
+  }
+}
+
+export const buildRangePortfolioSummary = (
+  dailyReturns: DailyPoint[],
+  drawdown: DailyPoint[],
+  regression: PortfolioRegression | null,
+): PortfolioSummary => {
+  const finiteReturns = dailyReturns.filter(
+    (point) => Number.isFinite(point.time) && Number.isFinite(point.value),
+  )
+  if (finiteReturns.length === 0) {
+    return {
+      totalReturnPct: Number.NaN,
+      cagr: Number.NaN,
+      maxDrawdown: Number.NaN,
+      mar: Number.NaN,
+      sharpe: Number.NaN,
+      regression,
+    }
+  }
+
+  const growth = finiteReturns.reduce((product, point) => product * (1 + point.value), 1)
+  const first = finiteReturns[0]
+  const last = finiteReturns.at(-1) as DailyPoint
+  const years = (last.time - first.time) / (365.25 * 24 * 60 * 60 * 1000)
+  const cagr =
+    growth > 0 && Number.isFinite(years) && years > 0
+      ? (Math.pow(growth, 1 / years) - 1) * 100
+      : Number.NaN
+  const maxDrawdown = drawdown.reduce(
+    (minimum, point) =>
+      Number.isFinite(point.value) && point.value < minimum ? point.value : minimum,
+    0,
+  )
+
+  return {
+    totalReturnPct: (growth - 1) * 100,
+    cagr,
+    maxDrawdown,
+    mar: maxDrawdown < 0 ? cagr / Math.abs(maxDrawdown) : Number.NaN,
+    sharpe: computeSharpe(finiteReturns.map((point) => point.value)),
+    regression,
   }
 }
 

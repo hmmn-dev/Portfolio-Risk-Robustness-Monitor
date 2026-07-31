@@ -18,9 +18,21 @@ vi.mock('../../../store/idbStorage', () => ({
   },
 }))
 
-vi.mock('../components/ReportTabsContent', () => ({
-  default: () => <div>Active report content</div>,
-}))
+vi.mock('../components/ReportTabsContent', async () => {
+  const { useReportPortfolio } = await import('../components/ReportViewContext')
+  const MockReportTabsContent = () => {
+    const { showCorrNumbers } = useReportPortfolio()
+    return (
+      <div>
+        Active report content
+        <span data-testid="correlation-values-default">{String(showCorrNumbers)}</span>
+      </div>
+    )
+  }
+  return {
+    default: MockReportTabsContent,
+  }
+})
 
 vi.mock('../components/ReportPdf', () => ({
   default: () => <div>Printable report</div>,
@@ -48,6 +60,7 @@ describe('ReportView', () => {
     expect(screen.getByRole('heading', { name: 'Report Analytics' })).toBeInTheDocument()
     expect(screen.getByText(/Deals: deals.csv/)).toBeInTheDocument()
     expect(screen.getByText('Active report content')).toBeInTheDocument()
+    expect(screen.getByTestId('correlation-values-default')).toHaveTextContent('true')
     expect(screen.getByRole('tab', { name: 'Performance' })).toHaveAttribute(
       'aria-selected',
       'true',

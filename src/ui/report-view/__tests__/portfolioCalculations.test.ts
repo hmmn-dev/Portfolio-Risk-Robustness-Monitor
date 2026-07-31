@@ -7,6 +7,7 @@ import {
   buildDailyReturnPoints,
   buildIndexAndDrawdown,
   buildMonthlyReturnRows,
+  buildRangePortfolioSummary,
   buildWeightedPortfolio,
 } from '../portfolio/portfolioCalculations'
 import {
@@ -69,6 +70,27 @@ describe('portfolio calculations', () => {
     expect(buildDailyReturnPoints(report.portfolio.days)).toEqual(
       report.portfolio.days.map((day) => ({ time: day.time, value: day.return })),
     )
+  })
+
+  it('recalculates summary metrics from only the selected daily returns', () => {
+    const returns = [
+      { time: Date.UTC(2024, 0, 1), value: 0.1 },
+      { time: Date.UTC(2025, 0, 1), value: -0.05 },
+    ]
+    const summary = buildRangePortfolioSummary(
+      returns,
+      [
+        { time: Date.UTC(2024, 0, 1), value: 0 },
+        { time: Date.UTC(2025, 0, 1), value: -5 },
+      ],
+      null,
+    )
+
+    expect(summary.totalReturnPct).toBeCloseTo(4.5)
+    expect(summary.cagr).toBeCloseTo(4.5, 1)
+    expect(summary.maxDrawdown).toBe(-5)
+    expect(summary.mar).toBeCloseTo(summary.cagr / 5)
+    expect(Number.isFinite(summary.sharpe)).toBe(true)
   })
 
   it('normalizes and compares portfolio weight drafts', () => {

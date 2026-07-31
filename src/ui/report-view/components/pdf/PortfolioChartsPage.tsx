@@ -46,6 +46,7 @@ const PortfolioChartsPage = ({
       gridColor={gridColor}
       equityHeight={280}
       drawdownHeight={200}
+      showRangeSelector={false}
     />
   </PdfPage>
 )

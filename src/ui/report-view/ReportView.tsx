@@ -51,7 +51,7 @@ const ReportView = () => {
   const [tab, setTab] = useState<ReportTab>('performance')
   const [selectedSleeve, setSelectedSleeve] = useState<string | null>(null)
   const [rollingWindow, setRollingWindow] = useState<number>(METRIC_WINDOW.long)
-  const [showCorrNumbers, setShowCorrNumbers] = useState(false)
+  const [showCorrNumbers, setShowCorrNumbers] = useState(true)
   const [sleeveViewMode, setSleeveViewMode] = useState<'single' | 'all'>('single')
   const [drawdownMode, setDrawdownMode] = useState<DrawdownMode>(() =>
     hasMtmDrawdown ? 'mtm' : 'deal',

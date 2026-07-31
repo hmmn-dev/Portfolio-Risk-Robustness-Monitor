@@ -7,6 +7,7 @@ export const buildLineOptions = ({
   height = 160,
   color,
   area = false,
+  areaOpacity = 0.14,
   showAxes = true,
   paddingRatio = 0.08,
   minPadding = 0,
@@ -31,6 +32,7 @@ export const buildLineOptions = ({
   height?: number
   color: string
   area?: boolean
+  areaOpacity?: number
   showAxes?: boolean
   paddingRatio?: number
   minPadding?: number
@@ -143,7 +145,22 @@ export const buildLineOptions = ({
         progressive: 0,
         large: false,
         lineStyle: { color, width: 2 },
-        areaStyle: area ? { color, opacity: 0.15 } : undefined,
+        areaStyle: area
+          ? {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color },
+                  { offset: 1, color: 'rgba(0, 0, 0, 0)' },
+                ],
+              },
+              opacity: areaOpacity,
+            }
+          : undefined,
       },
     ],
     tooltip: { show: false },

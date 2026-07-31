@@ -34,5 +34,6 @@ describe('ReportPdf', () => {
     expect(screen.getByText('Portfolio correlation')).toBeInTheDocument()
     expect(screen.getAllByTestId('print-sleeve')).toHaveLength(2)
     expect(screen.getAllByText('Test Portfolio')).toHaveLength(8)
+    expect(screen.queryByRole('group', { name: /equity date range/i })).not.toBeInTheDocument()
   })
 })

@@ -104,6 +104,77 @@ describe('portfolio presentation components', () => {
     expect(onApply).toHaveBeenCalledOnce()
   })
 
+  it('filters portfolio equity and drawdown with the same date-range preset', async () => {
+    const user = userEvent.setup()
+    const points = [2018, 2024, 2026].map((year) => ({
+      time: Date.UTC(year, 0, 1),
+      value: 1,
+    }))
+
+    renderWithTheme(
+      <PortfolioChartsPanel
+        index={points}
+        drawdown={points}
+        drawdownSource="D1"
+        pnlScaleMode="linear"
+        baseCapital={10000}
+        pnlColor="#1976d2"
+        axisColor="#555555"
+        gridColor="#dddddd"
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true')
+    const startDate = screen.getByLabelText('Portfolio equity date range start date')
+    const startDateValue = screen.getByLabelText('Portfolio equity date range start date value')
+    const presetGroup = screen.getByRole('group', { name: 'Portfolio equity date range' })
+    expect(
+      startDate.compareDocumentPosition(presetGroup) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(screen.getByTestId('portfolio-equity-chart')).toHaveTextContent('3')
+    expect(screen.getByTestId('portfolio-drawdown-chart')).toHaveTextContent('3')
+
+    await user.click(screen.getByRole('button', { name: '1Y' }))
+
+    expect(screen.getByTestId('portfolio-equity-chart')).toHaveTextContent('1')
+    expect(screen.getByTestId('portfolio-drawdown-chart')).toHaveTextContent('1')
+
+    const endDateValue = screen.getByLabelText('Portfolio equity date range end date value')
+    expect(startDateValue).toHaveValue('01 Jan 2025')
+    expect(endDateValue).toHaveValue('01 Jan 2026')
+
+    fireEvent.change(startDateValue, { target: { value: '01 Jan 2024' } })
+
+    expect(screen.getByTestId('portfolio-equity-chart')).toHaveTextContent('2')
+    expect(screen.getByTestId('portfolio-drawdown-chart')).toHaveTextContent('2')
+    expect(screen.getByRole('button', { name: '1Y' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('opens the Material calendar from a date field', async () => {
+    const user = userEvent.setup()
+    const points = [1, 2, 3].map((day) => ({
+      time: Date.UTC(2024, 0, day),
+      value: 1,
+    }))
+
+    renderWithTheme(
+      <PortfolioChartsPanel
+        index={points}
+        drawdown={points}
+        drawdownSource="D1"
+        pnlScaleMode="linear"
+        baseCapital={10000}
+        pnlColor="#1976d2"
+        axisColor="#555555"
+        gridColor="#dddddd"
+      />,
+    )
+
+    await user.click(screen.getAllByRole('button', { name: /choose date/i })[0])
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+  })
+
   it('keeps correlation strategy labels on one line and reveals truncated names', async () => {
     const user = userEvent.setup()
     const label = 'Daily Volatility Breakout - GBPJPY'

@@ -1,7 +1,15 @@
 import { Box, Paper, Stack, Typography } from '@mui/material'
+import { useMemo, useState } from 'react'
 import type { DailyPoint, ReportModel } from '../../../../engine/types'
 import { DrawdownChart, EquityChart } from '../../charts'
 import { formatDrawdownSourceLabel } from '../../formatters'
+import {
+  ALL_CHART_RANGE,
+  filterEquityAndDrawdownRange,
+  getChartRangeBounds,
+  type ChartRangeSelection,
+} from '../../helpers/chartRange'
+import ChartRangeSelector from '../ChartRangeSelector'
 
 type PortfolioChartsPanelProps = {
   index: DailyPoint[]
@@ -14,6 +22,9 @@ type PortfolioChartsPanelProps = {
   gridColor: string
   equityHeight?: number
   drawdownHeight?: number
+  showRangeSelector?: boolean
+  rangeSelection?: ChartRangeSelection
+  onRangeSelectionChange?: (selection: ChartRangeSelection) => void
 }
 
 const PortfolioChartsPanel = ({
@@ -27,40 +38,70 @@ const PortfolioChartsPanel = ({
   gridColor,
   equityHeight = 360,
   drawdownHeight = 200,
-}: PortfolioChartsPanelProps) => (
-  <Paper variant="outlined" sx={{ p: 2 }}>
-    <Stack spacing={2}>
-      <Box>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Portfolio equity
-        </Typography>
-        <EquityChart
-          data={index}
-          scaleMode="percent"
-          pnlScaleMode={pnlScaleMode}
-          baseValue={baseCapital}
-          drawdownSeries={drawdown}
-          height={equityHeight}
-          minOffsetRatio={0}
-          reserveGridlines={0}
-          color={pnlColor}
-          axisColor={axisColor}
-          gridColor={gridColor}
-        />
-      </Box>
-      <Box>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Portfolio drawdown ({formatDrawdownSourceLabel(drawdownSource)})
-        </Typography>
-        <DrawdownChart
-          data={drawdown}
-          height={drawdownHeight}
-          axisColor={axisColor}
-          gridColor={gridColor}
-        />
-      </Box>
-    </Stack>
-  </Paper>
-)
+  showRangeSelector = true,
+  rangeSelection,
+  onRangeSelectionChange,
+}: PortfolioChartsPanelProps) => {
+  const [internalRange, setInternalRange] = useState<ChartRangeSelection>(ALL_CHART_RANGE)
+  const range = rangeSelection ?? internalRange
+  const onRangeChange = onRangeSelectionChange ?? setInternalRange
+  const rangeBounds = useMemo(() => getChartRangeBounds(index, drawdown), [drawdown, index])
+  const visibleSeries = useMemo(
+    () =>
+      filterEquityAndDrawdownRange(index, drawdown, showRangeSelector ? range : ALL_CHART_RANGE),
+    [drawdown, index, range, showRangeSelector],
+  )
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Stack spacing={2}>
+        <Box>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            alignItems={{ sm: 'center' }}
+            justifyContent="space-between"
+          >
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Portfolio equity
+            </Typography>
+            {showRangeSelector && (
+              <ChartRangeSelector
+                value={range}
+                bounds={rangeBounds}
+                onChange={onRangeChange}
+                ariaLabel="Portfolio equity date range"
+              />
+            )}
+          </Stack>
+          <EquityChart
+            data={visibleSeries.equity}
+            scaleMode="percent"
+            pnlScaleMode={pnlScaleMode}
+            baseValue={baseCapital}
+            drawdownSeries={visibleSeries.drawdown}
+            height={equityHeight}
+            minOffsetRatio={0}
+            reserveGridlines={0}
+            color={pnlColor}
+            axisColor={axisColor}
+            gridColor={gridColor}
+          />
+        </Box>
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            Portfolio drawdown ({formatDrawdownSourceLabel(drawdownSource)})
+          </Typography>
+          <DrawdownChart
+            data={visibleSeries.drawdown}
+            height={drawdownHeight}
+            axisColor={axisColor}
+            gridColor={gridColor}
+          />
+        </Box>
+      </Stack>
+    </Paper>
+  )
+}
 
 export default PortfolioChartsPanel

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
@@ -72,6 +72,35 @@ describe('PortfolioTab', () => {
     expect(screen.getByText('1 out of 2 sleeves selected')).toBeInTheDocument()
     expect(
       screen.getByText(/Results use the selected sleeve series and weights/),
+    ).toBeInTheDocument()
+  })
+
+  it('applies custom chart dates to the portfolio analytics sections', async () => {
+    renderWithTheme(
+      <ReportViewProvider value={createReportContext()}>
+        <PortfolioTab />
+      </ReportViewProvider>,
+    )
+
+    const summary = screen.getByRole('region', { name: 'Portfolio summary' })
+    const tradingDaysCell = within(summary).getByText('Trading days').parentElement?.parentElement
+    expect(tradingDaysCell).not.toBeNull()
+    expect(within(tradingDaysCell as HTMLElement).getByText('2')).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: 'Factor diagnostics' })).getByText('20'),
+    ).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Portfolio equity date range start date value'), {
+      target: { value: '02 Jan 2024' },
+    })
+
+    await waitFor(() => {
+      expect(within(tradingDaysCell as HTMLElement).getByText('1')).toBeInTheDocument()
+    })
+    expect(
+      within(screen.getByRole('region', { name: 'Factor diagnostics' })).getByText(
+        /not enough aligned underlying data/i,
+      ),
     ).toBeInTheDocument()
   })
 })

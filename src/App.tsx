@@ -1,4 +1,6 @@
 import { CssBaseline, GlobalStyles, ThemeProvider } from '@mui/material'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useMemo } from 'react'
 import AppShell from './ui/AppShell'
@@ -35,17 +37,19 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <GlobalStyles styles={appBackgroundStyles(colorMode)} />
-      <BrowserRouter>
-        <AppShell>
-          <Routes>
-            <Route path="/" element={<HomeRedirect />} />
-            <Route path="/wizard" element={<WizardRoute />} />
-            <Route path="/report" element={<ReportRoute />} />
-          </Routes>
-        </AppShell>
-      </BrowserRouter>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <CssBaseline />
+        <GlobalStyles styles={appBackgroundStyles(colorMode)} />
+        <BrowserRouter>
+          <AppShell>
+            <Routes>
+              <Route path="/" element={<HomeRedirect />} />
+              <Route path="/wizard" element={<WizardRoute />} />
+              <Route path="/report" element={<ReportRoute />} />
+            </Routes>
+          </AppShell>
+        </BrowserRouter>
+      </LocalizationProvider>
     </ThemeProvider>
   )
 }

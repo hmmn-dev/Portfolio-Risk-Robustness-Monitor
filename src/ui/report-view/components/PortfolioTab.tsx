@@ -1,5 +1,6 @@
-import { Stack } from '@mui/material'
-import { useEffect, useMemo } from 'react'
+import { Box, CircularProgress, Stack, Typography } from '@mui/material'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import { ALL_CHART_RANGE, type ChartRangeSelection } from '../helpers/chartRange'
 import { getPortfolioSleeveLabels, usePortfolioComposition } from '../hooks/usePortfolioComposition'
 import { usePortfolioAnalytics } from '../hooks/usePortfolioAnalytics'
 import MonthlyReturnsTable from './portfolio/MonthlyReturnsTable'
@@ -39,6 +40,20 @@ const PortfolioTabContent = () => {
   } = useReportPortfolio()
   const sleeveLabels = useMemo(() => getPortfolioSleeveLabels(report), [report])
   const composition = usePortfolioComposition(sleeveLabels)
+  const [chartRangeSelection, setChartRangeSelection] =
+    useState<ChartRangeSelection>(ALL_CHART_RANGE)
+  const [analyticsRangeSelection, setAnalyticsRangeSelection] =
+    useState<ChartRangeSelection>(ALL_CHART_RANGE)
+  const [isRefreshing, startAnalyticsTransition] = useTransition()
+  const handleRangeSelectionChange = useCallback(
+    (selection: ChartRangeSelection) => {
+      setChartRangeSelection(selection)
+      startAnalyticsTransition(() => {
+        setAnalyticsRangeSelection(selection)
+      })
+    },
+    [startAnalyticsTransition],
+  )
   const analytics = usePortfolioAnalytics({
     report,
     deals,
@@ -54,6 +69,7 @@ const PortfolioTabContent = () => {
     sleeveWeights: composition.sleeveWeights,
     isFiltered: composition.isFiltered,
     hasCustomWeights: composition.hasCustomWeights,
+    rangeSelection: analyticsRangeSelection,
   })
 
   useEffect(() => {
@@ -77,35 +93,64 @@ const PortfolioTabContent = () => {
         onPnlScaleModeChange={onPnlScaleModeChange}
       />
       <PortfolioChartsPanel
-        index={analytics.effectiveIndex}
-        drawdown={analytics.effectiveDrawdown}
+        index={analytics.chartIndex}
+        drawdown={analytics.chartDrawdown}
         drawdownSource={analytics.effectiveDrawdownSource}
         pnlScaleMode={pnlScaleMode}
         baseCapital={baseCapital}
         pnlColor={pnlColor}
         axisColor={axisColor}
         gridColor={gridColor}
+        rangeSelection={chartRangeSelection}
+        onRangeSelectionChange={handleRangeSelectionChange}
       />
-      <PortfolioSummaryPanel
-        summary={analytics.effectiveSummary}
-        index={analytics.effectiveIndex}
-        returns={analytics.effectiveReturns}
-        drawdown={analytics.effectiveDrawdown}
-        drawdownMode={analytics.effectiveDrawdownMode}
-        drawdownSource={analytics.effectiveDrawdownSource}
-        riskRows={riskRows}
-        customPortfolio={analytics.usesCustomPortfolio}
-      />
-      <MonthlyReturnsTable rows={analytics.monthlyReturns} theme={theme} />
-      <PortfolioCorrelationPanel
-        matrix={analytics.effectiveCorrelationMatrix}
-        legend={correlationLegend}
-        cellSize={cellSize}
-        showNumbers={showCorrNumbers}
-        theme={theme}
-        onShowNumbersChange={onShowCorrNumbersChange}
-      />
-      <PortfolioRegressionSummary regression={analytics.effectiveSummary?.regression ?? null} />
+      <Box aria-busy={isRefreshing}>
+        {isRefreshing && (
+          <Stack
+            role="status"
+            aria-live="polite"
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            justifyContent="flex-end"
+            sx={{ minHeight: 24, mb: 1, color: 'text.secondary' }}
+          >
+            <CircularProgress size={16} thickness={5} color="inherit" />
+            <Typography variant="caption">Refreshing portfolio analytics</Typography>
+          </Stack>
+        )}
+        <Stack
+          spacing={2}
+          sx={{
+            opacity: isRefreshing ? 0.68 : 1,
+            transition: (activeTheme) =>
+              activeTheme.transitions.create('opacity', {
+                duration: activeTheme.transitions.duration.shorter,
+              }),
+          }}
+        >
+          <PortfolioSummaryPanel
+            summary={analytics.effectiveSummary}
+            index={analytics.effectiveIndex}
+            returns={analytics.effectiveReturns}
+            drawdown={analytics.effectiveDrawdown}
+            drawdownMode={analytics.effectiveDrawdownMode}
+            drawdownSource={analytics.effectiveDrawdownSource}
+            riskRows={riskRows}
+            customPortfolio={analytics.usesCustomPortfolio}
+          />
+          <MonthlyReturnsTable rows={analytics.monthlyReturns} theme={theme} />
+          <PortfolioCorrelationPanel
+            matrix={analytics.effectiveCorrelationMatrix}
+            legend={correlationLegend}
+            cellSize={cellSize}
+            showNumbers={showCorrNumbers}
+            theme={theme}
+            onShowNumbersChange={onShowCorrNumbersChange}
+          />
+          <PortfolioRegressionSummary regression={analytics.effectiveSummary?.regression ?? null} />
+        </Stack>
+      </Box>
       <PortfolioCompositionDialog
         open={composition.dialog.open}
         labels={sleeveLabels}
