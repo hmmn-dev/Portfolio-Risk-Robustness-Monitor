@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
 import { renderWithTheme } from '../../../../test/render'
+import { calculateCorrelationCellSize } from '../../helpers/correlationLayout'
 import MonthlyReturnsTable from '../portfolio/MonthlyReturnsTable'
 import PortfolioChartsPanel from '../portfolio/PortfolioChartsPanel'
 import PortfolioCompositionDialog from '../portfolio/PortfolioCompositionDialog'
@@ -24,6 +25,20 @@ vi.mock('../../charts', () => ({
 }))
 
 describe('portfolio presentation components', () => {
+  it('scales correlation cells from double area toward the baseline as portfolios grow', () => {
+    const resolveSize = (portfolioSize: number) =>
+      calculateCorrelationCellSize({
+        baseCellSize: 28,
+        portfolioSize,
+        containerWidth: 1200,
+        sideBySide: true,
+      })
+
+    expect(resolveSize(8)).toBe(40)
+    expect(resolveSize(24)).toBe(33)
+    expect(resolveSize(40)).toBe(28)
+  })
+
   it('forwards toolbar commands and exposes the modified portfolio state', async () => {
     const user = userEvent.setup()
     const onOpenComposition = vi.fn()

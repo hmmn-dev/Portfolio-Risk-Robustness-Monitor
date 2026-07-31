@@ -47,6 +47,7 @@ Do not give primary metrics, regression diagnostics, status counts, warnings, an
 - If a recurring value is missing from the theme, add a deliberate theme token or shared component instead of repeating local constants.
 - Use MUI icons for familiar actions. Use `IconButton` plus a tooltip for compact familiar tools; use icon-and-text buttons for explicit commands.
 - Use `Tabs` for views, `ToggleButtonGroup` for exclusive modes, `Switch` or `Checkbox` for binary settings, `Select` or `Menu` for option sets, and inputs for numeric values.
+- Prefer established MUI or MUI X controls when they materially improve keyboard, validation, calendar, or responsive behavior. Before adding MUI X, verify Community versus commercial licensing, align its version with the installed MUI X line, and configure shared providers once at the app boundary.
 - Use `Paper` only for genuinely bounded tools or sections. Do not nest decorative cards or wrap every subsection in another `Paper`.
 - Respect the theme's shape globally. Do not introduce arbitrary local radii to make a surface appear softer.
 - Preserve light and dark mode contrast. Status colors must come from semantic theme colors and must include text or icons.
@@ -73,6 +74,7 @@ Treat portfolio and sleeve summaries as decision surfaces, not dumps of every av
 - Put technical detail below the decision summary or behind progressive disclosure when it is not needed continuously.
 - Prefer plain labels such as `Annualized alpha` over raw implementation notation such as `alpha_ann` unless the notation is domain-required.
 - Present exposures or betas as structured rows, bars, or a compact table rather than one long sentence.
+- Explain non-obvious metrics with a clearly discoverable info control that works on hover and keyboard focus. Give the control an exact accessible name and keep the visible metric label concise.
 - Make custom composition or stale-data caveats visible without dominating the whole summary.
 - Show `n/a` or unknown states honestly and explain only when the reason is actionable.
 - Include comparisons or baselines only when the underlying calculation is trustworthy and available.
@@ -82,12 +84,33 @@ Before accepting a summary design, verify that a user can answer quickly: How is
 ## Layout And Responsive Behavior
 
 - Use stable grids, explicit min/max widths, and responsive `Stack` or CSS grid layouts.
+- Keep related content adjacent. Prefer intrinsic or content-sized tracks for a matrix and its legend; use `1fr` only when the resulting empty space is intentional.
+- Adapt data density from measured container space. Define readable minimum and bounded maximum dimensions, scale progressively between them, and use scrolling only after the minimum no longer fits.
+- Keep container measurement and `ResizeObserver` cleanup in the component, but move reusable sizing decisions into pure tested helpers.
 - Keep controls from shifting when labels, loading states, or values change.
 - Let dense tables scroll horizontally on small screens rather than compressing text beyond readability.
 - Reflow toolbars into logical groups on narrow screens; preserve command order and accessible names.
 - Keep chart dimensions stable and labels visible. Do not let missing data collapse a chart region unexpectedly.
-- Ensure long sleeve names, symbols, translated labels, and large values wrap or truncate intentionally.
+- Ensure long sleeve names, symbols, translated labels, and large values wrap or truncate intentionally. Use ellipsis for single-line labels and show the full value on hover or focus only when overflow was actually detected.
 - Do not scale font size directly with viewport width.
+
+## Time Ranges And Expensive Updates
+
+- Give presets and custom dates one typed range model and one feature-level owner.
+- Apply the range consistently to every period-sensitive chart, summary, table, drawdown indicator, correlation matrix, and diagnostic. Keep current-snapshot indicators explicit when they intentionally remain independent.
+- Define UTC handling, inclusive end-date behavior, available-data bounds, and reversed or invalid input behavior in a pure tested helper.
+- Keep range controls and primary chart feedback immediate. Use `useTransition` for genuinely expensive downstream recalculation, with `aria-busy` and a concise live refresh indicator.
+- Keep stale sections visually identifiable while a transition is pending; do not replace usable content with a blank loading state.
+- Group date pickers and presets as one responsive control. Preserve logical command order when they stack and keep stable spacing between subgroups.
+
+## Charts And Dense Matrices
+
+- Apply one selected time range to related equity and drawdown charts.
+- Use restrained theme-aware chart fills when they improve reading the series shape. Check opacity and contrast separately in light and dark modes.
+- Keep correlation values visible by default when they materially improve scanning, while retaining an explicit toggle for users who prefer color-only comparison.
+- Keep matrix legends beside compact matrices instead of pushing them to a remote page edge.
+- Let small matrices use more generous cells, then reduce cell and value-label size progressively toward a readable baseline as the portfolio grows.
+- Preserve horizontal scrolling for matrices that cannot fit at the minimum readable cell size.
 
 ## Accessibility
 
@@ -96,6 +119,7 @@ Before accepting a summary design, verify that a user can answer quickly: How is
 - Give every control an accessible name and visible focus state.
 - Support keyboard operation for tabs, dialogs, menus, toggles, and table actions.
 - Associate errors and helper text with their controls.
+- Preserve the accessible field structure supplied by MUI X. Test both the labeled field group and its form value rather than assuming a conventional single-input DOM.
 - Check contrast in light and dark modes, including charts, disabled controls, focus, and status indicators.
 - Treat a failed exact role/name query as a potential semantic defect before weakening the test.
 
@@ -110,11 +134,12 @@ Before accepting a summary design, verify that a user can answer quickly: How is
 ## Verification Workflow
 
 1. Add or update React Testing Library coverage for user-visible behavior and accessible names.
-2. Exercise loading, empty, unavailable, error, partial, and success states that apply.
-3. Start the development server and visually inspect the changed flow at representative desktop and mobile sizes.
-4. Exercise hover, focus, keyboard, dialogs, menus, toggles, scrolling, and long-content cases.
-5. Inspect both light and dark modes when the surface supports them.
-6. Verify PDF output separately when shared presentation code changes.
-7. Run targeted tests, full tests, lint, build, and `git diff --check` according to `AGENTS.md`.
+2. Test pure responsive sizing and date-range rules directly; test calendar opening, defaults, toggles, truncation, and pending states through user behavior.
+3. Exercise loading, empty, unavailable, error, partial, and success states that apply.
+4. Start the development server and visually inspect the changed flow at representative desktop and mobile sizes.
+5. Exercise hover, focus, keyboard, dialogs, menus, toggles, scrolling, and long-content cases.
+6. Inspect both light and dark modes when the surface supports them.
+7. Verify PDF output separately when shared presentation code changes.
+8. Run targeted tests, full tests, lint, build, and `git diff --check` according to `AGENTS.md`.
 
 Report the hierarchy and UX decisions made, the states inspected, viewport coverage, automated checks, and any remaining design limitation. Do not claim visual verification without actually opening the rendered interface.

@@ -193,6 +193,8 @@ Use memoization for measured expensive work, stable identity required by an API,
 
 - Use semantic HTML and MUI components consistently with the existing theme.
 - Controls must have accessible names and keyboard behavior.
+- Give period filters one feature-level owner. Derive every period-sensitive chart, summary, table, and diagnostic from the same range, while clearly distinguishing current-snapshot indicators that should not change with that range.
+- Keep direct interaction feedback urgent. When recalculation is expensive, defer only the non-urgent derived update with a React transition, expose an accessible pending state, and do not present stale results as current without indication.
 - Do not communicate risk or status through color alone; include text or another semantic indicator.
 - Cover responsive behavior when changing report grids, tables, dialogs, tabs, or charts.
 - Keep MUI `sx` styling focused and avoid duplicating shared styles.
