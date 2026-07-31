@@ -104,6 +104,37 @@ describe('portfolio presentation components', () => {
     expect(onApply).toHaveBeenCalledOnce()
   })
 
+  it('keeps correlation strategy labels on one line and reveals truncated names', async () => {
+    const user = userEvent.setup()
+    const label = 'Daily Volatility Breakout - GBPJPY'
+
+    renderWithTheme(
+      <PortfolioCorrelationPanel
+        matrix={{ labels: [label], values: [[1]] }}
+        legend="linear-gradient(red, green)"
+        cellSize={28}
+        showNumbers={false}
+        theme={createTheme()}
+        onShowNumbersChange={vi.fn()}
+      />,
+    )
+
+    const renderedLabel = screen.getByText(`1. ${label}`)
+    Object.defineProperties(renderedLabel, {
+      clientWidth: { configurable: true, value: 200 },
+      scrollWidth: { configurable: true, value: 320 },
+    })
+    fireEvent.resize(window)
+
+    expect(renderedLabel).toHaveStyle({
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    })
+    await user.hover(renderedLabel)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(`1. ${label}`)
+  })
+
   it('renders calculated portfolio panels and forwards correlation controls', async () => {
     const user = userEvent.setup()
     const context = createReportContext()

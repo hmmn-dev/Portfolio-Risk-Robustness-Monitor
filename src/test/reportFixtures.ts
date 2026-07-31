@@ -202,6 +202,8 @@ export const createReportContext = (
         alphaAnn: 1.2,
         betas: [{ symbol: 'EURUSD', beta: 0.7 }],
         r2: 0.6,
+        conditionIndex: 1,
+        regularization: 0,
       },
     },
     pdfPerformanceRows: [],

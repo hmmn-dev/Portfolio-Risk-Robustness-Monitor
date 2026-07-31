@@ -170,9 +170,57 @@ describe('portfolioRegression', () => {
     expect(result?.alphaAnn).toBeCloseTo(25.2)
     expect(result?.betas).toEqual([{ symbol: 'EURUSD', beta: expect.closeTo(1.5) }])
     expect(result?.r2).toBeCloseTo(1)
+    expect(result?.conditionIndex).toBeCloseTo(1)
+    expect(result?.regularization).toBe(0)
   })
 
-  it('returns null without factors, enough rows, or an invertible design', () => {
+  it('stabilizes coefficients when factors are linearly dependent', () => {
+    const values = Array.from({ length: 40 }, (_, index) => {
+      const first = Math.sin(index * 0.7) * 0.01
+      const second = Math.cos(index * 0.43) * 0.008
+      return { first, second, cross: first + second }
+    })
+    const days: ReportModel['portfolio']['days'] = values.map((value, index) => ({
+      time: day(index),
+      pnl: 0,
+      equity: 100,
+      denom: 100,
+      return: 0.0005 + 0.4 * value.first - 0.2 * value.second,
+    }))
+    const buildFactor = (symbol: string, selector: (value: (typeof values)[number]) => number) =>
+      values.map((value, index) => ({
+        symbol,
+        time: day(index),
+        close: 1,
+        return: selector(value),
+      }))
+    const underlyingFactors = {
+      FIRST: buildFactor('FIRST', (value) => value.first),
+      SECOND: buildFactor('SECOND', (value) => value.second),
+      CROSS: buildFactor('CROSS', (value) => value.cross),
+    }
+
+    const result = portfolioRegression(days, ['FIRST', 'SECOND', 'CROSS'], underlyingFactors)
+    const reversed = portfolioRegression(days, ['CROSS', 'SECOND', 'FIRST'], underlyingFactors)
+
+    expect(result?.conditionIndex).toBe(Number.POSITIVE_INFINITY)
+    expect(result?.regularization).toBeGreaterThan(0)
+    expect(result?.betas.every(({ beta }) => Number.isFinite(beta) && Math.abs(beta) < 1)).toBe(
+      true,
+    )
+    expect(result?.r2).toBeGreaterThan(0.99)
+    expect(
+      Object.fromEntries(reversed?.betas.map(({ symbol, beta }) => [symbol, beta]) ?? []),
+    ).toEqual(
+      expect.objectContaining(
+        Object.fromEntries(
+          result?.betas.map(({ symbol, beta }) => [symbol, expect.closeTo(beta)]) ?? [],
+        ),
+      ),
+    )
+  })
+
+  it('returns null without factors, enough rows, or a variable factor', () => {
     expect(portfolioRegression(portfolioDays, [], {})).toBeNull()
     expect(
       portfolioRegression(portfolioDays.slice(0, 5), ['EURUSD'], {

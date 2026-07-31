@@ -35,6 +35,8 @@ export type PortfolioRegression = {
   alphaAnn: number
   betas: { symbol: string; beta: number }[]
   r2: number
+  conditionIndex: number
+  regularization: number
 }
 
 export type PortfolioSummary = {
