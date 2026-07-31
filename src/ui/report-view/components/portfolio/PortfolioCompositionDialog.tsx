@@ -71,7 +71,8 @@ const PortfolioCompositionDialog = ({
           }
           sx={{ mb: 2, alignItems: 'center' }}
         >
-          IN-TRADE drawdown isn't available for custom portfolios.
+          Custom portfolio active. Weights multiply each sleeve's return exposure; 1.00 preserves
+          its baseline contribution.
         </Alert>
       )}
       <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>

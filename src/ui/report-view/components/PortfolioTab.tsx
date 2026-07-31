@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Stack, Typography } from '@mui/material'
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import { useCallback, useMemo, useState, useTransition } from 'react'
 import { ALL_CHART_RANGE, type ChartRangeSelection } from '../helpers/chartRange'
 import { getPortfolioSleeveLabels, usePortfolioComposition } from '../hooks/usePortfolioComposition'
 import { usePortfolioAnalytics } from '../hooks/usePortfolioAnalytics'
@@ -19,7 +19,6 @@ const PortfolioTabContent = () => {
     baseCapital,
     drawdownMode,
     onDrawdownModeChange,
-    hasMtmDrawdown,
     pnlScaleMode,
     onPnlScaleModeChange,
     portfolioDrawdown,
@@ -36,7 +35,6 @@ const PortfolioTabContent = () => {
     portfolioSummary,
     riskRows,
     underlyingSeries,
-    underlyingTimeframes,
   } = useReportPortfolio()
   const sleeveLabels = useMemo(() => getPortfolioSleeveLabels(report), [report])
   const composition = usePortfolioComposition(sleeveLabels)
@@ -64,7 +62,6 @@ const PortfolioTabContent = () => {
     portfolioSummary,
     correlationMatrix,
     underlyingSeries,
-    underlyingTimeframes,
     enabledSleeves: composition.enabledSleeves,
     sleeveWeights: composition.sleeveWeights,
     isFiltered: composition.isFiltered,
@@ -72,21 +69,14 @@ const PortfolioTabContent = () => {
     rangeSelection: analyticsRangeSelection,
   })
 
-  useEffect(() => {
-    if (composition.isModified && drawdownMode === 'mtm') {
-      onDrawdownModeChange('deal')
-    }
-  }, [composition.isModified, drawdownMode, onDrawdownModeChange])
-
   return (
     <Stack spacing={2}>
       <PortfolioToolbar
         enabledCount={composition.enabledCount}
         totalSleeves={composition.totalSleeves}
         modifiedWeightCount={composition.modifiedWeightCount}
-        portfolioModified={composition.isModified}
-        hasMtmDrawdown={hasMtmDrawdown}
-        drawdownMode={drawdownMode}
+        hasMtmDrawdown={analytics.mtmAvailable}
+        drawdownMode={analytics.effectiveDrawdownMode}
         pnlScaleMode={pnlScaleMode}
         onOpenComposition={composition.dialog.openDialog}
         onDrawdownModeChange={onDrawdownModeChange}

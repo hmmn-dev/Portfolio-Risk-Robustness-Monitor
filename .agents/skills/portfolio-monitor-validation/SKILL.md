@@ -46,6 +46,34 @@ Verify these invariants:
 
 Test pure rules directly in `src/engine/__tests__/` or the nearest focused helper test.
 
+## Custom Composition And Weighting
+
+Treat portfolio weights as a financial contract, not a generic numeric transform:
+
+- A sleeve weight multiplies that sleeve's return contribution. `1.00` preserves the baseline
+  contribution and `0.00` removes it.
+- Build each contribution against the preceding unmodified baseline portfolio equity, using
+  initial capital for the first MTM observation. Do not scale the full historical equity curve or
+  use accumulated custom weighted equity as the denominator.
+- Select sleeves independently from weighting them. Exclude unselected sleeve PnL while retaining
+  the baseline timeline and denominator required by the contribution-return contract.
+- Apply the same weighting meaning to realized and MTM paths while preserving their distinct source
+  data and observation frequency.
+- Align independently constructed contribution series by timestamp. Array-position alignment is
+  acceptable only when one replay explicitly guarantees a shared timeline.
+
+Start changes with a small hand-calculated fixture. Cover the applicable invariants:
+
+- all sleeves at `1.00` reconcile with the base portfolio within floating-point tolerance;
+- `0.00` removes a sleeve and asymmetric weights such as `2.00` and `0.50` scale independently;
+- a high-growth history still shows the expected exposure change instead of masking it through a
+  larger custom-equity denominator;
+- a selected subset from a large portfolio excludes every unselected contribution;
+- unordered deals, the first marked loss, concurrent positions, and open-to-realized transitions
+  remain deterministic;
+- multiple symbols or contribution records belonging to one sleeve are accumulated, not
+  overwritten.
+
 ## Parsing and Attribution Checks
 
 For imported deals or underlying files, cover applicable cases:

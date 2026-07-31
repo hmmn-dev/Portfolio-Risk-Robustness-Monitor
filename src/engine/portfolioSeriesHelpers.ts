@@ -34,8 +34,11 @@ export const toHourStart = (timestamp: number) => {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours())
 }
 
-export const buildDrawdownFromEquity = (series: { time: number; equity: number }[]) => {
-  let maxEquity = Number.NaN
+export const buildDrawdownFromEquity = (
+  series: { time: number; equity: number }[],
+  initialEquity = Number.NaN,
+) => {
+  let maxEquity = Number.isFinite(initialEquity) && initialEquity > 0 ? initialEquity : Number.NaN
   return series.map((point) => {
     const equity = point.equity
     if (Number.isFinite(equity)) {

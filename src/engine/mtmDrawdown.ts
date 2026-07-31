@@ -1,6 +1,7 @@
 import {
   buildDrawdownFromEquity,
   buildIndexAndDrawdown,
+  getDealSymbol,
   toDayStart,
   toHourStart,
 } from './portfolioSeriesHelpers'
@@ -22,31 +23,201 @@ export type MtmDrawdownResult = {
   drawdownBySleeve: Map<SleeveKey, DailyPoint[]>
 }
 
+export type MtmDrawdownOptions = {
+  sleeves?: ReadonlySet<SleeveKey>
+  sleeveWeights?: Readonly<Record<SleeveKey, number>>
+}
+
 const getPositionKey = (deal: DealRow, symbol: string) => {
+  const sleevePrefix = `${deal.sleeve}::${symbol}`
   if (Number.isFinite(deal.positionId ?? NaN) && (deal.positionId ?? 0) !== 0) {
-    return `${symbol}::pid::${deal.positionId as number}`
+    return `${sleevePrefix}::pid::${deal.positionId as number}`
   }
   if (Number.isFinite(deal.magic ?? NaN) && (deal.magic ?? 0) !== 0) {
-    return `${symbol}::magic::${deal.magic as number}`
+    return `${sleevePrefix}::magic::${deal.magic as number}`
   }
-  return `${symbol}::deal::${deal.deal}`
+  return `${sleevePrefix}::deal::${deal.deal}`
+}
+
+const resolveSleeveWeight = (
+  sleeve: SleeveKey,
+  sleeveWeights?: Readonly<Record<SleeveKey, number>>,
+) => {
+  const weight = sleeveWeights?.[sleeve]
+  if (weight == null) return 1
+  return Number.isFinite(weight) && weight >= 0 ? weight : 0
+}
+
+const upsertPosition = (
+  positions: Map<string, OpenPosition>,
+  key: string,
+  symbol: string,
+  direction: 1 | -1,
+  volume: number,
+  price: number,
+) => {
+  const existing = positions.get(key)
+  if (!existing || existing.direction !== direction || existing.volume <= 0) {
+    positions.set(key, {
+      key,
+      symbol,
+      direction,
+      volume,
+      avgEntryPrice: price,
+    })
+    return
+  }
+
+  const totalVolume = existing.volume + volume
+  positions.set(key, {
+    ...existing,
+    volume: totalVolume,
+    avgEntryPrice: (existing.avgEntryPrice * existing.volume + price * volume) / totalVolume,
+  })
+}
+
+const reducePosition = (positions: Map<string, OpenPosition>, key: string, volume: number) => {
+  const existing = positions.get(key)
+  if (!existing) return null
+  const closeVolume = Math.min(volume, existing.volume)
+  const remaining = existing.volume - closeVolume
+  if (remaining <= 0) {
+    positions.delete(key)
+  } else {
+    positions.set(key, { ...existing, volume: remaining })
+  }
+  return { position: existing, closeVolume }
+}
+
+const median = (values: number[]) => {
+  const sorted = stableSort(
+    values.filter((value) => Number.isFinite(value) && value > 0),
+    (a, b) => a - b,
+  )
+  if (sorted.length === 0) return Number.NaN
+  const middle = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
+}
+
+const inferPointValues = (deals: DealRow[]) => {
+  const positions = new Map<string, OpenPosition>()
+  const samplesByPosition = new Map<string, number[]>()
+  const samplesBySymbol = new Map<string, number[]>()
+
+  deals.forEach((deal) => {
+    const symbol = normalizeSymbol(getDealSymbol(deal))
+    if (!symbol || !deal.entryType || deal.entryType === 'unknown') return
+    if (!Number.isFinite(deal.price ?? NaN) || !Number.isFinite(deal.volume ?? NaN)) return
+    const price = deal.price as number
+    const volume = deal.volume as number
+    if (price <= 0 || volume <= 0) return
+    const positionKey = getPositionKey(deal, symbol)
+
+    if (deal.entryType === 'in') {
+      if (!deal.side) return
+      upsertPosition(positions, positionKey, symbol, deal.side === 'buy' ? 1 : -1, volume, price)
+      return
+    }
+
+    const closed = reducePosition(positions, positionKey, volume)
+    if (!closed || !Number.isFinite(deal.profit ?? NaN) || closed.closeVolume <= 0) return
+    const priceDiff = (price - closed.position.avgEntryPrice) * closed.position.direction
+    if (!Number.isFinite(priceDiff) || priceDiff === 0) return
+    const pointValue = Math.abs((deal.profit as number) / (priceDiff * closed.closeVolume))
+    if (!Number.isFinite(pointValue) || pointValue <= 0) return
+
+    const positionSamples = samplesByPosition.get(positionKey) ?? []
+    positionSamples.push(pointValue)
+    samplesByPosition.set(positionKey, positionSamples)
+    const symbolSamples = samplesBySymbol.get(symbol) ?? []
+    symbolSamples.push(pointValue)
+    samplesBySymbol.set(symbol, symbolSamples)
+  })
+
+  return {
+    byPosition: new Map(
+      Array.from(samplesByPosition, ([key, samples]) => [key, median(samples)] as const),
+    ),
+    bySymbol: new Map(
+      Array.from(samplesBySymbol, ([symbol, samples]) => [symbol, median(samples)] as const),
+    ),
+  }
+}
+
+const buildWeightedMtmDrawdown = (
+  equitySeries: { time: number; equity: number }[],
+  sleeveEquitySeries: Map<SleeveKey, { time: number; equity: number }[]>,
+  startCapital: number,
+  sleeves: ReadonlySet<SleeveKey> | undefined,
+  sleeveWeights: Readonly<Record<SleeveKey, number>> | undefined,
+) => {
+  const selectedSleeves = stableSort(Array.from(sleeves ?? sleeveEquitySeries.keys()), (a, b) =>
+    a.localeCompare(b),
+  )
+  const returns = equitySeries.map((point, index) => {
+    const previousPortfolioEquity = index === 0 ? startCapital : equitySeries[index - 1].equity
+    const weightedPnl = selectedSleeves.reduce((total, sleeve) => {
+      const series = sleeveEquitySeries.get(sleeve)
+      const currentSleeveEquity = series?.[index]?.equity
+      const previousSleeveEquity = index === 0 ? startCapital : series?.[index - 1]?.equity
+      if (
+        !Number.isFinite(currentSleeveEquity ?? NaN) ||
+        !Number.isFinite(previousSleeveEquity ?? NaN)
+      ) {
+        return total
+      }
+      return (
+        total +
+        ((currentSleeveEquity as number) - (previousSleeveEquity as number)) *
+          resolveSleeveWeight(sleeve, sleeveWeights)
+      )
+    }, 0)
+    return {
+      time: point.time,
+      value:
+        Number.isFinite(previousPortfolioEquity) && previousPortfolioEquity > 0
+          ? weightedPnl / previousPortfolioEquity
+          : Number.NaN,
+    }
+  })
+  return buildIndexAndDrawdown(returns).drawdown
 }
 
 export const buildMtmDrawdown = (
   deals: DealRow[],
   underlyingSeries: UnderlyingSeries[],
   startCapital: number,
+  options: MtmDrawdownOptions = {},
 ): MtmDrawdownResult | null => {
-  if (!underlyingSeries.length) return null
+  if (!underlyingSeries.length || !Number.isFinite(startCapital) || startCapital <= 0) return null
+
+  const sortedDeals = stableSort(
+    deals.filter((deal) => Number.isFinite(deal.time)),
+    (a, b) => {
+      const byTime = a.time - b.time
+      return byTime || a.deal.localeCompare(b.deal) || a._seq - b._seq
+    },
+  )
+  if (sortedDeals.length === 0) return null
+
+  const relevantSymbols = new Set(
+    sortedDeals
+      .map((deal) => normalizeSymbol(getDealSymbol(deal)))
+      .filter((symbol) => symbol.length > 0 && symbol !== 'UNSPECIFIED'),
+  )
+  const relevantUnderlying = underlyingSeries.filter((series) =>
+    relevantSymbols.has(normalizeSymbol(series.symbol)),
+  )
+  if (relevantUnderlying.length === 0) return null
 
   const candlesByTime = new Map<number, { symbol: string; close: number }[]>()
   let source: 'H1' | 'D1' | undefined
   const sleeves = new Set<SleeveKey>()
-  deals.forEach((deal) => {
+  sortedDeals.forEach((deal) => {
     if (deal.sleeve) sleeves.add(deal.sleeve)
   })
 
-  underlyingSeries.forEach((series) => {
+  relevantUnderlying.forEach((series) => {
     const symbol = normalizeSymbol(series.symbol)
     if (!symbol) return
     if (series.timeframe === 'H1') {
@@ -65,7 +236,7 @@ export const buildMtmDrawdown = (
   if (!source || candlesByTime.size === 0) return null
 
   const candleTimes = stableSort(Array.from(candlesByTime.keys()), (a, b) => a - b)
-  const firstDealTime = deals.find((deal) => Number.isFinite(deal.time))?.time
+  const firstDealTime = sortedDeals[0]?.time
   const startTime = Number.isFinite(firstDealTime ?? NaN)
     ? source === 'H1'
       ? toHourStart(firstDealTime as number)
@@ -75,7 +246,7 @@ export const buildMtmDrawdown = (
     ? candleTimes.filter((time) => time >= (startTime as number))
     : candleTimes
   const latestPriceBySymbol = new Map<string, number>()
-  const pointValueBySymbol = new Map<string, number>()
+  const pointValues = inferPointValues(sortedDeals)
   const positions = new Map<string, OpenPosition>()
   const equitySeries: { time: number; equity: number }[] = []
   const positionsBySleeve = new Map<SleeveKey, Map<string, OpenPosition>>()
@@ -91,17 +262,18 @@ export const buildMtmDrawdown = (
   })
 
   for (const time of activeCandleTimes) {
-    while (dealIndex < deals.length && deals[dealIndex].time <= time) {
-      const deal = deals[dealIndex]
+    while (dealIndex < sortedDeals.length && sortedDeals[dealIndex].time <= time) {
+      const deal = sortedDeals[dealIndex]
       dealIndex += 1
       if (!Number.isFinite(deal.time)) continue
 
-      balance += deal.notional
+      const notional = Number.isFinite(deal.notional) ? deal.notional : 0
+      balance += notional
       if (deal.sleeve) {
         const sleeveBalance = balanceBySleeve.get(deal.sleeve) ?? startCapital
-        balanceBySleeve.set(deal.sleeve, sleeveBalance + deal.notional)
+        balanceBySleeve.set(deal.sleeve, sleeveBalance + notional)
       }
-      const symbol = normalizeSymbol(deal.symbol ?? '')
+      const symbol = normalizeSymbol(getDealSymbol(deal))
       if (!symbol) continue
       const entryType = deal.entryType
       if (!entryType || entryType === 'unknown') continue
@@ -117,101 +289,15 @@ export const buildMtmDrawdown = (
       if (entryType === 'in') {
         if (!deal.side) continue
         const direction: 1 | -1 = deal.side === 'buy' ? 1 : -1
-        const existing = positions.get(positionKey)
         const sleevePositions = deal.sleeve ? positionsBySleeve.get(deal.sleeve) : undefined
-        const sleeveExisting = sleevePositions?.get(positionKey)
-        if (!existing) {
-          positions.set(positionKey, {
-            key: positionKey,
-            symbol,
-            direction,
-            volume,
-            avgEntryPrice: price,
-          })
-          if (sleevePositions) {
-            sleevePositions.set(positionKey, {
-              key: positionKey,
-              symbol,
-              direction,
-              volume,
-              avgEntryPrice: price,
-            })
-          }
-        } else if (existing.direction !== direction && existing.volume > 0) {
-          positions.set(positionKey, {
-            key: positionKey,
-            symbol,
-            direction,
-            volume,
-            avgEntryPrice: price,
-          })
-          if (sleevePositions) {
-            sleevePositions.set(positionKey, {
-              key: positionKey,
-              symbol,
-              direction,
-              volume,
-              avgEntryPrice: price,
-            })
-          }
-        } else {
-          const totalVolume = existing.volume + volume
-          const avgEntryPrice =
-            totalVolume > 0
-              ? (existing.avgEntryPrice * existing.volume + price * volume) / totalVolume
-              : existing.avgEntryPrice
-          positions.set(positionKey, {
-            ...existing,
-            volume: totalVolume,
-            avgEntryPrice,
-          })
-          if (sleevePositions) {
-            const sleeveBase = sleeveExisting ?? existing
-            const sleeveTotal = sleeveBase.volume + volume
-            const sleeveAvg =
-              sleeveTotal > 0
-                ? (sleeveBase.avgEntryPrice * sleeveBase.volume + price * volume) / sleeveTotal
-                : sleeveBase.avgEntryPrice
-            sleevePositions.set(positionKey, {
-              ...sleeveBase,
-              volume: sleeveTotal,
-              avgEntryPrice: sleeveAvg,
-            })
-          }
+        upsertPosition(positions, positionKey, symbol, direction, volume, price)
+        if (sleevePositions) {
+          upsertPosition(sleevePositions, positionKey, symbol, direction, volume, price)
         }
       } else {
-        const existing = positions.get(positionKey)
         const sleevePositions = deal.sleeve ? positionsBySleeve.get(deal.sleeve) : undefined
-        const sleeveExisting = sleevePositions?.get(positionKey)
-        if (!existing) continue
-        const closeVolume = Math.min(volume, existing.volume)
-        const priceDiff = (price - existing.avgEntryPrice) * existing.direction
-        if (
-          Number.isFinite(priceDiff) &&
-          priceDiff !== 0 &&
-          closeVolume > 0 &&
-          Number.isFinite(deal.profit ?? NaN)
-        ) {
-          const pointValue = Math.abs((deal.profit as number) / (priceDiff * closeVolume))
-          if (Number.isFinite(pointValue) && pointValue > 0) {
-            const prior = pointValueBySymbol.get(symbol)
-            pointValueBySymbol.set(symbol, prior ? (prior + pointValue) / 2 : pointValue)
-          }
-        }
-        const remaining = existing.volume - closeVolume
-        if (remaining <= 0) {
-          positions.delete(positionKey)
-        } else {
-          positions.set(positionKey, { ...existing, volume: remaining })
-        }
-        if (sleeveExisting && sleevePositions) {
-          const sleeveRemaining = sleeveExisting.volume - Math.min(volume, sleeveExisting.volume)
-          if (sleeveRemaining <= 0) {
-            sleevePositions.delete(positionKey)
-          } else {
-            sleevePositions.set(positionKey, { ...sleeveExisting, volume: sleeveRemaining })
-          }
-        }
+        reducePosition(positions, positionKey, volume)
+        if (sleevePositions) reducePosition(sleevePositions, positionKey, volume)
       }
     }
 
@@ -223,7 +309,8 @@ export const buildMtmDrawdown = (
     let openPnl = 0
     positions.forEach((position) => {
       const price = latestPriceBySymbol.get(position.symbol)
-      const pointValue = pointValueBySymbol.get(position.symbol)
+      const pointValue =
+        pointValues.byPosition.get(position.key) ?? pointValues.bySymbol.get(position.symbol)
       if (!Number.isFinite(price ?? NaN) || !Number.isFinite(pointValue ?? NaN)) return
       openPnl +=
         ((price as number) - position.avgEntryPrice) *
@@ -240,7 +327,8 @@ export const buildMtmDrawdown = (
       let sleeveOpenPnl = 0
       sleevePositions.forEach((position) => {
         const price = latestPriceBySymbol.get(position.symbol)
-        const pointValue = pointValueBySymbol.get(position.symbol)
+        const pointValue =
+          pointValues.byPosition.get(position.key) ?? pointValues.bySymbol.get(position.symbol)
         if (!Number.isFinite(price ?? NaN) || !Number.isFinite(pointValue ?? NaN)) return
         sleeveOpenPnl +=
           ((price as number) - position.avgEntryPrice) *
@@ -263,8 +351,8 @@ export const buildMtmDrawdown = (
       return
     }
     const returns = series.map((point, index) => {
-      const previousEquity = index === 0 ? Number.NaN : series[index - 1].equity
-      const previousPortfolioEquity = index === 0 ? Number.NaN : equitySeries[index - 1]?.equity
+      const previousEquity = index === 0 ? startCapital : series[index - 1].equity
+      const previousPortfolioEquity = index === 0 ? startCapital : equitySeries[index - 1]?.equity
       const pnl =
         Number.isFinite(previousEquity) && Number.isFinite(point.equity)
           ? point.equity - previousEquity
@@ -277,8 +365,17 @@ export const buildMtmDrawdown = (
     })
     drawdownBySleeve.set(sleeve, buildIndexAndDrawdown(returns).drawdown)
   })
+  const usesCustomExposure = options.sleeves != null || options.sleeveWeights != null
   return {
-    drawdown: buildDrawdownFromEquity(equitySeries),
+    drawdown: usesCustomExposure
+      ? buildWeightedMtmDrawdown(
+          equitySeries,
+          sleeveEquitySeries,
+          startCapital,
+          options.sleeves,
+          options.sleeveWeights,
+        )
+      : buildDrawdownFromEquity(equitySeries, startCapital),
     source,
     drawdownBySleeve,
   }

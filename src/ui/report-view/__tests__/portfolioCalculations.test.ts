@@ -52,6 +52,75 @@ describe('portfolio calculations', () => {
     expect(buildCustomPortfolioSummary(weighted).regression).toBeNull()
   })
 
+  it('applies unequal weights to each baseline return contribution', () => {
+    const times = [Date.UTC(2024, 0, 1), Date.UTC(2024, 0, 2), Date.UTC(2024, 0, 3)]
+    const portfolioDays = times.map((time, index) => ({
+      time,
+      pnl: [0, 0, -100][index],
+      equity: [1000, 1000, 900][index],
+      denom: index === 0 ? Number.NaN : [Number.NaN, 1000, 1000][index],
+      return: index === 0 ? Number.NaN : [Number.NaN, 0, -0.1][index],
+    }))
+    const contributions = [
+      {
+        key: 'Alpha::EURUSD',
+        sleeve: 'Alpha',
+        symbol: 'EURUSD',
+        pnl: times.map((time, index) => ({ time, value: [0, 100, -100][index] })),
+        returns: times.map((time, index) => ({
+          time,
+          value: [Number.NaN, 0.1, -0.1][index],
+        })),
+        index: [],
+        drawdown: [],
+      },
+      {
+        key: 'Beta::USDJPY',
+        sleeve: 'Beta',
+        symbol: 'USDJPY',
+        pnl: times.map((time, index) => ({ time, value: [0, -100, 0][index] })),
+        returns: times.map((time, index) => ({
+          time,
+          value: [Number.NaN, -0.1, 0][index],
+        })),
+        index: [],
+        drawdown: [],
+      },
+    ]
+
+    const weighted = buildWeightedPortfolio(portfolioDays, contributions, {
+      Alpha: 2,
+      Beta: 0.5,
+    })
+
+    expect(weighted.returns[0]).toBe(0)
+    expect(weighted.returns[1]).toBeCloseTo(0.15)
+    expect(weighted.returns[2]).toBeCloseTo(-0.2)
+    expect(weighted.index.at(-1)?.value).toBeCloseTo(0.92)
+    expect(weighted.drawdown.at(-1)?.value).toBeCloseTo(-20)
+  })
+
+  it('preserves every contribution when a sleeve contains multiple symbols', () => {
+    const report = createReport()
+    const duplicateSleeveContributions = report.contributions.map((contribution, index) => ({
+      ...contribution,
+      key: `${contribution.sleeve}::symbol-${index}`,
+      sleeve: 'Shared sleeve',
+    }))
+
+    const weighted = buildWeightedPortfolio(report.portfolio.days, duplicateSleeveContributions, {
+      'Shared sleeve': 2,
+    })
+
+    weighted.returns.forEach((actualReturn, index) => {
+      const expected = duplicateSleeveContributions.reduce((total, contribution) => {
+        const value = contribution.returns[index]?.value
+        return total + (Number.isFinite(value) ? value * 2 : 0)
+      }, 0)
+      expect(actualReturn).toBeCloseTo(expected)
+    })
+  })
+
   it('builds correlation and applies the effective drawdown to a summary', () => {
     const report = createReport()
     const matrix = buildContributionCorrelationMatrix(report.contributions)

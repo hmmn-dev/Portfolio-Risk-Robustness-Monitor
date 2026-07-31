@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { buildPortfolioReport } from '../../../engine/portfolioSeries'
+import { buildMtmDrawdown } from '../../../engine/mtmDrawdown'
 import type { DealRow, ReportModel, UnderlyingSeries } from '../../../engine/types'
 import {
   applyDrawdownToSummary,
@@ -31,7 +31,6 @@ type UsePortfolioAnalyticsOptions = {
   portfolioSummary: PortfolioSummary | null
   correlationMatrix: CorrelationMatrix
   underlyingSeries: UnderlyingSeries[]
-  underlyingTimeframes: Record<string, 'H1' | 'D1'>
   enabledSleeves: Set<string>
   sleeveWeights: Record<string, number>
   isFiltered: boolean
@@ -49,7 +48,6 @@ export const usePortfolioAnalytics = ({
   portfolioSummary,
   correlationMatrix,
   underlyingSeries,
-  underlyingTimeframes,
   enabledSleeves,
   sleeveWeights,
   isFiltered,
@@ -72,52 +70,50 @@ export const usePortfolioAnalytics = ({
     () => buildCustomPortfolioSummary(customPortfolio),
     [customPortfolio],
   )
-  const filteredMtm = useMemo(() => {
-    if (!isFiltered || drawdownMode !== 'mtm' || !deals?.length || !underlyingSeries.length) {
+  const customMtm = useMemo(() => {
+    if (
+      !usesCustomPortfolio ||
+      drawdownMode !== 'mtm' ||
+      !deals?.length ||
+      !underlyingSeries.length
+    ) {
       return null
     }
-    const filteredDeals = deals.filter((deal) => enabledSleeves.has(deal.sleeve))
-    if (filteredDeals.length === 0) return null
-    const filteredReport = buildPortfolioReport(filteredDeals, {
-      generatedAt: report.generatedAt,
-      dealsSourceName: report.dealsSourceName,
-      underlyingTimeframes,
-      underlyingSeries,
-      initialCapital: baseCapital,
+    return buildMtmDrawdown(deals, underlyingSeries, baseCapital, {
+      sleeves: enabledSleeves,
+      sleeveWeights,
     })
-    return {
-      drawdown: filteredReport.portfolio.drawdownMtm ?? [],
-      source: filteredReport.portfolio.drawdownMtmSource,
-    }
   }, [
     baseCapital,
     deals,
     drawdownMode,
     enabledSleeves,
-    isFiltered,
-    report.dealsSourceName,
-    report.generatedAt,
+    sleeveWeights,
     underlyingSeries,
-    underlyingTimeframes,
+    usesCustomPortfolio,
   ])
-  const hasFilteredMtm = (filteredMtm?.drawdown.length ?? 0) > 0
+  const hasCustomMtm = (customMtm?.drawdown.length ?? 0) > 0
   const hasPortfolioMtm = (report.portfolio.drawdownMtm?.length ?? 0) > 0
+  const canBuildCustomMtm =
+    !!deals?.some((deal) => enabledSleeves.has(deal.sleeve)) && underlyingSeries.length > 0
+  const mtmAvailable = usesCustomPortfolio ? canBuildCustomMtm : hasPortfolioMtm
   const effectiveDrawdownMode: DrawdownMode =
-    drawdownMode === 'mtm' && (!isFiltered ? hasPortfolioMtm : hasFilteredMtm) ? 'mtm' : 'deal'
+    drawdownMode === 'mtm' && (usesCustomPortfolio ? hasCustomMtm : hasPortfolioMtm)
+      ? 'mtm'
+      : 'deal'
   const fullDrawdown = useMemo(
     () =>
       effectiveDrawdownMode === 'mtm'
-        ? isFiltered
-          ? (filteredMtm?.drawdown ?? [])
+        ? usesCustomPortfolio
+          ? (customMtm?.drawdown ?? [])
           : (report.portfolio.drawdownMtm ?? portfolioDrawdown)
         : usesCustomPortfolio
           ? (customPortfolio?.drawdown ?? [])
           : portfolioDrawdown,
     [
       customPortfolio?.drawdown,
+      customMtm?.drawdown,
       effectiveDrawdownMode,
-      filteredMtm?.drawdown,
-      isFiltered,
       portfolioDrawdown,
       report.portfolio.drawdownMtm,
       usesCustomPortfolio,
@@ -125,10 +121,12 @@ export const usePortfolioAnalytics = ({
   )
   const effectiveDrawdownSource =
     effectiveDrawdownMode === 'mtm'
-      ? isFiltered
-        ? filteredMtm?.source
+      ? usesCustomPortfolio
+        ? customMtm?.source
         : report.portfolio.drawdownMtmSource
-      : portfolioDrawdownSource
+      : usesCustomPortfolio
+        ? report.portfolio.drawdownSource
+        : portfolioDrawdownSource
   const fullIndex = useMemo(
     () => (usesCustomPortfolio ? (customPortfolio?.index ?? []) : report.portfolio.index),
     [customPortfolio?.index, report.portfolio.index, usesCustomPortfolio],
@@ -224,6 +222,7 @@ export const usePortfolioAnalytics = ({
 
   return {
     usesCustomPortfolio,
+    mtmAvailable,
     effectiveDrawdownMode,
     effectiveDrawdown,
     effectiveDrawdownSource,

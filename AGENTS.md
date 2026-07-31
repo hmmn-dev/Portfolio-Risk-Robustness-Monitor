@@ -274,6 +274,14 @@ Changes to calculations, parsing, charts, status, filtering, or report generatio
 - Handle empty, one-point, constant, missing, non-finite, and zero-denominator inputs.
 - Verify trading-day window boundaries and minimum-observation rules.
 - Keep realized and in-trade/MTM drawdown semantics distinct.
+- Treat sleeve weights as return-exposure multipliers applied to each sleeve's contribution
+  against the preceding baseline portfolio equity. Do not reinterpret them as fixed-dollar
+  historical PnL multipliers or re-denominate them against a custom weighted equity curve.
+- Keep composition selection and weighting orthogonal: `1.00` preserves a sleeve's baseline
+  contribution, `0.00` removes it, and all sleeves at `1.00` must reconcile with the base
+  portfolio within floating-point tolerance.
+- Measure the first MTM observation against initial capital so an opening in-trade loss is not
+  silently discarded.
 - Preserve base portfolio data when applying filtered composition or custom weights.
 - Never present missing or unknown evidence as a healthy status.
 - Keep sleeve attribution scoped correctly by symbol, position, and magic identifier.

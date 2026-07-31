@@ -15,7 +15,6 @@ type PortfolioToolbarProps = {
   enabledCount: number
   totalSleeves: number
   modifiedWeightCount: number
-  portfolioModified: boolean
   hasMtmDrawdown: boolean
   drawdownMode: DrawdownMode
   pnlScaleMode: 'linear' | 'log'
@@ -28,7 +27,6 @@ const PortfolioToolbar = ({
   enabledCount,
   totalSleeves,
   modifiedWeightCount,
-  portfolioModified,
   hasMtmDrawdown,
   drawdownMode,
   pnlScaleMode,
@@ -79,9 +77,9 @@ const PortfolioToolbar = ({
         }}
       >
         <ToggleButton value="deal">Realized</ToggleButton>
-        {portfolioModified ? (
+        {!hasMtmDrawdown ? (
           <Tooltip
-            title="IN-TRADE drawdown is available only for the original portfolio. Reset composition/weights to enable."
+            title="In-Trade drawdown requires matched deal prices and uploaded underlying candles."
             placement="top"
             disableInteractive
           >
@@ -92,9 +90,7 @@ const PortfolioToolbar = ({
             </Box>
           </Tooltip>
         ) : (
-          <ToggleButton value="mtm" disabled={!hasMtmDrawdown}>
-            In-Trade
-          </ToggleButton>
+          <ToggleButton value="mtm">In-Trade</ToggleButton>
         )}
       </ToggleButtonGroup>
       <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />

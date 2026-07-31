@@ -81,20 +81,17 @@ export const buildWeightedPortfolio = (
   contributions: ReportModel['contributions'],
   weights: Record<string, number>,
 ): CustomPortfolioSeries => {
-  const returnMaps = new Map<string, Map<number, number>>()
-  contributions.forEach((item) => {
-    returnMaps.set(
-      item.sleeve,
-      new Map(
-        item.returns.map((point) => [point.time, Number.isFinite(point.value) ? point.value : 0]),
-      ),
-    )
-  })
+  const weightedContributions = contributions.map((item) => ({
+    weight: weights[item.sleeve] ?? 1,
+    returnsByTime: new Map(
+      item.returns.map((point) => [point.time, Number.isFinite(point.value) ? point.value : 0]),
+    ),
+  }))
   const dailyReturns = portfolioDays.map(({ time }) => {
-    const value = contributions.reduce((total, item) => {
-      const contributionReturn = returnMaps.get(item.sleeve)?.get(time)
+    const value = weightedContributions.reduce((total, contribution) => {
+      const contributionReturn = contribution.returnsByTime.get(time)
       return Number.isFinite(contributionReturn ?? NaN)
-        ? total + (contributionReturn as number) * (weights[item.sleeve] ?? 1)
+        ? total + (contributionReturn as number) * contribution.weight
         : total
     }, 0)
     return { time, value }

@@ -61,6 +61,9 @@ Use component APIs appropriate to the installed MUI version. Do not add another 
 - Show observation time or age when freshness affects interpretation.
 - Keep realized and in-trade drawdown labels explicit, including source timeframe where relevant.
 - Keep decimal calculations separate from displayed percentages.
+- Explain exposure controls in domain terms: state what `1.00` preserves and whether the value
+  scales return contribution, allocation, or fixed notional. In this repository, portfolio sleeve
+  weights multiply return exposure; do not leave the meaning implied by a generic `Weight` label.
 - Make risk and status readable without color alone.
 - Keep warning and error copy concise, specific, and paired with a recovery action when one exists.
 - Do not use a generic empty state when permission, unavailable data, filtering, or failure has a different meaning.
