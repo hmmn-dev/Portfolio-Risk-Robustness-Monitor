@@ -91,6 +91,7 @@ Before accepting a summary design, verify that a user can answer quickly: How is
 - Adapt data density from measured container space. Define readable minimum and bounded maximum dimensions, scale progressively between them, and use scrolling only after the minimum no longer fits.
 - Keep container measurement and `ResizeObserver` cleanup in the component, but move reusable sizing decisions into pure tested helpers.
 - Keep controls from shifting when labels, loading states, or values change.
+- Keep pending, validation, and status feedback from shifting nearby content. Use non-flow feedback for transient global work, or reserve a stable footprint when the message belongs inside the surface.
 - Let dense tables scroll horizontally on small screens rather than compressing text beyond readability.
 - Reflow toolbars into logical groups on narrow screens; preserve command order and accessible names.
 - Keep chart dimensions stable and labels visible. Do not let missing data collapse a chart region unexpectedly.
@@ -103,6 +104,7 @@ Before accepting a summary design, verify that a user can answer quickly: How is
 - Apply the range consistently to every period-sensitive chart, summary, table, drawdown indicator, correlation matrix, and diagnostic. Keep current-snapshot indicators explicit when they intentionally remain independent.
 - Define UTC handling, inclusive end-date behavior, available-data bounds, and reversed or invalid input behavior in a pure tested helper.
 - Keep range controls and primary chart feedback immediate. Use `useTransition` for genuinely expensive downstream recalculation, with `aria-busy` and a concise live refresh indicator.
+- Use one clear pending signal for one operation. Do not stack redundant spinners, progress bars, banners, or overlays that communicate the same state.
 - Keep stale sections visually identifiable while a transition is pending; do not replace usable content with a blank loading state.
 - Group date pickers and presets as one responsive control. Preserve logical command order when they stack and keep stable spacing between subgroups.
 

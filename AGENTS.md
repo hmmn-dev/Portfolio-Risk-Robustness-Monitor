@@ -162,6 +162,7 @@ Use custom hooks for cohesive reusable stateful behavior, not merely to reduce f
 
 - Keep state as close as possible to its consumers.
 - Use component state for temporary interaction state.
+- Keep rapidly changing form and dialog drafts in the nearest focused owner so editing does not rerender unrelated report surfaces.
 - Use Zustand for genuinely shared workflow, report, underlying-data, or UI state.
 - Persist only state that must survive reloads.
 - Do not copy Zustand data into local state solely to transform or display it.
@@ -189,12 +190,15 @@ Do not add `useMemo`, `useCallback`, or `memo` automatically.
 
 Use memoization for measured expensive work, stable identity required by an API, or an established calculation hot path. Dependencies must be complete and stable. Never silence hook dependency warnings without resolving the underlying ownership or identity problem.
 
+Diagnose state ownership before memoizing a slow interaction. First isolate high-frequency draft or input state, then memoize only verified expensive boundaries with stable immutable inputs. Add render-count regression coverage when rerender isolation is part of the behavior being protected.
+
 ## React and UI Rules
 
 - Use semantic HTML and MUI components consistently with the existing theme.
 - Controls must have accessible names and keyboard behavior.
 - Give period filters one feature-level owner. Derive every period-sensitive chart, summary, table, and diagnostic from the same range, while clearly distinguishing current-snapshot indicators that should not change with that range.
 - Keep direct interaction feedback urgent. When recalculation is expensive, defer only the non-urgent derived update with a React transition, expose an accessible pending state, and do not present stale results as current without indication.
+- Keep pending, validation, and status feedback layout-stable. Use one clear pending signal per operation, prefer non-flow feedback such as a snackbar for transient global work, and reserve a stable footprint when feedback belongs inside a surface.
 - Do not communicate risk or status through color alone; include text or another semantic indicator.
 - Cover responsive behavior when changing report grids, tables, dialogs, tabs, or charts.
 - Keep MUI `sx` styling focused and avoid duplicating shared styles.
@@ -346,6 +350,16 @@ Do not:
 - Replace one broad component with one broad hook or context.
 
 After moving code, search for obsolete imports, old broad context hooks, duplicate formulas, and unreachable compatibility paths before considering the refactor complete.
+
+## Guidance Maintenance
+
+After completing and validating a nontrivial task, review whether it exposed a durable, non-obvious repository rule.
+
+- Update `AGENTS.md` only for cross-cutting mandatory architecture, correctness, workflow, or UX invariants.
+- Update the narrowest applicable repository skill for specialized execution guidance or regression checklists.
+- Prefer extending an existing skill. Create a new skill only when the work has a distinct trigger and reusable workflow not covered by current skills.
+- Do not record one-off implementation details, repeat existing guidance, or change documentation merely to summarize the task.
+- Use `$skill-creator` for skill changes, keep additions concise, validate each changed skill, and report the guidance update with the implementation.
 
 ## Definition of Done
 

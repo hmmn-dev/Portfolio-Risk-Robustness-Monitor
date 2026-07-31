@@ -1,7 +1,7 @@
 import {
-  Alert,
   Button,
   Checkbox,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -9,6 +9,7 @@ import {
   FormControlLabel,
   Stack,
   TextField,
+  Typography,
 } from '@mui/material'
 import { memo, useCallback, useMemo, useReducer } from 'react'
 import {
@@ -166,6 +167,7 @@ const PortfolioCompositionDialog = ({
       hasModifiedWeightDraft(draft.labels, draft.weightDraft),
     [draft.labels, draft.sleeveDraft, draft.weightDraft],
   )
+  const isModified = modified || draftModified
   const applyDisabled =
     draft.sleeveDraft.size === 0 || !isWeightDraftValid(draft.labels, draft.weightDraft)
   const handleToggleSleeve = useCallback(
@@ -196,21 +198,36 @@ const PortfolioCompositionDialog = ({
     >
       <DialogTitle id="portfolio-composition-title">Change portfolio composition</DialogTitle>
       <DialogContent>
-        {(modified || draftModified) && (
-          <Alert
-            severity="info"
-            variant="outlined"
-            action={
-              <Button size="small" onClick={handleResetToBaseline}>
-                Reset to baseline
-              </Button>
-            }
-            sx={{ mb: 2, alignItems: 'center' }}
+        <Stack
+          component="section"
+          aria-label="Portfolio composition status"
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1}
+          alignItems={{ sm: 'center' }}
+          justifyContent="space-between"
+          sx={{ mb: 2, minHeight: { xs: 64, sm: 40 } }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+            <Chip
+              size="small"
+              label={isModified ? 'Custom portfolio' : 'Baseline portfolio'}
+              color={isModified ? 'info' : 'default'}
+              variant="outlined"
+            />
+            <Typography variant="caption" color="text.secondary">
+              Weights scale return exposure; 1.00 preserves each sleeve's baseline contribution.
+            </Typography>
+          </Stack>
+          <Button
+            size="small"
+            onClick={handleResetToBaseline}
+            aria-hidden={!isModified}
+            tabIndex={isModified ? 0 : -1}
+            sx={{ visibility: isModified ? 'visible' : 'hidden', flexShrink: 0 }}
           >
-            Custom portfolio active. Weights multiply each sleeve's return exposure; 1.00 preserves
-            its baseline contribution.
-          </Alert>
-        )}
+            Reset to baseline
+          </Button>
+        </Stack>
         <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
           <Button
             size="small"

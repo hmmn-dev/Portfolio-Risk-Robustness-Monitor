@@ -26,7 +26,7 @@ vi.mock('../../charts', () => ({
 }))
 
 describe('portfolio presentation components', () => {
-  it('marks the complete portfolio surface as refreshing while retaining its content', () => {
+  it('shows one refresh status while retaining the current portfolio content', () => {
     renderWithTheme(
       <PortfolioAnalyticsFrame refreshing>
         <div>Current portfolio chart</div>
@@ -36,8 +36,10 @@ describe('portfolio presentation components', () => {
 
     const analytics = screen.getByRole('region', { name: 'Portfolio analytics' })
     expect(analytics).toHaveAttribute('aria-busy', 'true')
-    expect(within(analytics).getByRole('status')).toHaveTextContent('Refreshing portfolio view')
-    expect(within(analytics).getByText('Updating charts and analytics sections')).toBeVisible()
+    expect(within(analytics).queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Refreshing charts and portfolio analytics',
+    )
     expect(within(analytics).getByText('Current portfolio chart')).toBeVisible()
     expect(within(analytics).getByText('Current portfolio summary')).toBeVisible()
   })
@@ -130,6 +132,31 @@ describe('portfolio presentation components', () => {
     screen.getAllByRole('checkbox').forEach((checkbox) => expect(checkbox).toBeChecked())
     expect(screen.getAllByRole('textbox', { name: 'Weight' })[0]).toHaveValue('1.00')
     expect(screen.getAllByRole('textbox', { name: 'Weight' })[1]).toHaveValue('1.00')
+  })
+
+  it('updates composition status without inserting a new layout block', () => {
+    renderWithTheme(
+      <PortfolioCompositionDialog
+        labels={['Alpha', 'Beta']}
+        enabledSleeves={new Set(['Alpha', 'Beta'])}
+        sleeveWeights={{ Alpha: 1, Beta: 1 }}
+        modified={false}
+        onClose={vi.fn()}
+        onResetToBaseline={vi.fn()}
+        onApply={vi.fn()}
+      />,
+    )
+
+    const statusRegion = screen.getByRole('region', { name: 'Portfolio composition status' })
+    expect(within(statusRegion).getByText('Baseline portfolio')).toBeVisible()
+
+    fireEvent.change(screen.getAllByRole('textbox', { name: 'Weight' })[0], {
+      target: { value: '1.25' },
+    })
+
+    expect(screen.getByRole('region', { name: 'Portfolio composition status' })).toBe(statusRegion)
+    expect(within(statusRegion).getByText('Custom portfolio')).toBeVisible()
+    expect(within(statusRegion).getByRole('button', { name: 'Reset to baseline' })).toBeVisible()
   })
 
   it('filters portfolio equity and drawdown with the same date-range preset', async () => {

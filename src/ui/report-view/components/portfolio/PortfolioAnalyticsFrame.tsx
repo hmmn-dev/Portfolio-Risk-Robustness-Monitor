@@ -1,12 +1,4 @@
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  Collapse,
-  LinearProgress,
-  Stack,
-  Typography,
-} from '@mui/material'
+import { Box, CircularProgress, Snackbar, Stack } from '@mui/material'
 import type { PropsWithChildren } from 'react'
 
 type PortfolioAnalyticsFrameProps = PropsWithChildren<{
@@ -15,26 +7,18 @@ type PortfolioAnalyticsFrameProps = PropsWithChildren<{
 
 const PortfolioAnalyticsFrame = ({ refreshing, children }: PortfolioAnalyticsFrameProps) => (
   <Box component="section" aria-label="Portfolio analytics" aria-busy={refreshing}>
-    <Collapse in={refreshing} unmountOnExit>
-      <Alert
-        role="status"
-        aria-live="polite"
-        severity="info"
-        variant="outlined"
-        icon={<CircularProgress size={18} thickness={5} color="inherit" />}
-        sx={{ mb: 2, alignItems: 'center' }}
-      >
-        <Box sx={{ width: '100%', minWidth: 0 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            Refreshing portfolio view
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Updating charts and analytics sections
-          </Typography>
-          <LinearProgress aria-hidden sx={{ mt: 0.75 }} />
-        </Box>
-      </Alert>
-    </Collapse>
+    <Snackbar
+      open={refreshing}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      message={
+        <Stack direction="row" spacing={1} alignItems="center">
+          <CircularProgress aria-hidden size={18} thickness={5} color="inherit" />
+          <span>Refreshing charts and portfolio analytics</span>
+        </Stack>
+      }
+      slotProps={{ content: { role: 'status', 'aria-live': 'polite' } }}
+      sx={{ pointerEvents: 'none' }}
+    />
     <Stack
       spacing={2}
       sx={(theme) => ({

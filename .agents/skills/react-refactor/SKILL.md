@@ -67,9 +67,12 @@ Keep every intermediate step compiling and tested.
 - Do not use effects to derive state or synchronize React state with React state.
 - Prefer event handlers, render-time derivation, initializers, reducers, or clearer component ownership.
 - Avoid copying store values into component state unless the user is editing an independent draft.
+- Diagnose ownership before optimizing rerenders. Move rapidly changing form or dialog drafts to the nearest focused owner before adding memoization.
 - Do not hide a large component inside an equally large custom hook.
 - Do not hide unrelated editable workflows inside one hook.
 - Do not memoize automatically; use memoization only for expensive work or required stable identity.
+- Memoize only verified expensive boundaries whose inputs are stable and immutable. Add render-count regression coverage when rerender isolation is part of the fix.
+- Remember that `useTransition` changes update priority rather than moving calculations off the main thread. Close urgent UI first and transition derived state; use a worker when the calculation itself still blocks interaction materially.
 - Keep hook dependencies complete.
 - Preserve accessible names, keyboard behavior, responsive layout, and status semantics.
 - Keep ECharts option building and financial calculations pure.
