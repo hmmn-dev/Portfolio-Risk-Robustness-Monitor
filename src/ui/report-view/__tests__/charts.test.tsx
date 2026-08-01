@@ -75,8 +75,8 @@ describe('report charts', () => {
     renderWithTheme(
       <EquityChart
         data={[
-          { time: Date.UTC(2024, 0, 1), value: 1 },
-          { time: Date.UTC(2024, 0, 2), value: 1.04 },
+          { time: Date.UTC(2024, 0, 1), value: 33 },
+          { time: Date.UTC(2024, 0, 2), value: 34.32 },
         ]}
         scaleMode="percent"
         pnlScaleMode="log"
@@ -98,6 +98,26 @@ describe('report charts', () => {
     expect(option.yAxis.max).toBeLessThan(0.06)
     expect(option.yAxis.axisLabel.formatter(0)).toBe('0.0')
     expect(option.yAxis.axisLabel.formatter(Math.log(1.04))).toBe('4.0')
+  })
+
+  it('rebases a ranged equity index to zero at its first visible observation', () => {
+    renderWithTheme(
+      <EquityChart
+        data={[
+          { time: Date.UTC(2025, 6, 31), value: 33 },
+          { time: Date.UTC(2026, 6, 31), value: 34.65 },
+        ]}
+        scaleMode="percent"
+      />,
+    )
+
+    const option = echartsSpy.mock.calls[0][0].option as {
+      series: Array<{ data: number[] }>
+      tooltip: { formatter: (params: Array<{ dataIndex: number }>) => string }
+    }
+    expect(option.series[0].data[0]).toBe(0)
+    expect(option.series[0].data[1]).toBeCloseTo(5)
+    expect(option.tooltip.formatter([{ dataIndex: 1 }])).toContain('PnL: 5.0%')
   })
 
   it('pins drawdown charts at zero and formats tooltip values', () => {

@@ -111,6 +111,7 @@ Before accepting a summary design, verify that a user can answer quickly: How is
 ## Charts And Dense Matrices
 
 - Apply one selected time range to related equity and drawdown charts.
+- Rebase a cumulative equity/index chart to the first finite positive visible observation when a preset or custom range is selected, so displayed PnL starts at `0%`. Do not mutate the source index, returns, summaries, or drawdown calculations.
 - Use restrained theme-aware chart fills when they improve reading the series shape. Check opacity and contrast separately in light and dark modes.
 - Keep correlation values visible by default when they materially improve scanning, while retaining an explicit toggle for users who prefer color-only comparison.
 - Keep matrix legends beside compact matrices instead of pushing them to a remote page edge.

@@ -29,6 +29,10 @@ export const EquityChart = ({
   const chartTheme = getReportChartTheme(theme)
   const base =
     Number.isFinite(baseValue) && (baseValue as number) > 0 ? (baseValue as number) : 10000
+  const percentBaseline =
+    scaleMode === 'percent'
+      ? (data.find((point) => Number.isFinite(point.value) && point.value > 0)?.value ?? 1)
+      : 1
   const formatCurrency = (value: number) =>
     value.toLocaleString(undefined, { maximumFractionDigits: 0 })
   const displaySeries =
@@ -37,7 +41,7 @@ export const EquityChart = ({
       : scaleMode === 'percent'
         ? data.map((point) => ({
             time: point.time,
-            value: (point.value - 1) * 100,
+            value: (point.value / percentBaseline - 1) * 100,
           }))
         : data.map((point) => ({
             time: point.time,
@@ -51,7 +55,7 @@ export const EquityChart = ({
         }))
       : data.map((point) => ({
           time: point.time,
-          value: point.value * base,
+          value: (scaleMode === 'percent' ? point.value / percentBaseline : point.value) * base,
         }))
   const chartSeries =
     pnlScaleMode === 'log'
