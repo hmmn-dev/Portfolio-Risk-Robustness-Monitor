@@ -17,6 +17,9 @@ type OpenPosition = {
   avgEntryPrice: number
 }
 
+const HOUR_MS = 60 * 60 * 1000
+const DAY_MS = 24 * HOUR_MS
+
 export type MtmDrawdownResult = {
   drawdown: DailyPoint[]
   source?: 'H1' | 'D1'
@@ -262,7 +265,9 @@ export const buildMtmDrawdown = (
   })
 
   for (const time of activeCandleTimes) {
-    while (dealIndex < sortedDeals.length && sortedDeals[dealIndex].time <= time) {
+    // Imported OHLC timestamps identify the period start; their close is observed at period end.
+    const observationEnd = time + (source === 'H1' ? HOUR_MS : DAY_MS)
+    while (dealIndex < sortedDeals.length && sortedDeals[dealIndex].time < observationEnd) {
       const deal = sortedDeals[dealIndex]
       dealIndex += 1
       if (!Number.isFinite(deal.time)) continue

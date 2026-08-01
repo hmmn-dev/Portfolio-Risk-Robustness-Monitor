@@ -84,7 +84,12 @@ For imported deals or underlying files, cover applicable cases:
 - symbol normalization and file-name inference;
 - attribution scoped by symbol, position, magic identifier, and sleeve;
 - duplicate candles and deterministic chronological ordering;
+- OHLC timestamps as period starts: apply deal events in `[start, end)` before marking that
+  period's close, and assign an event exactly at `end` to the next period;
 - missing required underlying symbols.
+
+For MTM replay, include a position that exits inside a candle and verify that a later price from
+that candle cannot create a phantom post-exit high-water mark.
 
 Treat file and persisted contents as untrusted. Test fallback behavior explicitly.
 

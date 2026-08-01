@@ -222,4 +222,57 @@ describe('buildMtmDrawdown', () => {
     expect(result?.drawdown[0].value).toBeCloseTo(-0.5)
     expect(result?.drawdown[1].value).toBeCloseTo(-1)
   })
+
+  it('does not mark a closed position with a later price from its exit candle', () => {
+    const candleHour = Date.UTC(2024, 0, 1, 17)
+    const deals: DealRow[] = [
+      {
+        deal: 'open',
+        time: candleHour,
+        sleeve: 'Alpha',
+        symbol: 'EURUSD',
+        notional: 0,
+        price: 100,
+        side: 'sell',
+        volume: 1,
+        entryType: 'in',
+        positionId: 1,
+        _seq: 0,
+      },
+      {
+        deal: 'close',
+        time: candleHour + 35 * 60 * 1000,
+        sleeve: 'Alpha',
+        symbol: 'EURUSD',
+        notional: 2,
+        price: 98,
+        volume: 1,
+        entryType: 'out',
+        profit: 2,
+        positionId: 1,
+        _seq: 1,
+      },
+    ]
+    const underlyingSeries: UnderlyingSeries[] = [
+      {
+        symbol: 'EURUSD',
+        timeframe: 'H1',
+        candles: [
+          { time: candleHour, open: 100, high: 101, low: 90, close: 90 },
+          {
+            time: candleHour + 60 * 60 * 1000,
+            open: 90,
+            high: 99,
+            low: 90,
+            close: 98,
+          },
+        ],
+        daily: [],
+      },
+    ]
+
+    const result = buildMtmDrawdown(deals, underlyingSeries, 100)
+
+    expect(result?.drawdown.map((point) => point.value)).toEqual([0, 0])
+  })
 })
