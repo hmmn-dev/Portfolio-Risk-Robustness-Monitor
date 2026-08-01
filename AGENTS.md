@@ -353,12 +353,16 @@ After moving code, search for obsolete imports, old broad context hooks, duplica
 
 ## Guidance Maintenance
 
-After completing and validating a nontrivial task, review whether it exposed a durable, non-obvious repository rule.
+After completing and validating a nontrivial task, review whether it exposed a durable, non-obvious repository rule. The review is required; a documentation change is not, and most tasks should leave guidance unchanged.
 
+- Add or strengthen guidance only when it is supported by a reproduced failure or regression test, or when it has at least two concrete, credible future uses in this repository.
+- Do not promote an unverified hypothesis, temporary workaround, or implementation-specific preference into permanent guidance.
 - Update `AGENTS.md` only for cross-cutting mandatory architecture, correctness, workflow, or UX invariants.
 - Update the narrowest applicable repository skill for specialized execution guidance or regression checklists.
 - Prefer extending an existing skill. Create a new skill only when the work has a distinct trigger and reusable workflow not covered by current skills.
 - Do not record one-off implementation details, repeat existing guidance, or change documentation merely to summarize the task.
+- Whenever editing `AGENTS.md` or a skill, audit the touched section and directly related guidance for duplication, contradictions, and obsolete rules. Consolidate or remove guidance only when the replacement or obsolescence is clear; do not turn this into unrelated documentation cleanup.
+- Perform a broader guidance-pruning pass after a major architectural refactor, when related rules have accumulated across multiple files, when a guidance file approaches 500 lines, or when instructions conflict in practice.
 - Use `$skill-creator` for skill changes, keep additions concise, validate each changed skill, and report the guidance update with the implementation.
 
 ## Definition of Done
@@ -386,3 +390,14 @@ Use the applicable repo skill for nontrivial work:
 - `$portfolio-monitor-validation`: calculations, status logic, parsing, portfolio composition, charts, persistence, workers, or report behavior.
 
 Multiple skills may apply to the same task. Follow this root file at all times; skills add workflow detail rather than replacing these rules.
+
+## Commit Message
+
+After completing and validating changes, include one suggested commit message in the final response.
+
+- Generate it from the final diff, not the original prompt.
+- Use Conventional Commit format: `<type>(<optional-scope>): <summary>`.
+- Prefer `fix`, `feat`, `refactor`, `test`, `docs`, or `chore`.
+- Keep it imperative, specific, and ideally under 72 characters.
+- Describe the primary outcome rather than listing files or validation commands.
+- Do not create a Git commit unless the user explicitly requests i
