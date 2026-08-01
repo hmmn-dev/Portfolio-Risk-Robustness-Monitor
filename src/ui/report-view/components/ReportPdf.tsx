@@ -1,3 +1,4 @@
+import { useTheme } from '@mui/material/styles'
 import { buildDailyReturnPoints, buildMonthlyReturnRows } from '../portfolio/portfolioCalculations'
 import PortfolioChartsPage from './pdf/PortfolioChartsPage'
 import PortfolioCorrelationPage from './pdf/PortfolioCorrelationPage'
@@ -8,6 +9,7 @@ import ReportTablePages from './pdf/ReportTablePages'
 import { useReportPdf } from './ReportViewContext'
 
 const ReportPdf = () => {
+  const theme = useTheme()
   const {
     report,
     pdfName,
@@ -23,15 +25,11 @@ const ReportPdf = () => {
     portfolioDrawdownSource,
     drawdownMode,
     pnlScaleMode,
-    printPnlColor,
-    printAxisColor,
-    printGridColor,
     pdfCorrelationCellSize,
     pdfCorrelationLabels,
     correlationMatrix,
     correlationLegend,
     showCorrNumbers,
-    lightTheme,
     formatPdfSleeveLabel,
     formatPdfSymbol,
     portfolioSummary,
@@ -60,9 +58,6 @@ const ReportPdf = () => {
         minHeight={pdfPageMinHeight}
         baseCapital={baseCapital}
         pnlScaleMode={pnlScaleMode}
-        pnlColor={printPnlColor}
-        axisColor={printAxisColor}
-        gridColor={printGridColor}
         buildMetrics={buildSleeveMetrics}
         getDrawdown={getSleeveDrawdown}
         getDrawdownSource={getSleeveDrawdownSource}
@@ -77,16 +72,13 @@ const ReportPdf = () => {
         drawdownSource={portfolioDrawdownSource}
         pnlScaleMode={pnlScaleMode}
         baseCapital={baseCapital}
-        pnlColor={printPnlColor}
-        axisColor={printAxisColor}
-        gridColor={printGridColor}
       />
       <PortfolioMonthlyReturnsPage
         pdfName={pdfName}
         width={pdfPageWidth}
         minHeight={pdfPageMinHeight}
         rows={monthlyReturns}
-        theme={lightTheme}
+        theme={theme}
       />
       <PortfolioCorrelationPage
         pdfName={pdfName}
@@ -97,7 +89,7 @@ const ReportPdf = () => {
         cellSize={pdfCorrelationCellSize}
         legend={correlationLegend}
         showNumbers={showCorrNumbers}
-        theme={lightTheme}
+        theme={theme}
       />
       <PortfolioSummaryPage
         pdfName={pdfName}

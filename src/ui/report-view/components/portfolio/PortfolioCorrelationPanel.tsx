@@ -111,7 +111,7 @@ const PortfolioCorrelationPanel = ({
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+        <Typography component="h2" variant="subtitle1">
           Cross-sleeve correlation
         </Typography>
         <Box sx={{ flexGrow: 1 }} />

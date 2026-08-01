@@ -3,6 +3,8 @@ import { Box, IconButton, Paper, Stack, Tooltip, Typography } from '@mui/materia
 import { memo } from 'react'
 import type { PortfolioRegression } from '../../../types'
 import { formatSigned } from '../../../formatters'
+import MetricGrid from './MetricGrid'
+import ReportSectionHeader from './ReportSectionHeader'
 import SummaryMetricCell from './SummaryMetricCell'
 
 const HelpLabel = ({ label, description }: { label: string; description: string }) => (
@@ -42,26 +44,12 @@ const PortfolioRegressionSummary = ({
       variant="outlined"
       sx={{ overflow: 'hidden' }}
     >
-      <Stack sx={{ px: 2, py: 2 }} spacing={0.25}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Factor diagnostics
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {isRegularized ? 'Regularized regression' : 'Regression'} against aligned underlying daily
-          returns
-        </Typography>
-      </Stack>
+      <ReportSectionHeader
+        title="Factor diagnostics"
+        subtitle={`${isRegularized ? 'Regularized regression' : 'Regression'} against aligned underlying daily returns`}
+      />
       {regression ? (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' },
-            gap: '1px',
-            backgroundColor: 'divider',
-            borderTop: 1,
-            borderColor: 'divider',
-          }}
-        >
+        <MetricGrid columns={{ xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }}>
           <SummaryMetricCell
             label="Annualized alpha"
             value={formatSigned(regression.alphaAnn, 2, '%')}
@@ -85,7 +73,7 @@ const PortfolioRegressionSummary = ({
             detail="Aligned daily returns"
             description="Number of portfolio days with complete aligned data used in the regression."
           />
-        </Box>
+        </MetricGrid>
       ) : (
         <Typography variant="body2" color="text.secondary" sx={{ px: 2, pb: 2 }}>
           Factor diagnostics are unavailable because there is not enough aligned underlying data.

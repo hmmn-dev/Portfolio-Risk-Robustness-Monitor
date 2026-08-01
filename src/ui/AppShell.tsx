@@ -1,4 +1,12 @@
-import { AppBar, Box, IconButton, Toolbar, Typography, useMediaQuery, useTheme } from '@mui/material'
+import {
+  AppBar,
+  Box,
+  IconButton,
+  Toolbar,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material'
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined'
 import type { ReactNode } from 'react'
@@ -32,7 +40,7 @@ const AppShell = ({ children }: AppShellProps) => {
       <AppBar
         position="sticky"
         elevation={0}
-        sx={{ boxShadow: isScrolled ? '0 6px 16px rgba(15, 23, 42, 0.18)' : 'none' }}
+        sx={{ boxShadow: isScrolled ? theme.shadows[3] : 'none' }}
       >
         <Toolbar
           sx={{
@@ -47,9 +55,7 @@ const AppShell = ({ children }: AppShellProps) => {
             alt="Portfolio Monitoring logo"
             sx={{ width: 28, height: 28 }}
           />
-          <Typography variant="h6" sx={{ fontWeight: 600, letterSpacing: 0.3 }}>
-            Porfolio Monitoring Report
-          </Typography>
+          <Typography variant="h6">Portfolio Monitoring Report</Typography>
           <Box sx={{ flexGrow: 1 }} />
           <IconButton color="inherit" onClick={toggleColorMode} aria-label="Toggle color mode">
             {colorMode === 'light' ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}

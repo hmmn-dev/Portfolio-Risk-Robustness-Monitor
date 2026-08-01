@@ -1,4 +1,5 @@
 import { Box, Typography } from '@mui/material'
+import { REPORT_PRINT_COLORS } from '../printTheme'
 
 export type PdfCell = { text: string; negative?: boolean; align?: 'left' | 'right' | 'center' }
 export type PdfColumn<Row> = { header: string; getCell: (row: Row) => PdfCell }
@@ -23,16 +24,16 @@ const PdfTable = <Row,>({
         borderCollapse: 'collapse',
         fontSize: 11,
         '& th, & td': {
-          border: '1px solid #d6d6d6',
+          border: `1px solid ${REPORT_PRINT_COLORS.tableBorder}`,
           padding: '6px 8px',
         },
         '& th': {
           textAlign: 'left',
           fontSize: 10,
           textTransform: 'uppercase',
-          letterSpacing: 0.3,
-          backgroundColor: '#f2f4f7',
-          color: '#344054',
+          letterSpacing: 0,
+          backgroundColor: REPORT_PRINT_COLORS.tableHeaderBackground,
+          color: REPORT_PRINT_COLORS.tableHeaderText,
         },
       }}
     >
@@ -56,7 +57,7 @@ const PdfTable = <Row,>({
                   component="td"
                   sx={{
                     textAlign: cell.align ?? 'left',
-                    color: cell.negative ? '#b42318' : 'inherit',
+                    color: cell.negative ? REPORT_PRINT_COLORS.negative : 'inherit',
                   }}
                 >
                   {cell.text}

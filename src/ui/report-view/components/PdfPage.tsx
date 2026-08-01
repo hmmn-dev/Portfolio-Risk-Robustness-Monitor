@@ -1,5 +1,6 @@
 import { Box, Divider, Stack, Typography } from '@mui/material'
 import type { ReactNode } from 'react'
+import { REPORT_PRINT_COLORS } from '../printTheme'
 
 const PdfPage = ({
   title,
@@ -20,16 +21,14 @@ const PdfPage = ({
       width,
       minHeight,
       p: 4,
-      backgroundColor: '#ffffff',
-      color: '#101828',
+      backgroundColor: REPORT_PRINT_COLORS.pageBackground,
+      color: REPORT_PRINT_COLORS.pageText,
       boxSizing: 'border-box',
     }}
   >
     <Stack spacing={2}>
       <Box>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-          {pdfName || 'Portfolio Monitoring Report'}
-        </Typography>
+        <Typography variant="h5">{pdfName || 'Portfolio Monitoring Report'}</Typography>
         <Typography variant="subtitle2" color="text.secondary">
           {title}
         </Typography>

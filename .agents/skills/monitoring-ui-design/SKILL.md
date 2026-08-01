@@ -125,6 +125,7 @@ Before accepting a summary design, verify that a user can answer quickly: How is
 - Support keyboard operation for tabs, dialogs, menus, toggles, and table actions.
 - Associate errors and helper text with their controls.
 - Preserve the accessible field structure supplied by MUI X. Test both the labeled field group and its form value rather than assuming a conventional single-input DOM.
+- When a standalone MUI `Backdrop` contains progress or status content, verify that the content is not hidden by the backdrop's default `aria-hidden` behavior. Expose one named live status and label its progress indicator.
 - Check contrast in light and dark modes, including charts, disabled controls, focus, and status indicators.
 - Treat a failed exact role/name query as a potential semantic defect before weakening the test.
 

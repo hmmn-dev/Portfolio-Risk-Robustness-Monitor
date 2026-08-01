@@ -1,11 +1,13 @@
 import type { DailyPoint } from '../../engine/types'
+import type { ReportChartTheme } from './chartTheme'
 import { formatAxisDate } from './formatters'
 import { computePadding, ensureStartPoint, fillSeries } from './helpers/chartSeries'
 
 export const buildLineOptions = ({
   data,
+  chartTheme,
   height = 160,
-  color,
+  color = chartTheme.primary,
   area = false,
   areaOpacity = 0.14,
   showAxes = true,
@@ -25,12 +27,11 @@ export const buildLineOptions = ({
   yAxisMin,
   yAxisMax,
   hideMinMaxLabels = false,
-  axisColor = 'rgba(27,59,95,0.35)',
-  gridColor = 'rgba(27,59,95,0.12)',
 }: {
   data: DailyPoint[]
+  chartTheme: ReportChartTheme
   height?: number
-  color: string
+  color?: string
   area?: boolean
   areaOpacity?: number
   showAxes?: boolean
@@ -50,8 +51,6 @@ export const buildLineOptions = ({
   yAxisMin?: number
   yAxisMax?: number
   hideMinMaxLabels?: boolean
-  axisColor?: string
-  gridColor?: string
 }) => {
   const sorted = ensureStartPoint(data)
   const filled = fillSeries(sorted)
@@ -72,12 +71,12 @@ export const buildLineOptions = ({
 
   const xAxisCommon = {
     boundaryGap: false,
-    axisLine: { show: showAxes, lineStyle: { color: axisColor } },
+    axisLine: { show: showAxes, lineStyle: { color: chartTheme.axis } },
     axisTick: { show: showAxes },
     axisLabel: showAxes
       ? {
           show: true,
-          color: '#5c5f5a',
+          color: chartTheme.label,
           formatter: (value: number | string) => formatAxisDate(Number(value)),
           interval: 'auto',
         }
@@ -86,7 +85,7 @@ export const buildLineOptions = ({
     name: showAxes ? 'Date' : '',
     nameLocation: 'middle',
     nameGap: 30,
-    nameTextStyle: { color: '#5c5f5a', fontSize: 11 },
+    nameTextStyle: { color: chartTheme.label, fontSize: 11 },
   }
 
   return {
@@ -111,12 +110,12 @@ export const buildLineOptions = ({
       max: yAxisMax ?? max + padding,
       scale: true,
       boundaryGap: yBoundaryGap,
-      axisLine: { show: showAxes, lineStyle: { color: axisColor } },
+      axisLine: { show: showAxes, lineStyle: { color: chartTheme.axis } },
       axisTick: { show: showAxes },
       axisLabel: showAxes
         ? {
             show: true,
-            color: '#5c5f5a',
+            color: chartTheme.label,
             formatter: yAxisFormatter
               ? (value: number | string) => yAxisFormatter(Number(value))
               : undefined,
@@ -124,11 +123,11 @@ export const buildLineOptions = ({
             showMaxLabel: !hideMinMaxLabels,
           }
         : { show: false },
-      splitLine: showAxes ? { lineStyle: { color: gridColor } } : { show: false },
+      splitLine: showAxes ? { lineStyle: { color: chartTheme.grid } } : { show: false },
       name: showAxes ? (yAxisName ?? 'Value') : '',
       nameLocation: 'middle',
       nameGap: 46,
-      nameTextStyle: { color: '#5c5f5a', fontSize: 11 },
+      nameTextStyle: { color: chartTheme.label, fontSize: 11 },
     },
     series: [
       {

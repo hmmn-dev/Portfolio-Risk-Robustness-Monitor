@@ -17,9 +17,6 @@ type PortfolioChartsPanelProps = {
   drawdownSource?: ReportModel['portfolio']['drawdownSource']
   pnlScaleMode: 'linear' | 'log'
   baseCapital: number
-  pnlColor: string
-  axisColor: string
-  gridColor: string
   equityHeight?: number
   drawdownHeight?: number
   showRangeSelector?: boolean
@@ -33,9 +30,6 @@ const PortfolioChartsPanel = ({
   drawdownSource,
   pnlScaleMode,
   baseCapital,
-  pnlColor,
-  axisColor,
-  gridColor,
   equityHeight = 360,
   drawdownHeight = 200,
   showRangeSelector = true,
@@ -62,7 +56,7 @@ const PortfolioChartsPanel = ({
             alignItems={{ sm: 'center' }}
             justifyContent="space-between"
           >
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            <Typography component="h2" variant="subtitle1">
               Portfolio equity
             </Typography>
             {showRangeSelector && (
@@ -83,21 +77,13 @@ const PortfolioChartsPanel = ({
             height={equityHeight}
             minOffsetRatio={0}
             reserveGridlines={0}
-            color={pnlColor}
-            axisColor={axisColor}
-            gridColor={gridColor}
           />
         </Box>
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+          <Typography component="h2" variant="subtitle1">
             Portfolio drawdown ({formatDrawdownSourceLabel(drawdownSource)})
           </Typography>
-          <DrawdownChart
-            data={visibleSeries.drawdown}
-            height={drawdownHeight}
-            axisColor={axisColor}
-            gridColor={gridColor}
-          />
+          <DrawdownChart data={visibleSeries.drawdown} height={drawdownHeight} />
         </Box>
       </Stack>
     </Paper>

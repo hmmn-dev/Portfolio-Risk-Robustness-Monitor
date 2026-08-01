@@ -33,7 +33,7 @@ const MonthlyReturnsTable = ({ rows, theme }: { rows: MonthlyReturnRow[]; theme:
         alignItems={{ sm: 'center' }}
         justifyContent="space-between"
       >
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+        <Typography component="h2" variant="subtitle1">
           Portfolio monthly returns
         </Typography>
         <Typography variant="caption" color="text.secondary">

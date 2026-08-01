@@ -34,6 +34,19 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
     typography: {
       fontFamily:
         '"Montserrat", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+      h1: { fontWeight: 600, letterSpacing: 0 },
+      h2: { fontWeight: 600, letterSpacing: 0 },
+      h3: { fontWeight: 600, letterSpacing: 0 },
+      h4: { fontWeight: 600, letterSpacing: 0 },
+      h5: { fontWeight: 600, letterSpacing: 0 },
+      h6: { fontWeight: 600, letterSpacing: 0 },
+      subtitle1: { fontWeight: 600, letterSpacing: 0 },
+      subtitle2: { fontWeight: 600, letterSpacing: 0 },
+      body1: { letterSpacing: 0 },
+      body2: { letterSpacing: 0 },
+      caption: { letterSpacing: 0 },
+      overline: { letterSpacing: 0 },
+      button: { fontWeight: 600, letterSpacing: 0 },
     },
     components: {
       MuiAppBar: {
@@ -56,11 +69,15 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         },
       },
       MuiPaper: {
+        defaultProps: {
+          elevation: 0,
+        },
         styleOverrides: {
           root: {
             backgroundImage: 'none',
-            border: `1px solid ${alpha(isLight ? '#1f1e1b' : '#ffffff', isLight ? 0.2 : 0.22)}`,
-            boxShadow: 'none',
+          },
+          outlined: {
+            borderColor: alpha(isLight ? '#1f1e1b' : '#ffffff', isLight ? 0.2 : 0.22),
           },
         },
       },
@@ -68,7 +85,6 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         styleOverrides: {
           root: {
             textTransform: 'none',
-            fontWeight: 600,
           },
         },
       },
@@ -76,18 +92,9 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         styleOverrides: {
           root: {
             borderRadius: 999,
-            backgroundColor: alpha(accent, isLight ? 0.12 : 0.15),
-            border: `1px solid ${alpha(accent, isLight ? 0.3 : 0.35)}`,
           },
           outlined: {
-            backgroundColor: isLight ? '#ffffff' : '#000000',
-            borderColor: alpha(isLight ? '#1f1e1b' : '#ffffff', isLight ? 0.3 : 0.6),
-          },
-          deleteIcon: {
-            color: alpha(isLight ? '#1f1e1b' : '#ffffff', isLight ? 0.7 : 0.7),
-            '&:hover': {
-              color: isLight ? '#1f1e1b' : '#ffffff',
-            },
+            backgroundColor: 'transparent',
           },
         },
       },
@@ -98,19 +105,28 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
 export const appBackgroundStyles = (mode: 'light' | 'dark') => {
   const isLight = mode === 'light'
   return {
+    html: {
+      fontSynthesis: 'none',
+      textRendering: 'optimizeLegibility',
+      WebkitFontSmoothing: 'antialiased',
+      MozOsxFontSmoothing: 'grayscale',
+    },
     body: {
       margin: 0,
+      minWidth: 320,
       minHeight: '100vh',
       backgroundColor: isLight ? lightBaseBg : darkBaseBg,
       backgroundImage: 'none',
-      backgroundSize: 'auto',
-      backgroundPosition: '0 0, 0 0, 0 0, 0 0',
     },
     '#root': {
       minHeight: '100vh',
     },
     '*': {
       boxSizing: 'border-box',
+    },
+    a: {
+      color: 'inherit',
+      textDecoration: 'none',
     },
   }
 }

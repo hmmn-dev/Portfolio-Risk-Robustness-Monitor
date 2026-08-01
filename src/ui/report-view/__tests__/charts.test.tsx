@@ -3,11 +3,14 @@
 import { screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithTheme } from '../../../test/render'
+import { createAppTheme } from '../../../theme'
+import { getReportChartTheme } from '../chartTheme'
 import { DrawdownChart, EquityChart } from '../charts'
 
 const { echartsSpy } = vi.hoisted(() => ({
   echartsSpy: vi.fn(),
 }))
+const lightChartTheme = getReportChartTheme(createAppTheme('light'))
 
 vi.mock('echarts-for-react', () => ({
   default: (props: { option: Record<string, unknown>; style: Record<string, unknown> }) => {
@@ -33,9 +36,6 @@ describe('report charts', () => {
           { time: Date.UTC(2024, 0, 2), value: -2 },
         ]}
         scaleMode="percent"
-        color="#123456"
-        axisColor="#555555"
-        gridColor="#dddddd"
       />,
     )
 
@@ -48,16 +48,25 @@ describe('report charts', () => {
           color: { colorStops: Array<{ offset: number; color: string }> }
         }
       }>
-      yAxis: { name: string }
+      xAxis: { axisLabel: { color: string }; nameTextStyle: { color: string } }
+      yAxis: {
+        name: string
+        axisLabel: { color: string }
+        splitLine: { lineStyle: { color: string } }
+      }
       tooltip: { formatter: (params: Array<{ dataIndex: number }>) => string }
     }
     expect(option.series[0].data[0]).toBe(0)
     expect(option.series[0].data[1]).toBeCloseTo(10)
     expect(option.series[0].areaStyle.opacity).toBe(0.09)
     expect(option.series[0].areaStyle.color.colorStops).toEqual([
-      { offset: 0, color: '#123456' },
+      { offset: 0, color: lightChartTheme.primary },
       { offset: 1, color: 'rgba(0, 0, 0, 0)' },
     ])
+    expect(option.xAxis.axisLabel.color).toBe(lightChartTheme.label)
+    expect(option.xAxis.nameTextStyle.color).toBe(lightChartTheme.label)
+    expect(option.yAxis.axisLabel.color).toBe(lightChartTheme.label)
+    expect(option.yAxis.splitLine.lineStyle.color).toBe(lightChartTheme.grid)
     expect(option.yAxis.name).toBe('PnL %')
     expect(option.tooltip.formatter([{ dataIndex: 1 }])).toContain('DD: -2.00%')
   })
@@ -72,9 +81,6 @@ describe('report charts', () => {
         scaleMode="percent"
         pnlScaleMode="log"
         baseValue={10000}
-        color="#123456"
-        axisColor="#555555"
-        gridColor="#dddddd"
       />,
     )
 
@@ -101,8 +107,6 @@ describe('report charts', () => {
           { time: Date.UTC(2024, 0, 1), value: 0 },
           { time: Date.UTC(2024, 0, 2), value: -4.25 },
         ]}
-        axisColor="#555555"
-        gridColor="#dddddd"
       />,
     )
 
@@ -120,7 +124,7 @@ describe('report charts', () => {
     expect(option.series[0].data).toEqual([0, -4.25])
     expect(option.series[0].areaStyle.opacity).toBe(0.09)
     expect(option.series[0].areaStyle.color.colorStops).toEqual([
-      { offset: 0, color: '#c0392b' },
+      { offset: 0, color: lightChartTheme.drawdown },
       { offset: 1, color: 'rgba(0, 0, 0, 0)' },
     ])
     expect(option.yAxis.max).toBe(0)

@@ -1,4 +1,4 @@
-import { Stack } from '@mui/material'
+import { Stack, useTheme } from '@mui/material'
 import { useCallback, useMemo, useState, useTransition } from 'react'
 import { ALL_CHART_RANGE, type ChartRangeSelection } from '../helpers/chartRange'
 import { getPortfolioSleeveLabels, usePortfolioComposition } from '../hooks/usePortfolioComposition'
@@ -14,6 +14,7 @@ import PortfolioRegressionSummary from './portfolio/summary/PortfolioRegressionS
 import { useReportPortfolio } from './ReportViewContext'
 
 const PortfolioTabContent = () => {
+  const theme = useTheme()
   const {
     report,
     deals,
@@ -24,15 +25,11 @@ const PortfolioTabContent = () => {
     onPnlScaleModeChange,
     portfolioDrawdown,
     portfolioDrawdownSource,
-    pnlColor,
-    axisColor,
-    gridColor,
     showCorrNumbers,
     onShowCorrNumbersChange,
     correlationMatrix,
     correlationLegend,
     cellSize,
-    theme,
     portfolioSummary,
     riskRows,
     underlyingSeries,
@@ -109,9 +106,6 @@ const PortfolioTabContent = () => {
           drawdownSource={analytics.effectiveDrawdownSource}
           pnlScaleMode={pnlScaleMode}
           baseCapital={baseCapital}
-          pnlColor={pnlColor}
-          axisColor={axisColor}
-          gridColor={gridColor}
           rangeSelection={chartRangeSelection}
           onRangeSelectionChange={handleRangeSelectionChange}
         />

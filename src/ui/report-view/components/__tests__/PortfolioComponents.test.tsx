@@ -173,9 +173,6 @@ describe('portfolio presentation components', () => {
         drawdownSource="D1"
         pnlScaleMode="linear"
         baseCapital={10000}
-        pnlColor="#1976d2"
-        axisColor="#555555"
-        gridColor="#dddddd"
       />,
     )
 
@@ -219,9 +216,6 @@ describe('portfolio presentation components', () => {
         drawdownSource="D1"
         pnlScaleMode="linear"
         baseCapital={10000}
-        pnlColor="#1976d2"
-        axisColor="#555555"
-        gridColor="#dddddd"
       />,
     )
 
@@ -276,9 +270,6 @@ describe('portfolio presentation components', () => {
           drawdownSource="D1"
           pnlScaleMode="linear"
           baseCapital={10000}
-          pnlColor="#1976d2"
-          axisColor="#555555"
-          gridColor="#dddddd"
         />
         <MonthlyReturnsTable
           rows={[

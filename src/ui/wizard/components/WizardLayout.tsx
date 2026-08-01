@@ -1,16 +1,6 @@
-import {
-  Backdrop,
-  Box,
-  Button,
-  LinearProgress,
-  Paper,
-  Stack,
-  Step,
-  StepLabel,
-  Stepper,
-  Typography,
-} from '@mui/material'
+import { Box, Button, Paper, Stack, Step, StepLabel, Stepper, Typography } from '@mui/material'
 import type { ReactNode } from 'react'
+import ProgressBackdrop from '../../ProgressBackdrop'
 
 const STEPS = ['Deals upload', 'Underlying upload', 'Generate']
 
@@ -37,7 +27,7 @@ const WizardLayout = ({
 }: WizardLayoutProps) => (
   <Stack spacing={3}>
     <Typography variant="h3">Report Generation Wizard</Typography>
-    <Paper sx={{ p: 3 }}>
+    <Paper variant="outlined" sx={{ p: 3 }}>
       <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
         {STEPS.map((label) => (
           <Step key={label}>
@@ -56,14 +46,12 @@ const WizardLayout = ({
         </Button>
       </Stack>
     </Paper>
-    <Backdrop open={isLoading} sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 2 }}>
-      <Box sx={{ minWidth: 320, px: 3 }}>
-        <Typography variant="subtitle1" sx={{ mb: 1 }}>
-          {loadingMessage}
-        </Typography>
-        <LinearProgress />
-      </Box>
-    </Backdrop>
+    <ProgressBackdrop
+      open={isLoading}
+      label="Report generation in progress"
+      message={loadingMessage}
+      zIndexOffset={2}
+    />
   </Stack>
 )
 

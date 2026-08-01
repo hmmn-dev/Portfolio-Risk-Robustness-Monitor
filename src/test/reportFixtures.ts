@@ -1,4 +1,3 @@
-import { createTheme } from '@mui/material/styles'
 import type { ReportModel } from '../engine/types'
 import type {
   ReportNavigationContextValue,
@@ -92,7 +91,6 @@ export const createReport = (): ReportModel => ({
 })
 
 const noop = () => undefined
-const theme = createTheme()
 
 type ReportFixtureValue = ReportNavigationContextValue &
   ReportTablesContextValue &
@@ -170,11 +168,6 @@ export const createReportContext = (
     onRollingWindowChange: noop,
     metricWindow: { short: 252, long: 504 },
     baseCapital: 10000,
-    pnlColor: '#1976d2',
-    axisColor: '#555555',
-    gridColor: '#dddddd',
-    theme,
-    isDark: false,
     getSleeveDrawdown: (item) => item.drawdown,
     getSleeveDrawdownSource: (item) => item.drawdownSource,
     allSleevesPlaceholderHeight: 400,
@@ -215,10 +208,6 @@ export const createReportContext = (
     pdfPageMinHeight: 794,
     pdfCorrelationCellSize: 28,
     pdfCorrelationLabels: ['Sleeve 1', 'Sleeve 2'],
-    lightTheme: theme,
-    printPnlColor: '#1976d2',
-    printAxisColor: '#555555',
-    printGridColor: '#dddddd',
     formatPdfSleeveLabel: (label) => `PDF ${label}`,
     formatPdfSymbol: (symbol) => `PDF ${symbol}`,
     onSelectSleeve: noop,
@@ -252,11 +241,6 @@ export const createReportContext = (
       onRollingWindowChange: value.onRollingWindowChange,
       metricWindow: value.metricWindow,
       baseCapital: value.baseCapital,
-      pnlColor: value.pnlColor,
-      axisColor: value.axisColor,
-      gridColor: value.gridColor,
-      theme: value.theme,
-      isDark: value.isDark,
       getSleeveDrawdown: value.getSleeveDrawdown,
       getSleeveDrawdownSource: value.getSleeveDrawdownSource,
       allSleevesPlaceholderHeight: value.allSleevesPlaceholderHeight,
@@ -271,9 +255,6 @@ export const createReportContext = (
       hasMtmDrawdown: value.hasMtmDrawdown,
       pnlScaleMode: value.pnlScaleMode,
       onPnlScaleModeChange: value.onPnlScaleModeChange,
-      pnlColor: value.pnlColor,
-      axisColor: value.axisColor,
-      gridColor: value.gridColor,
       portfolioDrawdown: value.portfolioDrawdown,
       portfolioDrawdownSource: value.portfolioDrawdownSource,
       showCorrNumbers: value.showCorrNumbers,
@@ -281,7 +262,6 @@ export const createReportContext = (
       correlationMatrix: value.correlationMatrix,
       correlationLegend: value.correlationLegend,
       cellSize: value.cellSize,
-      theme: value.theme,
       portfolioSummary: value.portfolioSummary,
       riskRows: value.riskRows,
       underlyingTimeframes: value.underlyingTimeframes,
@@ -311,10 +291,6 @@ export const createReportContext = (
       pdfPageMinHeight: value.pdfPageMinHeight,
       pdfCorrelationCellSize: value.pdfCorrelationCellSize,
       pdfCorrelationLabels: value.pdfCorrelationLabels,
-      lightTheme: value.lightTheme,
-      printPnlColor: value.printPnlColor,
-      printAxisColor: value.printAxisColor,
-      printGridColor: value.printGridColor,
       formatPdfSleeveLabel: value.formatPdfSleeveLabel,
       formatPdfSymbol: value.formatPdfSymbol,
     },

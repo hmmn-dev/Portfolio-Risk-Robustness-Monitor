@@ -10,9 +10,6 @@ type ReportSleevePagesProps = {
   minHeight: number
   baseCapital: number
   pnlScaleMode: 'linear' | 'log'
-  pnlColor: string
-  axisColor: string
-  gridColor: string
   buildMetrics: (item: ReportModel['contributions'][number]) => SleeveMetrics | null
   getDrawdown: (
     item: ReportModel['contributions'][number],
@@ -30,9 +27,6 @@ const ReportSleevePages = ({
   minHeight,
   baseCapital,
   pnlScaleMode,
-  pnlColor,
-  axisColor,
-  gridColor,
   buildMetrics,
   getDrawdown,
   getDrawdownSource,
@@ -57,9 +51,6 @@ const ReportSleevePages = ({
             drawdownSeries={getDrawdown(item)}
             drawdownSource={getDrawdownSource(item)}
             pnlScaleMode={pnlScaleMode}
-            pnlColor={pnlColor}
-            axisColor={axisColor}
-            gridColor={gridColor}
           />
         </PdfPage>
       )

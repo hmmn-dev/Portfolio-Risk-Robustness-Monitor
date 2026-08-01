@@ -1,8 +1,10 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import { computeDdShock } from '../../../../../engine/ddShock'
 import type { DailyPoint } from '../../../../../engine/types'
 import { buildPortfolioStatusCounts } from '../../../portfolio/portfolioSummaryMetrics'
 import type { RiskRow } from '../../../types'
+import MetricGrid from './MetricGrid'
+import ReportSectionHeader from './ReportSectionHeader'
 import SummaryMetricCell, { type MetricTone } from './SummaryMetricCell'
 
 const countDetail = (count: number, total: number) =>
@@ -42,24 +44,12 @@ const PortfolioHealthSummary = ({
       aria-label="Portfolio health"
       sx={{ borderTop: 1, borderColor: 'divider' }}
     >
-      <Stack sx={{ px: 2.5, pt: 2.5, pb: 1.5 }} spacing={0.25}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-          Portfolio health
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Sleeve status distribution and current drawdown shock
-        </Typography>
-      </Stack>
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
-          gap: '1px',
-          backgroundColor: 'divider',
-          borderTop: 1,
-          borderColor: 'divider',
-        }}
-      >
+      <ReportSectionHeader
+        title="Portfolio health"
+        subtitle="Sleeve status distribution and current drawdown shock"
+        headingComponent="h3"
+      />
+      <MetricGrid columns={{ xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }}>
         <SummaryMetricCell
           label="Healthy"
           value={String(counts.green)}
@@ -88,7 +78,7 @@ const PortfolioHealthSummary = ({
           tone={shockView.tone}
           description="Compares the worst drawdown in the latest 63 observations with the previous maximum. Elevated starts at 1.5x and severe at 2x; a 5% minimum applies when no prior drawdown exists."
         />
-      </Box>
+      </MetricGrid>
       {counts.unknown > 0 && (
         <Typography
           variant="caption"

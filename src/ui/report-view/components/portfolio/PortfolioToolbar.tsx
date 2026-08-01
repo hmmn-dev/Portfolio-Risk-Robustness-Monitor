@@ -65,7 +65,7 @@ const PortfolioToolbar = ({
       justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
       flexWrap="wrap"
     >
-      <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+      <Typography variant="subtitle2" color="text.secondary">
         Portfolio drawdown
       </Typography>
       <ToggleButtonGroup
@@ -94,7 +94,7 @@ const PortfolioToolbar = ({
         )}
       </ToggleButtonGroup>
       <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-      <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+      <Typography variant="subtitle2" color="text.secondary">
         PnL scale
       </Typography>
       <ToggleButtonGroup

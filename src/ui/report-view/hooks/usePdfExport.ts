@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
+import { REPORT_PRINT_COLORS } from '../printTheme'
 
 export type PdfOrientation = 'portrait' | 'landscape'
 
@@ -42,7 +43,7 @@ export const usePdfExport = (enabled: boolean) => {
       for (let index = 0; index < pages.length; index += 1) {
         await waitForFrame()
         const canvas = await html2canvas(pages[index], {
-          backgroundColor: '#ffffff',
+          backgroundColor: REPORT_PRINT_COLORS.canvasBackground,
           scale: 2.2,
           useCORS: true,
         })

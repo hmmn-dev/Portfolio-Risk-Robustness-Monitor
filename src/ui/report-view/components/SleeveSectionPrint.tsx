@@ -1,7 +1,9 @@
 import { Paper, Stack, Typography } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import ReactECharts from 'echarts-for-react'
 import type { DailyPoint, ReportModel } from '../../../engine/types'
 import { buildLineOptions } from '../chartOptions'
+import { getReportChartTheme } from '../chartTheme'
 import { DrawdownChart, EquityChart } from '../charts'
 import { formatAxisNumber, formatDrawdownSourceLabel } from '../formatters'
 import type { SleeveMetrics } from './SleeveSection'
@@ -13,9 +15,6 @@ const SleeveSectionPrint = ({
   drawdownSeries,
   drawdownSource,
   pnlScaleMode = 'linear',
-  pnlColor,
-  axisColor,
-  gridColor,
 }: {
   item: ReportModel['contributions'][number]
   metrics: SleeveMetrics
@@ -23,10 +22,8 @@ const SleeveSectionPrint = ({
   drawdownSeries: DailyPoint[]
   drawdownSource?: 'H1' | 'D1'
   pnlScaleMode?: 'linear' | 'log'
-  pnlColor: string
-  axisColor: string
-  gridColor: string
 }) => {
+  const chartTheme = getReportChartTheme(useTheme())
   const sleeveBaseCapital = Number.isFinite(item.baseCapital)
     ? (item.baseCapital as number)
     : baseCapital
@@ -41,16 +38,13 @@ const SleeveSectionPrint = ({
           pnlScaleMode={pnlScaleMode}
           baseValue={sleeveBaseCapital}
           drawdownSeries={drawdownSeries}
-          color={pnlColor}
-          axisColor={axisColor}
-          gridColor={gridColor}
         />
       </Paper>
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle2">
           Contribution drawdown ({formatDrawdownSourceLabel(drawdownSource)})
         </Typography>
-        <DrawdownChart data={drawdownSeries} axisColor={axisColor} gridColor={gridColor} />
+        <DrawdownChart data={drawdownSeries} />
       </Paper>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
         <Paper variant="outlined" sx={{ p: 2, flex: 1 }}>
@@ -58,10 +52,8 @@ const SleeveSectionPrint = ({
           <ReactECharts
             option={buildLineOptions({
               data: metrics.alphaSeries,
+              chartTheme,
               height: 140,
-              color: pnlColor,
-              axisColor,
-              gridColor,
               yAxisName: 'Alpha %',
               yAxisFormatter: (value) => `${value.toFixed(2)}%`,
               yAxisMin: metrics.alphaBounds.min,
@@ -76,10 +68,8 @@ const SleeveSectionPrint = ({
           <ReactECharts
             option={buildLineOptions({
               data: metrics.sharpeSeries,
+              chartTheme,
               height: 140,
-              color: pnlColor,
-              axisColor,
-              gridColor,
               yAxisName: 'Sharpe',
               yAxisMin: metrics.sharpeBounds.min,
               yAxisMax: metrics.sharpeBounds.max,
@@ -94,10 +84,8 @@ const SleeveSectionPrint = ({
           <ReactECharts
             option={buildLineOptions({
               data: metrics.winrateSeries,
+              chartTheme,
               height: 140,
-              color: pnlColor,
-              axisColor,
-              gridColor,
               yAxisName: 'Winrate %',
               yAxisMin: 0,
               yAxisMax: 1,

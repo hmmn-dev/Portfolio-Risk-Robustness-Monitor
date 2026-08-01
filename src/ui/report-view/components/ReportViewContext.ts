@@ -1,4 +1,3 @@
-import type { Theme } from '@mui/material/styles'
 import type { GridColDef } from '@mui/x-data-grid'
 import { createContext, useContext } from 'react'
 import type { DealRow, ReportModel, UnderlyingSeries } from '../../../engine/types'
@@ -14,9 +13,6 @@ type SharedChartState = {
   pnlScaleMode: 'linear' | 'log'
   onPnlScaleModeChange: (value: 'linear' | 'log') => void
   baseCapital: number
-  pnlColor: string
-  axisColor: string
-  gridColor: string
 }
 
 export type ReportNavigationContextValue = {
@@ -41,8 +37,6 @@ export type ReportSleevesContextValue = SharedChartState & {
   rollingWindow: number
   onRollingWindowChange: (value: number) => void
   metricWindow: { short: number; long: number }
-  theme: Theme
-  isDark: boolean
   getSleeveDrawdown: (
     item: ReportModel['contributions'][number],
   ) => ReportModel['contributions'][number]['drawdown']
@@ -63,7 +57,6 @@ export type ReportPortfolioContextValue = SharedChartState & {
   correlationMatrix: CorrelationMatrix
   correlationLegend: string
   cellSize: number
-  theme: Theme
   portfolioSummary: PortfolioSummary | null
   riskRows: RiskRow[]
   underlyingTimeframes: Record<string, 'H1' | 'D1'>
@@ -98,10 +91,6 @@ export type ReportPdfContextValue = {
   pdfPageMinHeight: number
   pdfCorrelationCellSize: number
   pdfCorrelationLabels: string[]
-  lightTheme: Theme
-  printPnlColor: string
-  printAxisColor: string
-  printGridColor: string
   formatPdfSleeveLabel: (label: string) => string
   formatPdfSymbol: (symbol: string) => string
 }

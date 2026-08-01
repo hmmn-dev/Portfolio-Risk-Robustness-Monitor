@@ -1,10 +1,8 @@
 import { Stack, useTheme } from '@mui/material'
-import { alpha } from '@mui/material/styles'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useReportStore } from '../../store/report'
 import { useUnderlyingStore } from '../../store/underlying'
 import { useWizardStore } from '../../store/wizard'
-import { createAppTheme } from '../../theme'
 import { heatmapPalette } from './colors'
 import MarDegradationDialog from './components/MarDegradationDialog'
 import PdfSettingsDialog from './components/PdfSettingsDialog'
@@ -18,6 +16,7 @@ import { useMarDegradation } from './hooks/useMarDegradation'
 import { usePdfExport } from './hooks/usePdfExport'
 import { useReportAnalytics } from './hooks/useReportAnalytics'
 import { METRIC_WINDOW, type DrawdownMode } from './reportAnalytics'
+import { REPORT_PRINT_THEME } from './printTheme'
 import {
   createPerformanceColumns,
   createRiskColumns,
@@ -28,7 +27,6 @@ import type { ReportTab } from './types'
 
 const ALL_SLEEVES_PLACEHOLDER_HEIGHT = 720
 const PDF_CELL_SIZE = 28
-const PRINT_THEME = createAppTheme('light')
 const CORRELATION_LEGEND = `linear-gradient(90deg, ${heatmapPalette
   .map((color, index) => `${color} ${(index / (heatmapPalette.length - 1)) * 100}%`)
   .join(', ')})`
@@ -46,7 +44,6 @@ const ReportView = () => {
   const clearUnderlying = useUnderlyingStore((state) => state.clearUnderlying)
   const resetWizard = useWizardStore((state) => state.resetWizard)
   const theme = useTheme()
-  const isDark = theme.palette.mode === 'dark'
   const hasMtmDrawdown = !!report?.portfolio.drawdownMtm?.length
   const [tab, setTab] = useState<ReportTab>('performance')
   const [selectedSleeve, setSelectedSleeve] = useState<string | null>(null)
@@ -85,12 +82,6 @@ const ReportView = () => {
   })
   const performanceColumns = useMemo(() => createPerformanceColumns(theme), [theme])
   const riskColumns = useMemo(() => createRiskColumns(theme), [theme])
-  const pnlColor = theme.palette.primary.main
-  const axisColor = alpha(theme.palette.text.primary, 0.45)
-  const gridColor = alpha(theme.palette.text.primary, 0.12)
-  const printPnlColor = PRINT_THEME.palette.primary.main
-  const printAxisColor = alpha(PRINT_THEME.palette.text.primary, 0.45)
-  const printGridColor = alpha(PRINT_THEME.palette.text.primary, 0.12)
 
   useEffect(() => {
     const root = document.documentElement
@@ -144,11 +135,6 @@ const ReportView = () => {
       onRollingWindowChange: setRollingWindow,
       metricWindow: METRIC_WINDOW,
       baseCapital: analytics.baseCapital,
-      pnlColor,
-      axisColor,
-      gridColor,
-      theme,
-      isDark,
       getSleeveDrawdown: analytics.getSleeveDrawdown,
       getSleeveDrawdownSource: analytics.getSleeveDrawdownSource,
       allSleevesPlaceholderHeight: ALL_SLEEVES_PLACEHOLDER_HEIGHT,
@@ -163,9 +149,6 @@ const ReportView = () => {
       hasMtmDrawdown,
       pnlScaleMode,
       onPnlScaleModeChange: setPnlScaleMode,
-      pnlColor,
-      axisColor,
-      gridColor,
       portfolioDrawdown: analytics.portfolioDrawdown,
       portfolioDrawdownSource: analytics.portfolioDrawdownSource,
       showCorrNumbers,
@@ -173,7 +156,6 @@ const ReportView = () => {
       correlationMatrix: analytics.correlationMatrix,
       correlationLegend: CORRELATION_LEGEND,
       cellSize: PDF_CELL_SIZE,
-      theme,
       portfolioSummary: analytics.portfolioSummary,
       riskRows: analytics.riskRows,
       underlyingTimeframes: analytics.underlyingTimeframes,
@@ -203,10 +185,6 @@ const ReportView = () => {
       pdfPageMinHeight,
       pdfCorrelationCellSize: analytics.pdfCorrelationCellSize,
       pdfCorrelationLabels: analytics.pdfCorrelationLabels,
-      lightTheme: PRINT_THEME,
-      printPnlColor,
-      printAxisColor,
-      printGridColor,
       formatPdfSleeveLabel: analytics.formatPdfSleeveLabel,
       formatPdfSymbol: analytics.formatPdfSymbol,
     },
@@ -258,7 +236,7 @@ const ReportView = () => {
         <ReportTabsContent />
         <ReportPdfRenderer
           visible={pdf.shouldRender}
-          theme={PRINT_THEME}
+          theme={REPORT_PRINT_THEME}
           width={pdfPageWidth}
           containerRef={pdf.containerRef}
         />

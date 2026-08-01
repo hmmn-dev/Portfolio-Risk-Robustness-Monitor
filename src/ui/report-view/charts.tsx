@@ -2,6 +2,7 @@ import ReactECharts from 'echarts-for-react'
 import { useTheme } from '@mui/material/styles'
 import type { DailyPoint } from '../../engine/types'
 import { buildLineOptions } from './chartOptions'
+import { getReportChartTheme } from './chartTheme'
 import { formatAxisDate } from './formatters'
 import { ensureStartPoint, fillSeries } from './helpers/chartSeries'
 
@@ -14,9 +15,6 @@ export const EquityChart = ({
   scaleMode = 'index',
   pnlScaleMode = 'linear',
   drawdownSeries,
-  color,
-  axisColor,
-  gridColor,
 }: {
   data: DailyPoint[]
   height?: number
@@ -26,11 +24,9 @@ export const EquityChart = ({
   scaleMode?: 'index' | 'currency' | 'percent'
   pnlScaleMode?: 'linear' | 'log'
   drawdownSeries?: DailyPoint[]
-  color: string
-  axisColor: string
-  gridColor: string
 }) => {
   const theme = useTheme()
+  const chartTheme = getReportChartTheme(theme)
   const base =
     Number.isFinite(baseValue) && (baseValue as number) > 0 ? (baseValue as number) : 10000
   const formatCurrency = (value: number) =>
@@ -110,10 +106,10 @@ export const EquityChart = ({
       option={{
         ...buildLineOptions({
           data: chartSeries,
+          chartTheme,
           height,
-          color,
           area: true,
-          areaOpacity: theme.palette.mode === 'light' ? 0.09 : 0.14,
+          areaOpacity: chartTheme.areaOpacity,
           showAxes: true,
           paddingRatio: 0.02,
           minClamp: pnlScaleMode === 'log' ? 0 : 1,
@@ -132,8 +128,6 @@ export const EquityChart = ({
                 ? formatPercentAxis
                 : formatCurrency,
           hideMinMaxLabels: true,
-          axisColor,
-          gridColor,
         }),
         tooltip: {
           trigger: 'axis',
@@ -161,37 +155,33 @@ export const EquityChart = ({
 export const DrawdownChart = ({
   data,
   height = 160,
-  axisColor,
-  gridColor,
   yAxisName = 'Drawdown %',
   yAxisFormatter,
 }: {
   data: DailyPoint[]
   height?: number
-  axisColor: string
-  gridColor: string
   yAxisName?: string
   yAxisFormatter?: (value: number) => string
 }) => {
   const theme = useTheme()
+  const chartTheme = getReportChartTheme(theme)
   const filled = fillSeries(ensureStartPoint(data))
   return (
     <ReactECharts
       option={{
         ...buildLineOptions({
           data,
+          chartTheme,
           height,
-          color: '#c0392b',
+          color: chartTheme.drawdown,
           area: true,
-          areaOpacity: theme.palette.mode === 'light' ? 0.09 : 0.14,
+          areaOpacity: chartTheme.areaOpacity,
           showAxes: true,
           smooth: false,
           axisType: 'category',
           yAxisName,
           yAxisFormatter: yAxisFormatter ?? ((value) => `${value.toFixed(1)}%`),
           yAxisMax: 0,
-          axisColor,
-          gridColor,
         }),
         tooltip: {
           trigger: 'axis',

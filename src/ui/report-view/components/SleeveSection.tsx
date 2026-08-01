@@ -1,8 +1,10 @@
 import { Paper, Stack, Typography } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import ReactECharts from 'echarts-for-react'
 import { useMemo, useState } from 'react'
 import type { DailyPoint, ReportModel } from '../../../engine/types'
 import { buildLineOptions } from '../chartOptions'
+import { getReportChartTheme } from '../chartTheme'
 import { DrawdownChart, EquityChart } from '../charts'
 import { formatAxisNumber, formatDrawdownSourceLabel } from '../formatters'
 import {
@@ -29,9 +31,6 @@ const SleeveSection = ({
   drawdownSeries,
   drawdownSource,
   pnlScaleMode = 'linear',
-  pnlColor,
-  axisColor,
-  gridColor,
 }: {
   item: ReportModel['contributions'][number]
   metrics: SleeveMetrics | null
@@ -40,10 +39,8 @@ const SleeveSection = ({
   drawdownSeries: DailyPoint[]
   drawdownSource?: 'H1' | 'D1'
   pnlScaleMode?: 'linear' | 'log'
-  pnlColor: string
-  axisColor: string
-  gridColor: string
 }) => {
+  const chartTheme = getReportChartTheme(useTheme())
   const sleeveBaseCapital = Number.isFinite(item.baseCapital)
     ? (item.baseCapital as number)
     : baseCapital
@@ -81,16 +78,13 @@ const SleeveSection = ({
           pnlScaleMode={pnlScaleMode}
           baseValue={sleeveBaseCapital}
           drawdownSeries={visibleSeries.drawdown}
-          color={pnlColor}
-          axisColor={axisColor}
-          gridColor={gridColor}
         />
       </Paper>
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle2">
           Contribution drawdown ({formatDrawdownSourceLabel(drawdownSource)})
         </Typography>
-        <DrawdownChart data={visibleSeries.drawdown} axisColor={axisColor} gridColor={gridColor} />
+        <DrawdownChart data={visibleSeries.drawdown} />
       </Paper>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
         <Paper variant="outlined" sx={{ p: 2, flex: 1 }}>
@@ -99,13 +93,11 @@ const SleeveSection = ({
             <ReactECharts
               option={buildLineOptions({
                 data: metrics.alphaSeries,
+                chartTheme,
                 height: 140,
-                color: pnlColor,
                 showAxes: true,
                 paddingRatio: 0.02,
                 axisType: 'category',
-                axisColor,
-                gridColor,
                 yAxisMin: metrics.alphaBounds.min,
                 yAxisMax: metrics.alphaBounds.max,
                 yAxisName: 'Alpha %',
@@ -123,13 +115,11 @@ const SleeveSection = ({
             <ReactECharts
               option={buildLineOptions({
                 data: metrics.sharpeSeries,
+                chartTheme,
                 height: 140,
-                color: pnlColor,
                 showAxes: true,
                 paddingRatio: 0.02,
                 axisType: 'category',
-                axisColor,
-                gridColor,
                 yAxisMin: metrics.sharpeBounds.min,
                 yAxisMax: metrics.sharpeBounds.max,
                 yAxisName: 'Sharpe',
@@ -147,13 +137,11 @@ const SleeveSection = ({
             <ReactECharts
               option={buildLineOptions({
                 data: metrics.winrateSeries,
+                chartTheme,
                 height: 140,
-                color: pnlColor,
                 showAxes: true,
                 paddingRatio: 0.02,
                 axisType: 'category',
-                axisColor,
-                gridColor,
                 yAxisMin: 0,
                 yAxisMax: 1,
                 yAxisFormatter: (value: number) => `${Math.round(value * 100)}%`,

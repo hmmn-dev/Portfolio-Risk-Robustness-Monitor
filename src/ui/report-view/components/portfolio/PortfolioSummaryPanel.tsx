@@ -1,4 +1,4 @@
-import { Alert, Box, Chip, Paper, Stack, Typography } from '@mui/material'
+import { Alert, Box, Chip, Paper, Stack } from '@mui/material'
 import { memo } from 'react'
 import type { DailyPoint, ReportModel } from '../../../../engine/types'
 import { formatDrawdownModeLabel, formatDrawdownSourceLabel, formatSigned } from '../../formatters'
@@ -9,6 +9,8 @@ import {
 import type { DrawdownMode } from '../../reportAnalytics'
 import type { PortfolioSummary, RiskRow } from '../../types'
 import PortfolioHealthSummary from './summary/PortfolioHealthSummary'
+import MetricGrid from './summary/MetricGrid'
+import ReportSectionHeader from './summary/ReportSectionHeader'
 import SummaryMetricCell, { type MetricTone } from './summary/SummaryMetricCell'
 
 type PortfolioSummaryPanelProps = {
@@ -67,36 +69,26 @@ const PortfolioSummaryPanel = ({
       variant="outlined"
       sx={{ overflow: 'hidden' }}
     >
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={1.5}
-        alignItems={{ sm: 'center' }}
-        justifyContent="space-between"
-        sx={{ px: 2.5, py: 2 }}
-      >
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            Portfolio summary
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Performance, resilience, and portfolio health at a glance
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          <Chip
-            size="small"
-            variant="outlined"
-            label={customPortfolio ? 'Custom composition' : 'Baseline portfolio'}
-          />
-          <Chip
-            size="small"
-            variant="outlined"
-            label={`${formatDrawdownModeLabel(drawdownMode)} · ${formatDrawdownSourceLabel(
-              drawdownSource,
-            )}`}
-          />
-        </Stack>
-      </Stack>
+      <ReportSectionHeader
+        title="Portfolio summary"
+        subtitle="Performance, resilience, and portfolio health at a glance"
+        actions={
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Chip
+              size="small"
+              variant="outlined"
+              label={customPortfolio ? 'Custom composition' : 'Baseline portfolio'}
+            />
+            <Chip
+              size="small"
+              variant="outlined"
+              label={`${formatDrawdownModeLabel(drawdownMode)} · ${formatDrawdownSourceLabel(
+                drawdownSource,
+              )}`}
+            />
+          </Stack>
+        }
+      />
 
       {customPortfolio && (
         <Alert severity="info" variant="outlined" sx={{ mx: 2.5, mb: 2 }}>
@@ -105,18 +97,11 @@ const PortfolioSummaryPanel = ({
         </Alert>
       )}
 
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, minmax(0, 1fr))',
-            lg: 'minmax(280px, 1.4fr) repeat(3, minmax(0, 1fr))',
-          },
-          gap: '1px',
-          backgroundColor: 'divider',
-          borderTop: 1,
-          borderColor: 'divider',
+      <MetricGrid
+        columns={{
+          xs: '1fr',
+          sm: 'repeat(2, minmax(0, 1fr))',
+          lg: 'minmax(280px, 1.4fr) repeat(3, minmax(0, 1fr))',
         }}
       >
         <Box sx={{ gridColumn: { sm: '1 / -1', lg: 'auto' }, gridRow: { lg: 'span 2' } }}>
@@ -165,33 +150,23 @@ const PortfolioSummaryPanel = ({
           tone={signedTone(metrics.recoveryFactor)}
           description="Total return divided by the absolute maximum drawdown. It measures cumulative return relative to the worst loss from a peak."
         />
-      </Box>
+      </MetricGrid>
 
       <Box
         component="section"
         aria-label="Track-record quality"
         sx={{ borderTop: 1, borderColor: 'divider' }}
       >
-        <Stack sx={{ px: 2.5, pt: 2.5, pb: 1.5 }} spacing={0.25}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Track-record quality
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Consistency and recovery characteristics of the daily return series
-          </Typography>
-        </Stack>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, minmax(0, 1fr))',
-              md: 'repeat(5, minmax(0, 1fr))',
-            },
-            gap: '1px',
-            backgroundColor: 'divider',
-            borderTop: 1,
-            borderColor: 'divider',
+        <ReportSectionHeader
+          title="Track-record quality"
+          subtitle="Consistency and recovery characteristics of the daily return series"
+          headingComponent="h3"
+        />
+        <MetricGrid
+          columns={{
+            xs: '1fr',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            md: 'repeat(5, minmax(0, 1fr))',
           }}
         >
           <SummaryMetricCell
@@ -221,7 +196,7 @@ const PortfolioSummaryPanel = ({
             value={String(metrics.tradingDays)}
             description="Number of finite daily portfolio index observations in the displayed track record."
           />
-        </Box>
+        </MetricGrid>
       </Box>
 
       <PortfolioHealthSummary riskRows={riskRows} drawdown={drawdown} />

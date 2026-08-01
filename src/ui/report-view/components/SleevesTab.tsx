@@ -7,6 +7,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  useTheme,
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import LazySection from '../LazySection'
@@ -14,6 +15,8 @@ import SleeveSection from './SleeveSection'
 import { useReportSleeves } from './ReportViewContext'
 
 const SleevesTab = () => {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
   const {
     report,
     sleeves,
@@ -32,11 +35,6 @@ const SleevesTab = () => {
     onRollingWindowChange,
     metricWindow,
     baseCapital,
-    pnlColor,
-    axisColor,
-    gridColor,
-    theme,
-    isDark,
     getSleeveDrawdown,
     getSleeveDrawdownSource,
     allSleevesPlaceholderHeight,
@@ -56,7 +54,7 @@ const SleevesTab = () => {
         <Box
           sx={{
             width: { xs: '100%', lg: 260 },
-            borderRight: { lg: `1px solid ${gridColor}` },
+            borderRight: { lg: `1px solid ${alpha(theme.palette.text.primary, 0.12)}` },
             height: { lg: '100%' },
             overflowY: { lg: 'auto' },
             minHeight: 0,
@@ -151,9 +149,6 @@ const SleevesTab = () => {
                 drawdownSeries={getSleeveDrawdown(selectedContribution)}
                 drawdownSource={getSleeveDrawdownSource(selectedContribution)}
                 pnlScaleMode={pnlScaleMode}
-                pnlColor={pnlColor}
-                axisColor={axisColor}
-                gridColor={gridColor}
               />
             ) : null
           ) : (
@@ -173,9 +168,6 @@ const SleevesTab = () => {
                       drawdownSeries={getSleeveDrawdown(item)}
                       drawdownSource={getSleeveDrawdownSource(item)}
                       pnlScaleMode={pnlScaleMode}
-                      pnlColor={pnlColor}
-                      axisColor={axisColor}
-                      gridColor={gridColor}
                     />
                     {index < report.contributions.length - 1 && <Divider />}
                   </Stack>

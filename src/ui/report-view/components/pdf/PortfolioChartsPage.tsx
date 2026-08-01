@@ -11,9 +11,6 @@ type PortfolioChartsPageProps = {
   drawdownSource?: ReportModel['portfolio']['drawdownSource']
   pnlScaleMode: 'linear' | 'log'
   baseCapital: number
-  pnlColor: string
-  axisColor: string
-  gridColor: string
 }
 
 const PortfolioChartsPage = ({
@@ -25,9 +22,6 @@ const PortfolioChartsPage = ({
   drawdownSource,
   pnlScaleMode,
   baseCapital,
-  pnlColor,
-  axisColor,
-  gridColor,
 }: PortfolioChartsPageProps) => (
   <PdfPage
     title="Portfolio equity & drawdown"
@@ -41,9 +35,6 @@ const PortfolioChartsPage = ({
       drawdownSource={drawdownSource}
       pnlScaleMode={pnlScaleMode}
       baseCapital={baseCapital}
-      pnlColor={pnlColor}
-      axisColor={axisColor}
-      gridColor={gridColor}
       equityHeight={280}
       drawdownHeight={200}
       showRangeSelector={false}

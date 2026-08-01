@@ -33,9 +33,6 @@ describe('SleeveSection', () => {
         baseCapital={10000}
         drawdownSeries={item.drawdown}
         drawdownSource="H1"
-        pnlColor="#123456"
-        axisColor="#555555"
-        gridColor="#dddddd"
       />,
     )
 
@@ -57,9 +54,6 @@ describe('SleeveSection', () => {
         showTitle={false}
         baseCapital={10000}
         drawdownSeries={item.drawdown}
-        pnlColor="#123456"
-        axisColor="#555555"
-        gridColor="#dddddd"
       />,
     )
 
@@ -77,9 +71,6 @@ describe('SleeveSectionPrint', () => {
         baseCapital={10000}
         drawdownSeries={item.drawdown}
         drawdownSource="D1"
-        pnlColor="#123456"
-        axisColor="#555555"
-        gridColor="#dddddd"
       />,
     )
 
