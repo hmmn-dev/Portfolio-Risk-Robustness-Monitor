@@ -12,7 +12,7 @@ import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { useUIStore } from '../store/ui'
-import appLogo from '../assets/logo.svg'
+import appLogo from '../assets/brand-mark.png'
 
 type AppShellProps = {
   children: ReactNode
@@ -53,7 +53,12 @@ const AppShell = ({ children }: AppShellProps) => {
             component="img"
             src={appLogo}
             alt="Portfolio Monitoring logo"
-            sx={{ width: 28, height: 28 }}
+            sx={{
+              display: 'block',
+              flexShrink: 0,
+              width: { xs: 30, md: 32 },
+              height: { xs: 30, md: 32 },
+            }}
           />
           <Typography variant="h6">Portfolio Monitoring Report</Typography>
           <Box sx={{ flexGrow: 1 }} />
