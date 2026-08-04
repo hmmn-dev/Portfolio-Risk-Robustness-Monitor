@@ -151,4 +151,54 @@ describe('report charts', () => {
     expect(option.yAxis.name).toBe('Drawdown %')
     expect(option.tooltip.formatter([{ dataIndex: 1 }])).toContain('DD: -4.25%')
   })
+
+  it('renders realized fallback segments with warning styling and explains their source', () => {
+    const points = [
+      { time: Date.UTC(2024, 0, 1), value: 0 },
+      { time: Date.UTC(2024, 0, 2), value: -1 },
+      { time: Date.UTC(2024, 0, 3), value: -2 },
+    ]
+
+    renderWithTheme(<DrawdownChart data={points} realizedFallback={[points[2]]} />)
+
+    const option = echartsSpy.mock.calls[0][0].option as {
+      series: Array<{
+        name: string
+        data: Array<number | null>
+        lineStyle: { color: string }
+        areaStyle: { color: { colorStops: Array<{ offset: number; color: string }> } }
+        markLine?: {
+          silent: boolean
+          symbol: string
+          z: number
+          label: { show: boolean }
+          lineStyle: { color: string; type: string; width: number }
+          data: Array<{ xAxis: number }>
+        }
+      }>
+      tooltip: { formatter: (params: Array<{ dataIndex: number }>) => string }
+    }
+    expect(option.series).toHaveLength(2)
+    expect(option.series[0].data).toEqual([0, -1, null])
+    expect(option.series[1].data).toEqual([null, -1, -2])
+    expect(option.series[1].lineStyle.color).toBe(lightChartTheme.drawdownFallback)
+    expect(option.series[1].areaStyle.color.colorStops[0].color).toBe(
+      lightChartTheme.drawdownFallback,
+    )
+    expect(option.series[0].markLine).toEqual({
+      silent: true,
+      symbol: 'none',
+      z: 8,
+      label: { show: false },
+      lineStyle: {
+        color: lightChartTheme.drawdownBoundary,
+        type: 'dashed',
+        width: 1,
+      },
+      data: [{ xAxis: 2 }],
+    })
+    expect(option.tooltip.formatter([{ dataIndex: 2 }])).toContain(
+      'Realized DD (candles unavailable for this period)',
+    )
+  })
 })

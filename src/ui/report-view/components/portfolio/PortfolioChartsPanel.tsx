@@ -6,7 +6,9 @@ import { formatDrawdownSourceLabel } from '../../formatters'
 import {
   ALL_CHART_RANGE,
   filterEquityAndDrawdownRange,
+  filterSeriesByRange,
   getChartRangeBounds,
+  resolveChartRange,
   type ChartRangeSelection,
 } from '../../helpers/chartRange'
 import ChartRangeSelector from '../ChartRangeSelector'
@@ -14,6 +16,7 @@ import ChartRangeSelector from '../ChartRangeSelector'
 type PortfolioChartsPanelProps = {
   index: DailyPoint[]
   drawdown: DailyPoint[]
+  drawdownFallback?: DailyPoint[]
   drawdownSource?: ReportModel['portfolio']['drawdownSource']
   pnlScaleMode: 'linear' | 'log'
   baseCapital: number
@@ -27,6 +30,7 @@ type PortfolioChartsPanelProps = {
 const PortfolioChartsPanel = ({
   index,
   drawdown,
+  drawdownFallback = [],
   drawdownSource,
   pnlScaleMode,
   baseCapital,
@@ -45,6 +49,11 @@ const PortfolioChartsPanel = ({
       filterEquityAndDrawdownRange(index, drawdown, showRangeSelector ? range : ALL_CHART_RANGE),
     [drawdown, index, range, showRangeSelector],
   )
+  const visibleDrawdownFallback = useMemo(() => {
+    const selection = showRangeSelector ? range : ALL_CHART_RANGE
+    if (selection.type === 'preset' && selection.preset === 'all') return drawdownFallback
+    return filterSeriesByRange(drawdownFallback, resolveChartRange(rangeBounds, selection))
+  }, [drawdownFallback, range, rangeBounds, showRangeSelector])
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
@@ -80,10 +89,37 @@ const PortfolioChartsPanel = ({
           />
         </Box>
         <Box>
-          <Typography component="h2" variant="subtitle1">
-            Portfolio drawdown ({formatDrawdownSourceLabel(drawdownSource)})
-          </Typography>
-          <DrawdownChart data={visibleSeries.drawdown} height={drawdownHeight} />
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={0.75}
+            alignItems={{ sm: 'center' }}
+            justifyContent="space-between"
+          >
+            <Typography component="h2" variant="subtitle1">
+              Portfolio drawdown ({formatDrawdownSourceLabel(drawdownSource)})
+            </Typography>
+            {visibleDrawdownFallback.length > 0 && (
+              <Stack
+                direction="row"
+                spacing={0.75}
+                alignItems="center"
+                aria-label="Realized drawdown fallback"
+              >
+                <Box
+                  component="span"
+                  sx={{ width: 18, height: 3, bgcolor: 'warning.dark', flexShrink: 0 }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  Realized DD where candles are unavailable
+                </Typography>
+              </Stack>
+            )}
+          </Stack>
+          <DrawdownChart
+            data={visibleSeries.drawdown}
+            realizedFallback={visibleDrawdownFallback}
+            height={drawdownHeight}
+          />
         </Box>
       </Stack>
     </Paper>

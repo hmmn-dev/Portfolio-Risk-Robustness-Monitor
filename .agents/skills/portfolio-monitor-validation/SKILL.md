@@ -91,6 +91,10 @@ For imported deals or underlying files, cover applicable cases:
 For MTM replay, include a position that exits inside a candle and verify that a later price from
 that candle cannot create a phantom post-exit high-water mark.
 
+Test both MTM coverage boundaries: longer candle history must be clipped to the portfolio period,
+while shorter candle history must use realized drawdown only outside available coverage. Preserve
+fallback provenance through base/custom analytics, interactive charts, and PDF output.
+
 Treat file and persisted contents as untrusted. Test fallback behavior explicitly.
 
 ## UI Checks

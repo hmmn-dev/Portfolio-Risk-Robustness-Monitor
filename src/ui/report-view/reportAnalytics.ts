@@ -1,4 +1,5 @@
 import { computeDdShock } from '../../engine/ddShock'
+import { resolveMtmDrawdownCoverage } from '../../engine/drawdownCoverage'
 import { rollingOlsPairs, rollingSharpe, rollingWinrate } from '../../engine/statsRolling'
 import { computeAlphaPercentiles, computeStatus } from '../../engine/status'
 import type { ReportModel, UnderlyingDailyReturn, UnderlyingSeries } from '../../engine/types'
@@ -68,10 +69,18 @@ export const findUnderlyingForSymbol = (
   return base ? (normalizedUnderlying[normalizeSymbol(base)] ?? null) : null
 }
 
+export const resolvePortfolioDrawdownSeries = (report: ReportModel | null, mode: DrawdownMode) => {
+  const realized = report?.portfolio.drawdown ?? []
+  return mode === 'mtm' && report?.portfolio.drawdownMtm?.length
+    ? resolveMtmDrawdownCoverage(realized, report.portfolio.drawdownMtm)
+    : { drawdown: realized, realizedFallback: [] }
+}
+
 export const resolvePortfolioDrawdown = (report: ReportModel | null, mode: DrawdownMode) =>
-  mode === 'mtm' && report?.portfolio.drawdownMtm?.length
-    ? report.portfolio.drawdownMtm
-    : (report?.portfolio.drawdown ?? [])
+  resolvePortfolioDrawdownSeries(report, mode).drawdown
+
+export const resolvePortfolioDrawdownFallback = (report: ReportModel | null, mode: DrawdownMode) =>
+  resolvePortfolioDrawdownSeries(report, mode).realizedFallback
 
 export const resolvePortfolioDrawdownSource = (report: ReportModel | null, mode: DrawdownMode) =>
   mode === 'mtm' && report?.portfolio.drawdownMtmSource

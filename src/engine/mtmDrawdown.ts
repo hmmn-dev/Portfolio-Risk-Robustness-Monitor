@@ -240,14 +240,21 @@ export const buildMtmDrawdown = (
 
   const candleTimes = stableSort(Array.from(candlesByTime.keys()), (a, b) => a - b)
   const firstDealTime = sortedDeals[0]?.time
+  const lastDealTime = sortedDeals.at(-1)?.time
   const startTime = Number.isFinite(firstDealTime ?? NaN)
     ? source === 'H1'
       ? toHourStart(firstDealTime as number)
       : toDayStart(firstDealTime as number)
     : Number.NaN
-  const activeCandleTimes = Number.isFinite(startTime)
-    ? candleTimes.filter((time) => time >= (startTime as number))
-    : candleTimes
+  const endTime = Number.isFinite(lastDealTime ?? NaN)
+    ? source === 'H1'
+      ? toHourStart(lastDealTime as number)
+      : toDayStart(lastDealTime as number)
+    : Number.NaN
+  const activeCandleTimes =
+    Number.isFinite(startTime) && Number.isFinite(endTime)
+      ? candleTimes.filter((time) => time >= (startTime as number) && time <= (endTime as number))
+      : candleTimes
   const latestPriceBySymbol = new Map<string, number>()
   const pointValues = inferPointValues(sortedDeals)
   const positions = new Map<string, OpenPosition>()

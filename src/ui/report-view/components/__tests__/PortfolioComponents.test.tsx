@@ -20,8 +20,19 @@ vi.mock('../../charts', () => ({
   EquityChart: ({ data }: { data: unknown[] }) => (
     <div data-testid="portfolio-equity-chart">{data.length}</div>
   ),
-  DrawdownChart: ({ data }: { data: unknown[] }) => (
-    <div data-testid="portfolio-drawdown-chart">{data.length}</div>
+  DrawdownChart: ({
+    data,
+    realizedFallback = [],
+  }: {
+    data: unknown[]
+    realizedFallback?: unknown[]
+  }) => (
+    <div
+      data-testid="portfolio-drawdown-chart"
+      data-realized-fallback-count={realizedFallback.length}
+    >
+      {data.length}
+    </div>
   ),
 }))
 
@@ -222,6 +233,32 @@ describe('portfolio presentation components', () => {
     await user.click(screen.getAllByRole('button', { name: /choose date/i })[0])
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('identifies and forwards realized drawdown fallback within candle gaps', () => {
+    const points = [2018, 2024, 2026].map((year, index) => ({
+      time: Date.UTC(year, 0, 1),
+      value: -index,
+    }))
+
+    renderWithTheme(
+      <PortfolioChartsPanel
+        index={points}
+        drawdown={points}
+        drawdownFallback={[points[2]]}
+        drawdownSource="H1"
+        pnlScaleMode="linear"
+        baseCapital={10000}
+      />,
+    )
+
+    expect(screen.getByLabelText('Realized drawdown fallback')).toHaveTextContent(
+      'Realized DD where candles are unavailable',
+    )
+    expect(screen.getByTestId('portfolio-drawdown-chart')).toHaveAttribute(
+      'data-realized-fallback-count',
+      '1',
+    )
   })
 
   it('keeps correlation strategy labels on one line and reveals truncated names', async () => {

@@ -71,6 +71,7 @@ describe('usePortfolioAnalytics', () => {
         baseCapital: 1000,
         drawdownMode: 'mtm',
         portfolioDrawdown: report.portfolio.drawdownMtm ?? [],
+        portfolioDrawdownFallback: [],
         portfolioDrawdownSource: report.portfolio.drawdownMtmSource,
         portfolioSummary: {
           totalReturnPct: -5,
@@ -102,6 +103,7 @@ describe('usePortfolioAnalytics', () => {
         baseCapital: 1000,
         drawdownMode: 'mtm',
         portfolioDrawdown: report.portfolio.drawdownMtm ?? [],
+        portfolioDrawdownFallback: [],
         portfolioDrawdownSource: report.portfolio.drawdownMtmSource,
         portfolioSummary: {
           totalReturnPct: -5,
@@ -124,5 +126,51 @@ describe('usePortfolioAnalytics', () => {
     expect(weightedResult.current.chartDrawdown[1].value).toBeCloseTo(-4)
     expect(weightedResult.current.effectiveIndex.at(-1)?.value).toBeCloseTo(0.96)
     expect(weightedResult.current.effectiveSummary?.maxDrawdown).toBeCloseTo(-4)
+  })
+
+  it('uses realized drawdown after custom MTM candle coverage ends', () => {
+    const deals = makePositionDeals('Alpha - EURUSD', 1, 1, 0)
+    const underlyingSeries: UnderlyingSeries[] = [
+      {
+        symbol: 'EURUSD',
+        timeframe: 'D1',
+        candles: [
+          { time: day(0), open: 100, high: 100, low: 100, close: 100 },
+          { time: day(1), open: 90, high: 90, low: 90, close: 90 },
+        ],
+        daily: [],
+      },
+    ]
+    const report = buildPortfolioReport(deals, { initialCapital: 1000, underlyingSeries })
+
+    const { result } = renderHook(() =>
+      usePortfolioAnalytics({
+        report,
+        deals,
+        baseCapital: 1000,
+        drawdownMode: 'mtm',
+        portfolioDrawdown: report.portfolio.drawdown,
+        portfolioDrawdownFallback: [],
+        portfolioDrawdownSource: report.portfolio.drawdownMtmSource,
+        portfolioSummary: null,
+        correlationMatrix: { labels: [], values: [] },
+        underlyingSeries,
+        enabledSleeves: new Set(['Alpha - EURUSD']),
+        sleeveWeights: { 'Alpha - EURUSD': 2 },
+        isFiltered: false,
+        hasCustomWeights: true,
+        rangeSelection: ALL_CHART_RANGE,
+      }),
+    )
+
+    expect(result.current.effectiveDrawdownMode).toBe('mtm')
+    expect(result.current.chartDrawdown.map((point) => point.time)).toEqual([
+      day(0),
+      day(1),
+      day(2),
+    ])
+    expect(result.current.chartDrawdownFallback).toEqual([
+      { time: day(2), value: expect.closeTo(-2) },
+    ])
   })
 })

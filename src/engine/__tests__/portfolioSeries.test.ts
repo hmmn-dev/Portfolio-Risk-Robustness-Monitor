@@ -168,6 +168,13 @@ describe('buildPortfolioReport', () => {
         price: 110,
         volume: 1,
       }),
+      makeDeal({
+        deal: 'D-period-end',
+        time: day(2),
+        symbol: 'EURUSD',
+        entryType: 'unknown',
+        _seq: 3,
+      }),
     ]
     const underlyingSeries = [
       {

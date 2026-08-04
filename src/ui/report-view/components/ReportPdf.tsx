@@ -22,6 +22,7 @@ const ReportPdf = () => {
     riskRows,
     baseCapital,
     portfolioDrawdown,
+    portfolioDrawdownFallback,
     portfolioDrawdownSource,
     drawdownMode,
     pnlScaleMode,
@@ -69,6 +70,7 @@ const ReportPdf = () => {
         minHeight={pdfPageMinHeight}
         index={report.portfolio.index}
         drawdown={portfolioDrawdown}
+        drawdownFallback={portfolioDrawdownFallback}
         drawdownSource={portfolioDrawdownSource}
         pnlScaleMode={pnlScaleMode}
         baseCapital={baseCapital}

@@ -8,6 +8,7 @@ import {
   normalizeUnderlyingBySymbol,
   obfuscatePerformanceRows,
   resolvePortfolioDrawdown,
+  resolvePortfolioDrawdownFallback,
   resolveSleeveDrawdown,
 } from '../reportAnalytics'
 
@@ -25,17 +26,19 @@ describe('report analytics', () => {
 
   it('selects MTM drawdown only when it is available', () => {
     const report = createReport()
-    const mtm = [{ time: report.generatedAt, value: -12 }]
+    const mtm = [{ time: report.portfolio.drawdown[0].time, value: -12 }]
     report.portfolio.drawdownMtm = mtm
     report.contributions[0].drawdownMtm = mtm
 
-    expect(resolvePortfolioDrawdown(report, 'mtm')).toBe(mtm)
+    expect(resolvePortfolioDrawdown(report, 'mtm')).toEqual([mtm[0], report.portfolio.drawdown[1]])
+    expect(resolvePortfolioDrawdownFallback(report, 'mtm')).toEqual([report.portfolio.drawdown[1]])
     expect(resolveSleeveDrawdown(report.contributions[0], 'mtm')).toBe(mtm)
 
     delete report.portfolio.drawdownMtm
     delete report.contributions[0].drawdownMtm
 
     expect(resolvePortfolioDrawdown(report, 'mtm')).toBe(report.portfolio.drawdown)
+    expect(resolvePortfolioDrawdownFallback(report, 'mtm')).toEqual([])
     expect(resolveSleeveDrawdown(report.contributions[0], 'mtm')).toBe(
       report.contributions[0].drawdown,
     )

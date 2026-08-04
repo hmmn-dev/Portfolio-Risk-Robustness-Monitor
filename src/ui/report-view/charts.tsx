@@ -1,7 +1,7 @@
 import ReactECharts from 'echarts-for-react'
 import { useTheme } from '@mui/material/styles'
 import type { DailyPoint } from '../../engine/types'
-import { buildLineOptions } from './chartOptions'
+import { buildDrawdownOptions, buildLineOptions } from './chartOptions'
 import { getReportChartTheme } from './chartTheme'
 import { formatAxisDate } from './formatters'
 import { ensureStartPoint, fillSeries } from './helpers/chartSeries'
@@ -158,50 +158,29 @@ export const EquityChart = ({
 
 export const DrawdownChart = ({
   data,
+  realizedFallback = [],
   height = 160,
   yAxisName = 'Drawdown %',
   yAxisFormatter,
 }: {
   data: DailyPoint[]
+  realizedFallback?: DailyPoint[]
   height?: number
   yAxisName?: string
   yAxisFormatter?: (value: number) => string
 }) => {
   const theme = useTheme()
   const chartTheme = getReportChartTheme(theme)
-  const filled = fillSeries(ensureStartPoint(data))
   return (
     <ReactECharts
-      option={{
-        ...buildLineOptions({
-          data,
-          chartTheme,
-          height,
-          color: chartTheme.drawdown,
-          area: true,
-          areaOpacity: chartTheme.areaOpacity,
-          showAxes: true,
-          smooth: false,
-          axisType: 'category',
-          yAxisName,
-          yAxisFormatter: yAxisFormatter ?? ((value) => `${value.toFixed(1)}%`),
-          yAxisMax: 0,
-        }),
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: { type: 'line' },
-          formatter: (params: { dataIndex: number }[]) => {
-            const first = params?.[0]
-            if (!first) return ''
-            const idx = first.dataIndex
-            const point = filled[idx]
-            if (!point) return ''
-            const date = formatAxisDate(point.time)
-            const ddValue = Number.isFinite(point.value) ? `${point.value.toFixed(2)}%` : '-'
-            return `${date}<br/>DD: ${ddValue}`
-          },
-        },
-      }}
+      option={buildDrawdownOptions({
+        data,
+        realizedFallback,
+        chartTheme,
+        height,
+        yAxisName,
+        yAxisFormatter: yAxisFormatter ?? ((value) => `${value.toFixed(1)}%`),
+      })}
       style={{ height }}
     />
   )

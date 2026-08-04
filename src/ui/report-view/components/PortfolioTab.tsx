@@ -24,6 +24,7 @@ const PortfolioTabContent = () => {
     pnlScaleMode,
     onPnlScaleModeChange,
     portfolioDrawdown,
+    portfolioDrawdownFallback,
     portfolioDrawdownSource,
     showCorrNumbers,
     onShowCorrNumbersChange,
@@ -75,6 +76,7 @@ const PortfolioTabContent = () => {
     baseCapital,
     drawdownMode,
     portfolioDrawdown,
+    portfolioDrawdownFallback,
     portfolioDrawdownSource,
     portfolioSummary,
     correlationMatrix,
@@ -103,6 +105,7 @@ const PortfolioTabContent = () => {
         <PortfolioChartsPanel
           index={analytics.chartIndex}
           drawdown={analytics.chartDrawdown}
+          drawdownFallback={analytics.chartDrawdownFallback}
           drawdownSource={analytics.effectiveDrawdownSource}
           pnlScaleMode={pnlScaleMode}
           baseCapital={baseCapital}

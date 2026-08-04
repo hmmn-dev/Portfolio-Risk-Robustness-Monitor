@@ -8,6 +8,7 @@ type PortfolioChartsPageProps = {
   minHeight: number
   index: DailyPoint[]
   drawdown: DailyPoint[]
+  drawdownFallback: DailyPoint[]
   drawdownSource?: ReportModel['portfolio']['drawdownSource']
   pnlScaleMode: 'linear' | 'log'
   baseCapital: number
@@ -19,6 +20,7 @@ const PortfolioChartsPage = ({
   minHeight,
   index,
   drawdown,
+  drawdownFallback,
   drawdownSource,
   pnlScaleMode,
   baseCapital,
@@ -32,6 +34,7 @@ const PortfolioChartsPage = ({
     <PortfolioChartsPanel
       index={index}
       drawdown={drawdown}
+      drawdownFallback={drawdownFallback}
       drawdownSource={drawdownSource}
       pnlScaleMode={pnlScaleMode}
       baseCapital={baseCapital}

@@ -71,6 +71,59 @@ const buildPortfolioFixture = (sleeveCount: number) => {
 }
 
 describe('buildMtmDrawdown', () => {
+  it('clips candle observations to the portfolio deal period', () => {
+    const deals: DealRow[] = [
+      {
+        deal: 'open',
+        time: day(2),
+        sleeve: 'Alpha',
+        symbol: 'EURUSD',
+        notional: 0,
+        price: 100,
+        side: 'buy',
+        volume: 1,
+        entryType: 'in',
+        positionId: 1,
+        _seq: 0,
+      },
+      {
+        deal: 'close',
+        time: day(3),
+        sleeve: 'Alpha',
+        symbol: 'EURUSD',
+        notional: 1,
+        price: 101,
+        volume: 1,
+        entryType: 'out',
+        profit: 1,
+        positionId: 1,
+        _seq: 1,
+      },
+    ]
+    const underlyingSeries: UnderlyingSeries[] = [
+      {
+        symbol: 'EURUSD',
+        timeframe: 'D1',
+        candles: Array.from({ length: 10 }, (_, offset) => ({
+          time: day(offset - 3),
+          open: 100,
+          high: 101,
+          low: 100,
+          close: 101,
+        })),
+        daily: [],
+      },
+    ]
+
+    const result = buildMtmDrawdown(deals, underlyingSeries, 1000)
+
+    expect(result?.drawdown.map((point) => point.time)).toEqual([day(2), day(3)])
+    expect(result?.drawdownBySleeve.get('Alpha')?.map((point) => point.time)).toEqual([
+      day(2),
+      day(3),
+    ])
+  })
+
   it('calculates concurrent in-trade drawdown for 10 selected sleeves out of 61', () => {
     const fixture = buildPortfolioFixture(61)
     const selectedSleeves = new Set(fixture.sleeves.slice(0, 10))
@@ -273,6 +326,6 @@ describe('buildMtmDrawdown', () => {
 
     const result = buildMtmDrawdown(deals, underlyingSeries, 100)
 
-    expect(result?.drawdown.map((point) => point.value)).toEqual([0, 0])
+    expect(result?.drawdown.map((point) => point.value)).toEqual([0])
   })
 })

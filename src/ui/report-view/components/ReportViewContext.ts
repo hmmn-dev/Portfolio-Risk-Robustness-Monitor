@@ -51,6 +51,7 @@ export type ReportPortfolioContextValue = SharedChartState & {
   report: ReportModel
   deals: DealRow[] | null
   portfolioDrawdown: ReportModel['portfolio']['drawdown']
+  portfolioDrawdownFallback: ReportModel['portfolio']['drawdown']
   portfolioDrawdownSource?: ReportModel['portfolio']['drawdownSource']
   showCorrNumbers: boolean
   onShowCorrNumbersChange: (value: boolean) => void
@@ -68,6 +69,7 @@ export type ReportPdfContextValue = {
   riskRows: RiskRow[]
   baseCapital: number
   portfolioDrawdown: ReportModel['portfolio']['drawdown']
+  portfolioDrawdownFallback: ReportModel['portfolio']['drawdown']
   portfolioDrawdownSource?: ReportModel['portfolio']['drawdownSource']
   drawdownMode: 'deal' | 'mtm'
   pnlScaleMode: 'linear' | 'log'

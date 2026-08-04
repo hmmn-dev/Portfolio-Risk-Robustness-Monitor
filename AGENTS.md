@@ -278,6 +278,11 @@ Changes to calculations, parsing, charts, status, filtering, or report generatio
 - Handle empty, one-point, constant, missing, non-finite, and zero-denominator inputs.
 - Verify trading-day window boundaries and minimum-observation rules.
 - Keep realized and in-trade/MTM drawdown semantics distinct.
+- Bound MTM candle replay to the portfolio observation period; imported candle history must not
+  expand report, metric, or chart date bounds.
+- When candle coverage spans only part of the portfolio period, use realized drawdown only outside
+  that coverage and preserve visible source provenance. Never extrapolate MTM values or label a
+  realized fallback as MTM.
 - Treat sleeve weights as return-exposure multipliers applied to each sleeve's contribution
   against the preceding baseline portfolio equity. Do not reinterpret them as fixed-dollar
   historical PnL multipliers or re-denominate them against a custom weighted equity curve.
@@ -400,4 +405,4 @@ After completing and validating changes, include one suggested commit message in
 - Prefer `fix`, `feat`, `refactor`, `test`, `docs`, or `chore`.
 - Keep it imperative, specific, and ideally under 72 characters.
 - Describe the primary outcome rather than listing files or validation commands.
-- Do not create a Git commit unless the user explicitly requests i
+- Do not create a Git commit unless the user explicitly requests it.

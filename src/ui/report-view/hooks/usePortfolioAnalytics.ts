@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { resolveMtmDrawdownCoverage } from '../../../engine/drawdownCoverage'
 import { buildMtmDrawdown } from '../../../engine/mtmDrawdown'
 import type { DealRow, ReportModel, UnderlyingSeries } from '../../../engine/types'
 import {
@@ -27,6 +28,7 @@ type UsePortfolioAnalyticsOptions = {
   baseCapital: number
   drawdownMode: DrawdownMode
   portfolioDrawdown: ReportModel['portfolio']['drawdown']
+  portfolioDrawdownFallback: ReportModel['portfolio']['drawdown']
   portfolioDrawdownSource?: ReportModel['portfolio']['drawdownSource']
   portfolioSummary: PortfolioSummary | null
   correlationMatrix: CorrelationMatrix
@@ -44,6 +46,7 @@ export const usePortfolioAnalytics = ({
   baseCapital,
   drawdownMode,
   portfolioDrawdown,
+  portfolioDrawdownFallback,
   portfolioDrawdownSource,
   portfolioSummary,
   correlationMatrix,
@@ -101,21 +104,38 @@ export const usePortfolioAnalytics = ({
     drawdownMode === 'mtm' && (usesCustomPortfolio ? hasCustomMtm : hasPortfolioMtm)
       ? 'mtm'
       : 'deal'
+  const customDrawdownSeries = useMemo(() => {
+    const realized = customPortfolio?.drawdown ?? []
+    return customMtm?.drawdown.length
+      ? resolveMtmDrawdownCoverage(realized, customMtm.drawdown)
+      : { drawdown: realized, realizedFallback: [] }
+  }, [customMtm, customPortfolio])
   const fullDrawdown = useMemo(
+    () =>
+      usesCustomPortfolio
+        ? effectiveDrawdownMode === 'mtm'
+          ? customDrawdownSeries.drawdown
+          : (customPortfolio?.drawdown ?? [])
+        : portfolioDrawdown,
+    [
+      customPortfolio?.drawdown,
+      customDrawdownSeries.drawdown,
+      effectiveDrawdownMode,
+      portfolioDrawdown,
+      usesCustomPortfolio,
+    ],
+  )
+  const fullDrawdownFallback = useMemo(
     () =>
       effectiveDrawdownMode === 'mtm'
         ? usesCustomPortfolio
-          ? (customMtm?.drawdown ?? [])
-          : (report.portfolio.drawdownMtm ?? portfolioDrawdown)
-        : usesCustomPortfolio
-          ? (customPortfolio?.drawdown ?? [])
-          : portfolioDrawdown,
+          ? customDrawdownSeries.realizedFallback
+          : portfolioDrawdownFallback
+        : [],
     [
-      customPortfolio?.drawdown,
-      customMtm?.drawdown,
+      customDrawdownSeries.realizedFallback,
       effectiveDrawdownMode,
-      portfolioDrawdown,
-      report.portfolio.drawdownMtm,
+      portfolioDrawdownFallback,
       usesCustomPortfolio,
     ],
   )
@@ -233,5 +253,6 @@ export const usePortfolioAnalytics = ({
     monthlyReturns,
     chartIndex: fullIndex,
     chartDrawdown: fullDrawdown,
+    chartDrawdownFallback: fullDrawdownFallback,
   }
 }

@@ -14,7 +14,7 @@ import {
   normalizeUnderlyingBySymbol,
   obfuscatePerformanceRows,
   obfuscateRiskRows,
-  resolvePortfolioDrawdown,
+  resolvePortfolioDrawdownSeries,
   resolvePortfolioDrawdownSource,
   resolveSleeveDrawdown,
   resolveSleeveDrawdownSource,
@@ -56,10 +56,12 @@ export const useReportAnalytics = ({
     () => buildUnderlyingTimeframes(underlyingBySymbol),
     [underlyingBySymbol],
   )
-  const portfolioDrawdown = useMemo(
-    () => resolvePortfolioDrawdown(report, drawdownMode),
+  const portfolioDrawdownSeries = useMemo(
+    () => resolvePortfolioDrawdownSeries(report, drawdownMode),
     [drawdownMode, report],
   )
+  const portfolioDrawdown = portfolioDrawdownSeries.drawdown
+  const portfolioDrawdownFallback = portfolioDrawdownSeries.realizedFallback
   const portfolioDrawdownSource = useMemo(
     () => resolvePortfolioDrawdownSource(report, drawdownMode),
     [drawdownMode, report],
@@ -168,6 +170,7 @@ export const useReportAnalytics = ({
     underlyingSeries,
     underlyingTimeframes,
     portfolioDrawdown,
+    portfolioDrawdownFallback,
     portfolioDrawdownSource,
     getSleeveDrawdown,
     getSleeveDrawdownSource,
