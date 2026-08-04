@@ -111,14 +111,13 @@ export const EquityChart = ({
         ...buildLineOptions({
           data: chartSeries,
           chartTheme,
-          height,
           area: true,
           areaOpacity: chartTheme.areaOpacity,
           showAxes: true,
           paddingRatio: 0.02,
           minClamp: pnlScaleMode === 'log' ? 0 : 1,
           smooth: false,
-          axisType: 'category',
+          axisType: 'time',
           minOffsetRatio,
           reserveGridlines,
           yAxisName:
@@ -132,6 +131,8 @@ export const EquityChart = ({
                 ? formatPercentAxis
                 : formatCurrency,
           hideMinMaxLabels: true,
+          hideMinGridline: true,
+          showMonthTicks: true,
         }),
         tooltip: {
           trigger: 'axis',
@@ -177,7 +178,6 @@ export const DrawdownChart = ({
         data,
         realizedFallback,
         chartTheme,
-        height,
         yAxisName,
         yAxisFormatter: yAxisFormatter ?? ((value) => `${value.toFixed(1)}%`),
       })}

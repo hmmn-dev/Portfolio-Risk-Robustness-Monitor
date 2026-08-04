@@ -3,10 +3,38 @@ import type { ReportChartTheme } from './chartTheme'
 import { formatAxisDate } from './formatters'
 import { computePadding, ensureStartPoint, fillSeries } from './helpers/chartSeries'
 
+const DAY_MS = 24 * 60 * 60 * 1000
+const YEAR_ONLY_AXIS_MIN_SPAN_MS = 5 * 365 * DAY_MS
+
+const formatAxisYear = (value: number, firstTime?: number) => {
+  if (!Number.isFinite(value) || value <= 0) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const isFirstObservation = value === firstTime
+  const isYearBoundary = date.getUTCMonth() === 0 && date.getUTCDate() === 1
+  return isFirstObservation || isYearBoundary ? String(date.getUTCFullYear()) : ''
+}
+
+const getMonthGuideTimes = (start: number, end: number) => {
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) return []
+
+  const startDate = new Date(start)
+  let cursor = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 1)
+  const guides: number[] = []
+
+  while (cursor < end) {
+    const date = new Date(cursor)
+    if (date.getUTCMonth() !== 0) guides.push(cursor)
+    cursor = Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)
+  }
+
+  return guides
+}
+
 export const buildLineOptions = ({
   data,
   chartTheme,
-  height = 160,
   color = chartTheme.primary,
   area = false,
   areaOpacity = 0.14,
@@ -27,10 +55,11 @@ export const buildLineOptions = ({
   yAxisMin,
   yAxisMax,
   hideMinMaxLabels = false,
+  hideMinGridline = false,
+  showMonthTicks = false,
 }: {
   data: DailyPoint[]
   chartTheme: ReportChartTheme
-  height?: number
   color?: string
   area?: boolean
   areaOpacity?: number
@@ -51,6 +80,8 @@ export const buildLineOptions = ({
   yAxisMin?: number
   yAxisMax?: number
   hideMinMaxLabels?: boolean
+  hideMinGridline?: boolean
+  showMonthTicks?: boolean
 }) => {
   const sorted = ensureStartPoint(data)
   const filled = fillSeries(sorted)
@@ -68,6 +99,20 @@ export const buildLineOptions = ({
   const range = max - min
   const minOffset = range > 0 ? range * minOffsetRatio : 0
   const gridlineOffset = range > 0 ? (range / 6) * reserveGridlines : 0
+  const resolvedYAxisMin = yAxisMin ?? min - padding - minOffset - gridlineOffset
+  const resolvedYAxisMax = yAxisMax ?? max + padding
+  const xAxisAnchorValue = resolvedYAxisMin <= 0 && resolvedYAxisMax >= 0 ? 0 : resolvedYAxisMin
+  const usesTimeAxis = axisType === 'time'
+  const finiteTimes = filled.map((point) => point.time).filter((time) => Number.isFinite(time))
+  const firstTime = finiteTimes[0]
+  const lastTime = finiteTimes[finiteTimes.length - 1]
+  const usesYearOnlyLabels =
+    usesTimeAxis &&
+    firstTime != null &&
+    lastTime != null &&
+    lastTime - firstTime >= YEAR_ONLY_AXIS_MIN_SPAN_MS
+  const monthGuideTimes =
+    usesYearOnlyLabels && showMonthTicks ? getMonthGuideTimes(firstTime, lastTime) : []
 
   const xAxisCommon = {
     boundaryGap: false,
@@ -77,26 +122,39 @@ export const buildLineOptions = ({
       ? {
           show: true,
           color: chartTheme.label,
-          formatter: (value: number | string) => formatAxisDate(Number(value)),
+          formatter: (value: number | string) =>
+            usesYearOnlyLabels
+              ? formatAxisYear(Number(value), firstTime)
+              : formatAxisDate(Number(value)),
           interval: 'auto',
+          hideOverlap: true,
+          showMinLabel: true,
+          showMaxLabel: true,
+          margin: 10,
+          fontSize: 11,
+          opacity: 1,
         }
       : { show: false },
     splitLine: { show: false },
-    name: showAxes ? 'Date' : '',
+    name: showAxes && !usesTimeAxis ? 'Date' : '',
     nameLocation: 'middle',
     nameGap: 30,
     nameTextStyle: { color: chartTheme.label, fontSize: 11 },
   }
 
   return {
+    useUTC: true,
     animation: false,
-    grid: { left: 36, right: 16, top: 16, bottom: 40, containLabel: true },
+    grid: usesTimeAxis
+      ? { left: 64, right: 16, top: 16, bottom: 44, containLabel: false }
+      : { left: 36, right: 16, top: 16, bottom: 40, containLabel: true },
     xAxis:
       axisType === 'time'
         ? {
             type: 'time',
             min: 'dataMin',
             max: 'dataMax',
+            splitNumber: 6,
             ...xAxisCommon,
           }
         : {
@@ -106,8 +164,8 @@ export const buildLineOptions = ({
           },
     yAxis: {
       type: 'value',
-      min: yAxisMin ?? min - padding - minOffset - gridlineOffset,
-      max: yAxisMax ?? max + padding,
+      min: resolvedYAxisMin,
+      max: resolvedYAxisMax,
       scale: true,
       boundaryGap: yBoundaryGap,
       axisLine: { show: showAxes, lineStyle: { color: chartTheme.axis } },
@@ -123,7 +181,9 @@ export const buildLineOptions = ({
             showMaxLabel: !hideMinMaxLabels,
           }
         : { show: false },
-      splitLine: showAxes ? { lineStyle: { color: chartTheme.grid } } : { show: false },
+      splitLine: showAxes
+        ? { showMinLine: !hideMinGridline, lineStyle: { color: chartTheme.grid } }
+        : { show: false },
       name: showAxes ? (yAxisName ?? 'Value') : '',
       nameLocation: 'middle',
       nameGap: 46,
@@ -160,10 +220,22 @@ export const buildLineOptions = ({
               opacity: areaOpacity,
             }
           : undefined,
+        markPoint:
+          monthGuideTimes.length > 0
+            ? {
+                silent: true,
+                symbol: 'rect',
+                symbolSize: [1, 5],
+                symbolOffset: [0, 2.5],
+                label: { show: false },
+                tooltip: { show: false },
+                itemStyle: { color: chartTheme.axis, opacity: 0.55 },
+                data: monthGuideTimes.map((time) => ({ coord: [time, xAxisAnchorValue] })),
+              }
+            : undefined,
       },
     ],
     tooltip: { show: false },
-    height,
   }
 }
 
@@ -171,25 +243,23 @@ export const buildDrawdownOptions = ({
   data,
   realizedFallback,
   chartTheme,
-  height,
   yAxisName,
   yAxisFormatter,
 }: {
   data: DailyPoint[]
   realizedFallback: DailyPoint[]
   chartTheme: ReportChartTheme
-  height: number
   yAxisName: string
   yAxisFormatter: (value: number) => string
 }) => {
   const filled = fillSeries(ensureStartPoint(data))
   const fallbackTimes = new Set(realizedFallback.map((point) => point.time))
   const hasRealizedFallback = filled.some((point) => fallbackTimes.has(point.time))
-  const sourceBoundaryIndices = filled.flatMap((point, index) => {
+  const sourceBoundaryTimes = filled.flatMap((point, index) => {
     if (index === 0) return []
     const previousUsesFallback = fallbackTimes.has(filled[index - 1].time)
     const currentUsesFallback = fallbackTimes.has(point.time)
-    return previousUsesFallback === currentUsesFallback ? [] : [index]
+    return previousUsesFallback === currentUsesFallback ? [] : [point.time]
   })
   const primaryValues: Array<number | null> = filled.map((point) =>
     fallbackTimes.has(point.time) ? null : point.value,
@@ -213,46 +283,48 @@ export const buildDrawdownOptions = ({
   const baseOptions = buildLineOptions({
     data,
     chartTheme,
-    height,
     color: chartTheme.drawdown,
     area: true,
     areaOpacity: chartTheme.areaOpacity,
     showAxes: true,
     smooth: false,
-    axisType: 'category',
+    axisType: 'time',
     yAxisName,
     yAxisFormatter,
     yAxisMax: 0,
   })
   const primarySeries = baseOptions.series[0]
+  const sourceBoundaryMarkLine =
+    sourceBoundaryTimes.length > 0
+      ? {
+          silent: true,
+          symbol: 'none',
+          z: 8,
+          label: { show: false },
+          lineStyle: {
+            color: chartTheme.drawdownBoundary,
+            type: 'dashed',
+            width: 1,
+          },
+          data: sourceBoundaryTimes.map((time) => ({ xAxis: time })),
+        }
+      : undefined
   const series = hasRealizedFallback
     ? [
         {
           ...primarySeries,
           name: 'In-trade DD',
-          data: primaryValues,
+          data: filled.map((point, index) => [point.time, primaryValues[index]]),
           connectNulls: false,
-          markLine:
-            sourceBoundaryIndices.length > 0
-              ? {
-                  silent: true,
-                  symbol: 'none',
-                  z: 8,
-                  label: { show: false },
-                  lineStyle: {
-                    color: chartTheme.drawdownBoundary,
-                    type: 'dashed',
-                    width: 1,
-                  },
-                  data: sourceBoundaryIndices.map((index) => ({ xAxis: index })),
-                }
-              : undefined,
+          markLine: sourceBoundaryMarkLine,
         },
         {
           ...primarySeries,
           name: 'Realized DD fallback',
-          data: fallbackValues,
+          data: filled.map((point, index) => [point.time, fallbackValues[index]]),
           connectNulls: false,
+          markLine: undefined,
+          markPoint: undefined,
           lineStyle: { color: chartTheme.drawdownFallback, width: 2 },
           areaStyle: {
             color: {

@@ -42,33 +42,114 @@ describe('report charts', () => {
     expect(screen.getByTestId('echarts')).toBeInTheDocument()
     const option = echartsSpy.mock.calls[0][0].option as {
       series: Array<{
-        data: number[]
+        data: Array<[number, number]>
         areaStyle: {
           opacity: number
           color: { colorStops: Array<{ offset: number; color: string }> }
         }
+        markPoint?: unknown
       }>
-      xAxis: { axisLabel: { color: string }; nameTextStyle: { color: string } }
+      xAxis: {
+        type: string
+        splitNumber: number
+        name: string
+        axisLabel: {
+          color: string
+          hideOverlap: boolean
+          showMinLabel: boolean
+          showMaxLabel: boolean
+          formatter: (value: number) => string
+        }
+        splitLine: { show: boolean }
+        nameTextStyle: { color: string }
+      }
+      grid: { left: number; right: number; bottom: number; containLabel: boolean }
       yAxis: {
         name: string
         axisLabel: { color: string }
-        splitLine: { lineStyle: { color: string } }
+        splitLine: { showMinLine: boolean; lineStyle: { color: string } }
       }
       tooltip: { formatter: (params: Array<{ dataIndex: number }>) => string }
     }
-    expect(option.series[0].data[0]).toBe(0)
-    expect(option.series[0].data[1]).toBeCloseTo(10)
+    expect(option.series[0].data[0][1]).toBe(0)
+    expect(option.series[0].data[1][1]).toBeCloseTo(10)
     expect(option.series[0].areaStyle.opacity).toBe(0.09)
     expect(option.series[0].areaStyle.color.colorStops).toEqual([
       { offset: 0, color: lightChartTheme.primary },
       { offset: 1, color: 'rgba(0, 0, 0, 0)' },
     ])
     expect(option.xAxis.axisLabel.color).toBe(lightChartTheme.label)
+    expect(option.xAxis).toMatchObject({ type: 'time', splitNumber: 6 })
+    expect(option.xAxis.axisLabel).toMatchObject({
+      hideOverlap: true,
+      showMinLabel: true,
+      showMaxLabel: true,
+    })
+    expect(option.xAxis.axisLabel.formatter(Date.UTC(2024, 0, 1))).toMatch(/24/)
+    expect(option.xAxis.splitLine.show).toBe(false)
+    expect(option.series[0].markPoint).toBeUndefined()
+    expect(option.xAxis.name).toBe('')
+    expect(option.grid).toMatchObject({ left: 64, right: 16, bottom: 44, containLabel: false })
+    expect(option).not.toHaveProperty('height')
     expect(option.xAxis.nameTextStyle.color).toBe(lightChartTheme.label)
     expect(option.yAxis.axisLabel.color).toBe(lightChartTheme.label)
     expect(option.yAxis.splitLine.lineStyle.color).toBe(lightChartTheme.grid)
+    expect(option.yAxis.splitLine.showMinLine).toBe(false)
     expect(option.yAxis.name).toBe('PnL %')
     expect(option.tooltip.formatter([{ dataIndex: 1 }])).toContain('DD: -2.00%')
+  })
+
+  it('uses year labels and silent calendar-month guides for long ranges', () => {
+    renderWithTheme(
+      <EquityChart
+        data={[
+          { time: Date.UTC(2021, 6, 31), value: 1 },
+          { time: Date.UTC(2026, 6, 31), value: 1.5 },
+        ]}
+        scaleMode="percent"
+      />,
+    )
+
+    const option = echartsSpy.mock.calls[0][0].option as {
+      useUTC: boolean
+      xAxis: {
+        axisLabel: { formatter: (value: number) => string }
+        splitLine: { show: boolean }
+      }
+      series: Array<{
+        markPoint: {
+          silent: boolean
+          symbol: string
+          symbolSize: [number, number]
+          symbolOffset: [number, number]
+          label: { show: boolean }
+          tooltip: { show: boolean }
+          itemStyle: { color: string; opacity: number }
+          data: Array<{ coord: [number, number] }>
+        }
+      }>
+    }
+    const guideTimes = option.series[0].markPoint.data.map(({ coord }) => coord[0])
+
+    expect(option.useUTC).toBe(true)
+    expect(option.xAxis.axisLabel.formatter(Date.UTC(2021, 6, 31))).toBe('2021')
+    expect(option.xAxis.axisLabel.formatter(Date.UTC(2024, 0, 1))).toBe('2024')
+    expect(option.xAxis.axisLabel.formatter(Date.UTC(2026, 6, 31))).toBe('')
+    expect(option.xAxis.splitLine.show).toBe(false)
+    expect(option.series[0].markPoint).toMatchObject({
+      silent: true,
+      symbol: 'rect',
+      symbolSize: [1, 5],
+      symbolOffset: [0, 2.5],
+      label: { show: false },
+      tooltip: { show: false },
+      itemStyle: { color: lightChartTheme.axis, opacity: 0.55 },
+    })
+    expect(guideTimes).toHaveLength(55)
+    expect(guideTimes).toContain(Date.UTC(2021, 7, 1))
+    expect(guideTimes).toContain(Date.UTC(2026, 6, 1))
+    expect(guideTimes.every((time) => new Date(time).getUTCMonth() !== 0)).toBe(true)
+    expect(option.series[0].markPoint.data.every(({ coord }) => coord[1] === 0)).toBe(true)
   })
 
   it('anchors log equity to starting capital so small returns keep useful bounds', () => {
@@ -85,15 +166,15 @@ describe('report charts', () => {
     )
 
     const option = echartsSpy.mock.calls[0][0].option as {
-      series: Array<{ data: number[] }>
+      series: Array<{ data: Array<[number, number]> }>
       yAxis: {
         min: number
         max: number
         axisLabel: { formatter: (value: number) => string }
       }
     }
-    expect(option.series[0].data[0]).toBeCloseTo(0)
-    expect(option.series[0].data[1]).toBeCloseTo(Math.log(1.04))
+    expect(option.series[0].data[0][1]).toBeCloseTo(0)
+    expect(option.series[0].data[1][1]).toBeCloseTo(Math.log(1.04))
     expect(option.yAxis.min).toBeGreaterThan(-0.02)
     expect(option.yAxis.max).toBeLessThan(0.06)
     expect(option.yAxis.axisLabel.formatter(0)).toBe('0.0')
@@ -112,11 +193,11 @@ describe('report charts', () => {
     )
 
     const option = echartsSpy.mock.calls[0][0].option as {
-      series: Array<{ data: number[] }>
+      series: Array<{ data: Array<[number, number]> }>
       tooltip: { formatter: (params: Array<{ dataIndex: number }>) => string }
     }
-    expect(option.series[0].data[0]).toBe(0)
-    expect(option.series[0].data[1]).toBeCloseTo(5)
+    expect(option.series[0].data[0][1]).toBe(0)
+    expect(option.series[0].data[1][1]).toBeCloseTo(5)
     expect(option.tooltip.formatter([{ dataIndex: 1 }])).toContain('PnL: 5.0%')
   })
 
@@ -132,7 +213,7 @@ describe('report charts', () => {
 
     const option = echartsSpy.mock.calls[0][0].option as {
       series: Array<{
-        data: number[]
+        data: Array<[number, number]>
         areaStyle: {
           opacity: number
           color: { colorStops: Array<{ offset: number; color: string }> }
@@ -141,7 +222,10 @@ describe('report charts', () => {
       yAxis: { max: number; name: string }
       tooltip: { formatter: (params: Array<{ dataIndex: number }>) => string }
     }
-    expect(option.series[0].data).toEqual([0, -4.25])
+    expect(option.series[0].data).toEqual([
+      [Date.UTC(2024, 0, 1), 0],
+      [Date.UTC(2024, 0, 2), -4.25],
+    ])
     expect(option.series[0].areaStyle.opacity).toBe(0.09)
     expect(option.series[0].areaStyle.color.colorStops).toEqual([
       { offset: 0, color: lightChartTheme.drawdown },
@@ -164,7 +248,7 @@ describe('report charts', () => {
     const option = echartsSpy.mock.calls[0][0].option as {
       series: Array<{
         name: string
-        data: Array<number | null>
+        data: Array<[number, number | null]>
         lineStyle: { color: string }
         areaStyle: { color: { colorStops: Array<{ offset: number; color: string }> } }
         markLine?: {
@@ -175,12 +259,23 @@ describe('report charts', () => {
           lineStyle: { color: string; type: string; width: number }
           data: Array<{ xAxis: number }>
         }
+        markPoint?: unknown
       }>
       tooltip: { formatter: (params: Array<{ dataIndex: number }>) => string }
     }
     expect(option.series).toHaveLength(2)
-    expect(option.series[0].data).toEqual([0, -1, null])
-    expect(option.series[1].data).toEqual([null, -1, -2])
+    expect(option.series[1].markLine).toBeUndefined()
+    expect(option.series[1].markPoint).toBeUndefined()
+    expect(option.series[0].data).toEqual([
+      [points[0].time, 0],
+      [points[1].time, -1],
+      [points[2].time, null],
+    ])
+    expect(option.series[1].data).toEqual([
+      [points[0].time, null],
+      [points[1].time, -1],
+      [points[2].time, -2],
+    ])
     expect(option.series[1].lineStyle.color).toBe(lightChartTheme.drawdownFallback)
     expect(option.series[1].areaStyle.color.colorStops[0].color).toBe(
       lightChartTheme.drawdownFallback,
@@ -195,10 +290,41 @@ describe('report charts', () => {
         type: 'dashed',
         width: 1,
       },
-      data: [{ xAxis: 2 }],
+      data: [{ xAxis: points[2].time }],
     })
     expect(option.tooltip.formatter([{ dataIndex: 2 }])).toContain(
       'Realized DD (candles unavailable for this period)',
     )
+  })
+
+  it('keeps one long-range drawdown-source boundary without monthly ticks', () => {
+    const points = [
+      { time: Date.UTC(2021, 6, 31), value: 0 },
+      { time: Date.UTC(2026, 6, 30), value: -1 },
+      { time: Date.UTC(2026, 6, 31), value: -2 },
+    ]
+
+    renderWithTheme(<DrawdownChart data={points} realizedFallback={[points[2]]} />)
+
+    const option = echartsSpy.mock.calls[0][0].option as {
+      series: Array<{
+        markLine?: {
+          data: Array<{
+            xAxis: number
+            lineStyle?: { color: string; type: string; width: number }
+          }>
+        }
+        markPoint?: { data: Array<{ coord: [number, number] }> }
+      }>
+    }
+    const markLineData = option.series[0].markLine?.data ?? []
+    expect(option.series[0].markPoint).toBeUndefined()
+    expect(markLineData).toEqual([
+      {
+        xAxis: points[2].time,
+      },
+    ])
+    expect(option.series[1].markLine).toBeUndefined()
+    expect(option.series[1].markPoint).toBeUndefined()
   })
 })

@@ -94,7 +94,6 @@ const SleeveSection = ({
               option={buildLineOptions({
                 data: metrics.alphaSeries,
                 chartTheme,
-                height: 140,
                 showAxes: true,
                 paddingRatio: 0.02,
                 axisType: 'category',
@@ -116,7 +115,6 @@ const SleeveSection = ({
               option={buildLineOptions({
                 data: metrics.sharpeSeries,
                 chartTheme,
-                height: 140,
                 showAxes: true,
                 paddingRatio: 0.02,
                 axisType: 'category',
@@ -138,7 +136,6 @@ const SleeveSection = ({
               option={buildLineOptions({
                 data: metrics.winrateSeries,
                 chartTheme,
-                height: 140,
                 showAxes: true,
                 paddingRatio: 0.02,
                 axisType: 'category',

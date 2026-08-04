@@ -53,7 +53,6 @@ const SleeveSectionPrint = ({
             option={buildLineOptions({
               data: metrics.alphaSeries,
               chartTheme,
-              height: 140,
               yAxisName: 'Alpha %',
               yAxisFormatter: (value) => `${value.toFixed(2)}%`,
               yAxisMin: metrics.alphaBounds.min,
@@ -69,7 +68,6 @@ const SleeveSectionPrint = ({
             option={buildLineOptions({
               data: metrics.sharpeSeries,
               chartTheme,
-              height: 140,
               yAxisName: 'Sharpe',
               yAxisMin: metrics.sharpeBounds.min,
               yAxisMax: metrics.sharpeBounds.max,
@@ -85,7 +83,6 @@ const SleeveSectionPrint = ({
             option={buildLineOptions({
               data: metrics.winrateSeries,
               chartTheme,
-              height: 140,
               yAxisName: 'Winrate %',
               yAxisMin: 0,
               yAxisMax: 1,
