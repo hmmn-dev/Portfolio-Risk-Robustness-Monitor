@@ -4,7 +4,8 @@ import { formatAxisDate } from './formatters'
 import { computePadding, ensureStartPoint, fillSeries } from './helpers/chartSeries'
 
 const DAY_MS = 24 * 60 * 60 * 1000
-const YEAR_ONLY_AXIS_MIN_SPAN_MS = 5 * 365 * DAY_MS
+// Preset ranges may begin at the next available observation rather than the exact boundary.
+const YEAR_ONLY_AXIS_MIN_SPAN_MS = (3 * 365 - 14) * DAY_MS
 
 const formatAxisYear = (value: number, firstTime?: number) => {
   if (!Number.isFinite(value) || value <= 0) return ''
@@ -16,20 +17,20 @@ const formatAxisYear = (value: number, firstTime?: number) => {
   return isFirstObservation || isYearBoundary ? String(date.getUTCFullYear()) : ''
 }
 
-const getMonthGuideTimes = (start: number, end: number) => {
+const getCalendarTickValues = (start: number, end: number) => {
   if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) return []
 
   const startDate = new Date(start)
   let cursor = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 1)
-  const guides: number[] = []
+  const ticks = [start]
 
   while (cursor < end) {
     const date = new Date(cursor)
-    if (date.getUTCMonth() !== 0) guides.push(cursor)
+    ticks.push(cursor)
     cursor = Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)
   }
 
-  return guides
+  return ticks
 }
 
 export const buildLineOptions = ({
@@ -101,7 +102,6 @@ export const buildLineOptions = ({
   const gridlineOffset = range > 0 ? (range / 6) * reserveGridlines : 0
   const resolvedYAxisMin = yAxisMin ?? min - padding - minOffset - gridlineOffset
   const resolvedYAxisMax = yAxisMax ?? max + padding
-  const xAxisAnchorValue = resolvedYAxisMin <= 0 && resolvedYAxisMax >= 0 ? 0 : resolvedYAxisMin
   const usesTimeAxis = axisType === 'time'
   const finiteTimes = filled.map((point) => point.time).filter((time) => Number.isFinite(time))
   const firstTime = finiteTimes[0]
@@ -111,13 +111,28 @@ export const buildLineOptions = ({
     firstTime != null &&
     lastTime != null &&
     lastTime - firstTime >= YEAR_ONLY_AXIS_MIN_SPAN_MS
-  const monthGuideTimes =
-    usesYearOnlyLabels && showMonthTicks ? getMonthGuideTimes(firstTime, lastTime) : []
+  const calendarTickValues =
+    usesYearOnlyLabels && firstTime != null && lastTime != null
+      ? getCalendarTickValues(firstTime, lastTime)
+      : []
+  const yearLabelValues = calendarTickValues.filter(
+    (time, index) => index === 0 || new Date(time).getUTCMonth() === 0,
+  )
+  const timeAxisTickValues = showMonthTicks ? calendarTickValues : yearLabelValues
 
   const xAxisCommon = {
     boundaryGap: false,
     axisLine: { show: showAxes, lineStyle: { color: chartTheme.axis } },
-    axisTick: { show: showAxes },
+    axisTick: showAxes
+      ? {
+          show: true,
+          customValues: usesYearOnlyLabels ? timeAxisTickValues : undefined,
+          lineStyle:
+            usesYearOnlyLabels && showMonthTicks
+              ? { color: chartTheme.axis, opacity: 0.6 }
+              : undefined,
+        }
+      : { show: false },
     axisLabel: showAxes
       ? {
           show: true,
@@ -133,6 +148,7 @@ export const buildLineOptions = ({
           margin: 10,
           fontSize: 11,
           opacity: 1,
+          customValues: usesYearOnlyLabels ? yearLabelValues : undefined,
         }
       : { show: false },
     splitLine: { show: false },
@@ -220,19 +236,6 @@ export const buildLineOptions = ({
               opacity: areaOpacity,
             }
           : undefined,
-        markPoint:
-          monthGuideTimes.length > 0
-            ? {
-                silent: true,
-                symbol: 'rect',
-                symbolSize: [1, 5],
-                symbolOffset: [0, 2.5],
-                label: { show: false },
-                tooltip: { show: false },
-                itemStyle: { color: chartTheme.axis, opacity: 0.55 },
-                data: monthGuideTimes.map((time) => ({ coord: [time, xAxisAnchorValue] })),
-              }
-            : undefined,
       },
     ],
     tooltip: { show: false },
@@ -324,7 +327,6 @@ export const buildDrawdownOptions = ({
           data: filled.map((point, index) => [point.time, fallbackValues[index]]),
           connectNulls: false,
           markLine: undefined,
-          markPoint: undefined,
           lineStyle: { color: chartTheme.drawdownFallback, width: 2 },
           areaStyle: {
             color: {
