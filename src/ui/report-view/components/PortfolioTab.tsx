@@ -43,11 +43,13 @@ const PortfolioTab = ({ viewModel }: PortfolioTabProps) => {
       <PortfolioToolbar
         enabledCount={composition.enabledCount}
         totalSleeves={composition.totalSleeves}
+        customPortfolio={composition.isModified}
         modifiedWeightCount={composition.modifiedWeightCount}
         hasMtmDrawdown={analytics.mtmAvailable}
         drawdownMode={analytics.effectiveDrawdownMode}
         pnlScaleMode={pnlScaleMode}
         onOpenComposition={composition.dialog.openDialog}
+        onResetToBaseline={onResetComposition}
         onDrawdownModeChange={onDrawdownModeChange}
         onPnlScaleModeChange={onPnlScaleModeChange}
       />

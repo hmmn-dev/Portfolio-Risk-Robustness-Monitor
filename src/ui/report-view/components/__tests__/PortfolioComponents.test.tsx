@@ -72,6 +72,7 @@ describe('portfolio presentation components', () => {
   it('forwards toolbar commands and exposes the modified portfolio state', async () => {
     const user = userEvent.setup()
     const onOpenComposition = vi.fn()
+    const onResetToBaseline = vi.fn()
     const onDrawdownModeChange = vi.fn()
     const onPnlScaleModeChange = vi.fn()
 
@@ -79,11 +80,13 @@ describe('portfolio presentation components', () => {
       <PortfolioToolbar
         enabledCount={1}
         totalSleeves={2}
+        customPortfolio
         modifiedWeightCount={1}
         hasMtmDrawdown
         drawdownMode="deal"
         pnlScaleMode="linear"
         onOpenComposition={onOpenComposition}
+        onResetToBaseline={onResetToBaseline}
         onDrawdownModeChange={onDrawdownModeChange}
         onPnlScaleModeChange={onPnlScaleModeChange}
       />,
@@ -94,10 +97,12 @@ describe('portfolio presentation components', () => {
     expect(screen.getByRole('button', { name: 'In-Trade' })).toBeEnabled()
 
     await user.click(screen.getByRole('button', { name: 'Change portfolio composition' }))
+    await user.click(screen.getByRole('button', { name: 'Reset to baseline' }))
     await user.click(screen.getByRole('button', { name: 'In-Trade' }))
     await user.click(screen.getByRole('button', { name: 'Log' }))
 
     expect(onOpenComposition).toHaveBeenCalledOnce()
+    expect(onResetToBaseline).toHaveBeenCalledOnce()
     expect(onDrawdownModeChange).toHaveBeenCalledWith('mtm')
     expect(onPnlScaleModeChange).toHaveBeenCalledWith('log')
   })

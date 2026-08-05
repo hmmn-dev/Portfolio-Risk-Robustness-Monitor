@@ -68,6 +68,7 @@ describe('PortfolioTab', () => {
     renderWithTheme(<PortfolioTabHarness value={value} />)
 
     expect(screen.getByText('2 out of 2 sleeves selected')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reset to baseline' })).not.toBeInTheDocument()
     expect(screen.getByText('Portfolio equity')).toBeInTheDocument()
     expect(screen.getByText('Portfolio monthly returns')).toBeInTheDocument()
     expect(screen.getByText('Portfolio summary')).toBeInTheDocument()
@@ -136,6 +137,13 @@ describe('PortfolioTab', () => {
     expect(
       screen.getByText(/Results use the selected sleeve series and weights/),
     ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Reset to baseline' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('2 out of 2 sleeves selected')).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: 'Reset to baseline' })).not.toBeInTheDocument()
   })
 
   it('keeps composition draft edits from rerendering the portfolio charts', async () => {

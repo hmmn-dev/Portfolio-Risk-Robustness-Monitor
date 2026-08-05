@@ -14,11 +14,13 @@ import type { DrawdownMode } from '../../reportAnalytics'
 type PortfolioToolbarProps = {
   enabledCount: number
   totalSleeves: number
+  customPortfolio: boolean
   modifiedWeightCount: number
   hasMtmDrawdown: boolean
   drawdownMode: DrawdownMode
   pnlScaleMode: 'linear' | 'log'
   onOpenComposition: () => void
+  onResetToBaseline: () => void
   onDrawdownModeChange: (mode: DrawdownMode) => void
   onPnlScaleModeChange: (mode: 'linear' | 'log') => void
 }
@@ -26,11 +28,13 @@ type PortfolioToolbarProps = {
 const PortfolioToolbar = ({
   enabledCount,
   totalSleeves,
+  customPortfolio,
   modifiedWeightCount,
   hasMtmDrawdown,
   drawdownMode,
   pnlScaleMode,
   onOpenComposition,
+  onResetToBaseline,
   onDrawdownModeChange,
   onPnlScaleModeChange,
 }: PortfolioToolbarProps) => (
@@ -40,14 +44,24 @@ const PortfolioToolbar = ({
     alignItems={{ sm: 'center' }}
     justifyContent="space-between"
   >
-    <Stack direction="row" spacing={1} alignItems="center">
+    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
       <Button variant="outlined" size="small" onClick={onOpenComposition}>
         Change portfolio composition
       </Button>
-      <Stack direction="row" spacing={1} alignItems="center">
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
         <Typography variant="caption" color="text.secondary">
           {enabledCount} out of {totalSleeves} sleeves selected
         </Typography>
+        {customPortfolio && (
+          <Button
+            variant="text"
+            size="small"
+            onClick={onResetToBaseline}
+            sx={{ minWidth: 'auto', px: 0.5, py: 0.25 }}
+          >
+            Reset to baseline
+          </Button>
+        )}
         {modifiedWeightCount > 0 && (
           <Chip
             size="small"
