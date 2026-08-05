@@ -23,7 +23,7 @@ describe('AppShell', () => {
       'src',
       expect.stringContaining('brand-mark'),
     )
-    expect(screen.getByText('Portfolio Monitoring Report')).toBeInTheDocument()
+    expect(screen.getByText('Portfolio Monitoring Tool')).toBeInTheDocument()
     expect(screen.getByRole('main')).toHaveTextContent('Page content')
   })
 

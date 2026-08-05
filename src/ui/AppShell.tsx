@@ -60,7 +60,7 @@ const AppShell = ({ children }: AppShellProps) => {
               height: { xs: 30, md: 32 },
             }}
           />
-          <Typography variant="h6">Portfolio Monitoring Report</Typography>
+          <Typography variant="h6">Portfolio Monitoring Tool</Typography>
           <Box sx={{ flexGrow: 1 }} />
           <IconButton color="inherit" onClick={toggleColorMode} aria-label="Toggle color mode">
             {colorMode === 'light' ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}

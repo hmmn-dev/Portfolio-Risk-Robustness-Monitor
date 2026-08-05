@@ -14,7 +14,7 @@ describe('PDF primitives', () => {
       </PdfPage>,
     )
 
-    expect(screen.getByText('Portfolio Monitoring Report')).toBeInTheDocument()
+    expect(screen.getByText('Portfolio Monitoring Tool')).toBeInTheDocument()
     expect(screen.getByText('Risk report')).toBeInTheDocument()
     expect(screen.getByText('Page body')).toBeInTheDocument()
     expect(container.querySelector('[data-pdf-page]')).toBeInTheDocument()

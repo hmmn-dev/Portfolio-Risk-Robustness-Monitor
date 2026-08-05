@@ -82,7 +82,7 @@ describe('ReportView', () => {
 
     expect(screen.getByRole('dialog', { name: 'Generate PDF report' })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Portfolio name' })).toHaveValue(
-      'Portfolio Monitoring Report',
+      'Portfolio Monitoring Tool',
     )
     expect(screen.getByRole('switch', { name: 'Obfuscate sleeve and symbol names' })).toBeChecked()
 

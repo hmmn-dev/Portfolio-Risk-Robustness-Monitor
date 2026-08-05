@@ -28,7 +28,7 @@ const PdfPage = ({
   >
     <Stack spacing={2}>
       <Box>
-        <Typography variant="h5">{pdfName || 'Portfolio Monitoring Report'}</Typography>
+        <Typography variant="h5">{pdfName || 'Portfolio Monitoring Tool'}</Typography>
         <Typography variant="subtitle2" color="text.secondary">
           {title}
         </Typography>

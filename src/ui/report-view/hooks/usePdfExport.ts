@@ -17,7 +17,7 @@ export const sanitizePdfName = (name: string) => {
 
 export const usePdfExport = (enabled: boolean) => {
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [name, setName] = useState('Portfolio Monitoring Report')
+  const [name, setName] = useState('Portfolio Monitoring Tool')
   const [orientation, setOrientation] = useState<PdfOrientation>('landscape')
   const [obfuscate, setObfuscate] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
