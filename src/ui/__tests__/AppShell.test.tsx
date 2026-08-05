@@ -19,10 +19,7 @@ describe('AppShell', () => {
       </AppShell>,
     )
 
-    expect(screen.getByAltText('Portfolio Monitoring logo')).toHaveAttribute(
-      'src',
-      expect.stringContaining('brand-mark'),
-    )
+    expect(screen.getByAltText('Portfolio Monitoring logo')).toHaveAttribute('src', '/logo.png')
     expect(screen.getByText('Portfolio Monitoring Tool')).toBeInTheDocument()
     expect(screen.getByRole('main')).toHaveTextContent('Page content')
   })

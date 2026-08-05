@@ -12,7 +12,8 @@ import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { useUIStore } from '../store/ui'
-import appLogo from '../assets/brand-mark.png'
+
+const appLogo = `${import.meta.env.BASE_URL}logo.png`
 
 type AppShellProps = {
   children: ReactNode
