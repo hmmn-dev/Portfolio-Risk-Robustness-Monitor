@@ -1,5 +1,5 @@
 import { Stack, useTheme } from '@mui/material'
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useReportStore } from '../../store/report'
 import { useUnderlyingStore } from '../../store/underlying'
 import { useWizardStore } from '../../store/wizard'
@@ -15,6 +15,7 @@ import ReportViewProvider from './components/ReportViewProvider'
 import { useMarDegradation } from './hooks/useMarDegradation'
 import { usePdfExport } from './hooks/usePdfExport'
 import { useReportAnalytics } from './hooks/useReportAnalytics'
+import type { AppliedPortfolioComposition } from './hooks/usePortfolioComposition'
 import { METRIC_WINDOW, type DrawdownMode } from './reportAnalytics'
 import { REPORT_PRINT_THEME } from './printTheme'
 import {
@@ -54,6 +55,9 @@ const ReportView = () => {
     hasMtmDrawdown ? 'mtm' : 'deal',
   )
   const [pnlScaleMode, setPnlScaleMode] = useState<'linear' | 'log'>('linear')
+  const [appliedComposition, setAppliedComposition] = useState<AppliedPortfolioComposition | null>(
+    null,
+  )
   const [isSleevePending, startSleeveTransition] = useTransition()
   const pdf = usePdfExport(Boolean(report))
   const pdfPageWidth = pdf.orientation === 'landscape' ? 1120 : 840
@@ -82,6 +86,10 @@ const ReportView = () => {
   })
   const performanceColumns = useMemo(() => createPerformanceColumns(theme), [theme])
   const riskColumns = useMemo(() => createRiskColumns(theme), [theme])
+  const handleApplyComposition = useCallback((composition: AppliedPortfolioComposition) => {
+    setAppliedComposition(composition)
+  }, [])
+  const handleResetComposition = useCallback(() => setAppliedComposition(null), [])
 
   useEffect(() => {
     const root = document.documentElement
@@ -143,6 +151,9 @@ const ReportView = () => {
     portfolio: {
       report,
       deals,
+      appliedComposition,
+      onApplyComposition: handleApplyComposition,
+      onResetComposition: handleResetComposition,
       baseCapital: analytics.baseCapital,
       drawdownMode,
       onDrawdownModeChange: setDrawdownMode,

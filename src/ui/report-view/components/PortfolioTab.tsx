@@ -1,8 +1,5 @@
 import { Stack, useTheme } from '@mui/material'
-import { useCallback, useMemo, useState, useTransition } from 'react'
-import { ALL_CHART_RANGE, type ChartRangeSelection } from '../helpers/chartRange'
-import { getPortfolioSleeveLabels, usePortfolioComposition } from '../hooks/usePortfolioComposition'
-import { usePortfolioAnalytics } from '../hooks/usePortfolioAnalytics'
+import type { PortfolioViewModel } from '../hooks/usePortfolioViewModel'
 import MonthlyReturnsTable from './portfolio/MonthlyReturnsTable'
 import PortfolioAnalyticsFrame from './portfolio/PortfolioAnalyticsFrame'
 import PortfolioChartsPanel from './portfolio/PortfolioChartsPanel'
@@ -13,80 +10,33 @@ import PortfolioToolbar from './portfolio/PortfolioToolbar'
 import PortfolioRegressionSummary from './portfolio/summary/PortfolioRegressionSummary'
 import { useReportPortfolio } from './ReportViewContext'
 
-const PortfolioTabContent = () => {
+type PortfolioTabProps = {
+  viewModel: PortfolioViewModel
+}
+
+const PortfolioTab = ({ viewModel }: PortfolioTabProps) => {
   const theme = useTheme()
   const {
-    report,
-    deals,
     baseCapital,
-    drawdownMode,
     onDrawdownModeChange,
     pnlScaleMode,
     onPnlScaleModeChange,
-    portfolioDrawdown,
-    portfolioDrawdownFallback,
-    portfolioDrawdownSource,
     showCorrNumbers,
     onShowCorrNumbersChange,
-    correlationMatrix,
     correlationLegend,
     cellSize,
-    portfolioSummary,
     riskRows,
-    underlyingSeries,
   } = useReportPortfolio()
-  const sleeveLabels = useMemo(() => getPortfolioSleeveLabels(report), [report])
-  const composition = usePortfolioComposition(sleeveLabels)
   const {
-    apply: applyComposition,
-    close: closeCompositionDialog,
-    resetToBaseline: resetCompositionToBaseline,
-  } = composition.dialog
-  const [chartRangeSelection, setChartRangeSelection] =
-    useState<ChartRangeSelection>(ALL_CHART_RANGE)
-  const [analyticsRangeSelection, setAnalyticsRangeSelection] =
-    useState<ChartRangeSelection>(ALL_CHART_RANGE)
-  const [isRefreshing, startAnalyticsTransition] = useTransition()
-  const handleRangeSelectionChange = useCallback(
-    (selection: ChartRangeSelection) => {
-      setChartRangeSelection(selection)
-      startAnalyticsTransition(() => {
-        setAnalyticsRangeSelection(selection)
-      })
-    },
-    [startAnalyticsTransition],
-  )
-  const handleApplyComposition = useCallback(
-    (nextSleeves: ReadonlySet<string>, nextWeights: Record<string, number>) => {
-      closeCompositionDialog()
-      startAnalyticsTransition(() => {
-        applyComposition(nextSleeves, nextWeights)
-      })
-    },
-    [applyComposition, closeCompositionDialog, startAnalyticsTransition],
-  )
-  const handleResetComposition = useCallback(() => {
-    startAnalyticsTransition(() => {
-      resetCompositionToBaseline()
-    })
-  }, [resetCompositionToBaseline, startAnalyticsTransition])
-  const analytics = usePortfolioAnalytics({
-    report,
-    deals,
-    baseCapital,
-    drawdownMode,
-    portfolioDrawdown,
-    portfolioDrawdownFallback,
-    portfolioDrawdownSource,
-    portfolioSummary,
-    correlationMatrix,
-    underlyingSeries,
-    enabledSleeves: composition.enabledSleeves,
-    sleeveWeights: composition.sleeveWeights,
-    isFiltered: composition.isFiltered,
-    hasCustomWeights: composition.hasCustomWeights,
-    rangeSelection: analyticsRangeSelection,
-  })
+    analytics,
+    composition,
+    sleeveLabels,
+    chartRangeSelection,
+    isRefreshing,
+    onRangeSelectionChange,
+    onApplyComposition,
+    onResetComposition,
+  } = viewModel
 
   return (
     <Stack spacing={2}>
@@ -110,7 +60,7 @@ const PortfolioTabContent = () => {
           pnlScaleMode={pnlScaleMode}
           baseCapital={baseCapital}
           rangeSelection={chartRangeSelection}
-          onRangeSelectionChange={handleRangeSelectionChange}
+          onRangeSelectionChange={onRangeSelectionChange}
         />
         <PortfolioSummaryPanel
           summary={analytics.effectiveSummary}
@@ -139,19 +89,13 @@ const PortfolioTabContent = () => {
           enabledSleeves={composition.enabledSleeves}
           sleeveWeights={composition.sleeveWeights}
           modified={composition.isModified}
-          onClose={closeCompositionDialog}
-          onResetToBaseline={handleResetComposition}
-          onApply={handleApplyComposition}
+          onClose={composition.dialog.close}
+          onResetToBaseline={onResetComposition}
+          onApply={onApplyComposition}
         />
       )}
     </Stack>
   )
-}
-
-const PortfolioTab = () => {
-  const { report } = useReportPortfolio()
-  const sleeveKey = getPortfolioSleeveLabels(report).join('||')
-  return <PortfolioTabContent key={sleeveKey} />
 }
 
 export default PortfolioTab

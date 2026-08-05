@@ -2,10 +2,14 @@
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
 import { renderWithTheme } from '../../../../test/render'
+import type { AppliedPortfolioComposition } from '../../hooks/usePortfolioComposition'
+import { usePortfolioViewModel } from '../../hooks/usePortfolioViewModel'
 import PortfolioTab from '../PortfolioTab'
+import type { ReportViewContextValues } from '../ReportViewContext'
 import ReportViewProvider from '../ReportViewProvider'
 
 const chartRenderSpies = vi.hoisted(() => ({
@@ -24,6 +28,28 @@ vi.mock('../../charts', () => ({
   },
 }))
 
+const PortfolioTabHarness = ({ value }: { value: ReportViewContextValues }) => {
+  const viewModel = usePortfolioViewModel(value.portfolio)
+  return (
+    <ReportViewProvider value={value}>
+      <PortfolioTab viewModel={viewModel} />
+    </ReportViewProvider>
+  )
+}
+
+const StatefulPortfolioTab = () => {
+  const [appliedComposition, setAppliedComposition] = useState<AppliedPortfolioComposition | null>(
+    null,
+  )
+  const value = createReportContext({
+    appliedComposition,
+    onApplyComposition: setAppliedComposition,
+    onResetComposition: () => setAppliedComposition(null),
+  })
+
+  return <PortfolioTabHarness value={value} />
+}
+
 describe('PortfolioTab', () => {
   beforeEach(() => {
     chartRenderSpies.equity.mockClear()
@@ -39,11 +65,7 @@ describe('PortfolioTab', () => {
       onShowCorrNumbersChange,
     })
 
-    renderWithTheme(
-      <ReportViewProvider value={value}>
-        <PortfolioTab />
-      </ReportViewProvider>,
-    )
+    renderWithTheme(<PortfolioTabHarness value={value} />)
 
     expect(screen.getByText('2 out of 2 sleeves selected')).toBeInTheDocument()
     expect(screen.getByText('Portfolio equity')).toBeInTheDocument()
@@ -86,9 +108,7 @@ describe('PortfolioTab', () => {
     }
 
     renderWithTheme(
-      <ReportViewProvider value={createReportContext({ riskRows: [healthy, insufficient] })}>
-        <PortfolioTab />
-      </ReportViewProvider>,
+      <PortfolioTabHarness value={createReportContext({ riskRows: [healthy, insufficient] })} />,
     )
 
     const health = screen.getByRole('region', { name: 'Portfolio health' })
@@ -102,11 +122,7 @@ describe('PortfolioTab', () => {
 
   it('supports filtering the portfolio composition', async () => {
     const user = userEvent.setup()
-    renderWithTheme(
-      <ReportViewProvider value={createReportContext()}>
-        <PortfolioTab />
-      </ReportViewProvider>,
-    )
+    renderWithTheme(<StatefulPortfolioTab />)
 
     await user.click(screen.getByRole('button', { name: 'Change portfolio composition' }))
     const dialog = screen.getByRole('dialog', { name: 'Change portfolio composition' })
@@ -124,11 +140,7 @@ describe('PortfolioTab', () => {
 
   it('keeps composition draft edits from rerendering the portfolio charts', async () => {
     const user = userEvent.setup()
-    renderWithTheme(
-      <ReportViewProvider value={createReportContext()}>
-        <PortfolioTab />
-      </ReportViewProvider>,
-    )
+    renderWithTheme(<PortfolioTabHarness value={createReportContext()} />)
 
     const equityRendersBeforeOpening = chartRenderSpies.equity.mock.calls.length
     const drawdownRendersBeforeOpening = chartRenderSpies.drawdown.mock.calls.length
@@ -156,11 +168,7 @@ describe('PortfolioTab', () => {
   })
 
   it('applies custom chart dates to the portfolio analytics sections', async () => {
-    renderWithTheme(
-      <ReportViewProvider value={createReportContext()}>
-        <PortfolioTab />
-      </ReportViewProvider>,
-    )
+    renderWithTheme(<PortfolioTabHarness value={createReportContext()} />)
 
     const summary = screen.getByRole('region', { name: 'Portfolio summary' })
     const tradingDaysCell = within(summary).getByText('Trading days').parentElement?.parentElement

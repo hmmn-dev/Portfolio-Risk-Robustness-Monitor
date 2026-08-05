@@ -10,11 +10,34 @@ import {
 export const getPortfolioSleeveLabels = (report: ReportModel) =>
   sortSleeves(new Set(report.contributions.map((item) => item.sleeve)))
 
-export const usePortfolioComposition = (sleeveLabels: string[]) => {
-  const [enabledSleeves, setEnabledSleeves] = useState<Set<string>>(() => new Set(sleeveLabels))
+export type AppliedPortfolioComposition = {
+  sleeveLabels: string[]
+  enabledSleeves: Set<string>
+  sleeveWeights: Record<string, number>
+}
+
+type PortfolioCompositionOwner = {
+  appliedComposition: AppliedPortfolioComposition | null
+  onApplyComposition: (composition: AppliedPortfolioComposition) => void
+  onResetComposition: () => void
+}
+
+export const usePortfolioComposition = (
+  sleeveLabels: string[],
+  { appliedComposition, onApplyComposition, onResetComposition }: PortfolioCompositionOwner,
+) => {
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [sleeveWeights, setSleeveWeights] = useState<Record<string, number>>(() =>
-    buildDefaultWeights(sleeveLabels),
+  const currentComposition =
+    appliedComposition && areSortedSleevesEqual(appliedComposition.sleeveLabels, sleeveLabels)
+      ? appliedComposition
+      : null
+  const enabledSleeves = useMemo(
+    () => currentComposition?.enabledSleeves ?? new Set(sleeveLabels),
+    [currentComposition, sleeveLabels],
+  )
+  const sleeveWeights = useMemo(
+    () => currentComposition?.sleeveWeights ?? buildDefaultWeights(sleeveLabels),
+    [currentComposition, sleeveLabels],
   )
 
   const sortedEnabledSleeves = useMemo(() => sortSleeves(enabledSleeves), [enabledSleeves])
@@ -30,23 +53,25 @@ export const usePortfolioComposition = (sleeveLabels: string[]) => {
   const apply = useCallback(
     (nextSleeves: ReadonlySet<string>, nextWeights: Record<string, number>) => {
       if (nextSleeves.size === 0) return
-      setEnabledSleeves(new Set(nextSleeves))
-      setSleeveWeights({ ...nextWeights })
+      onApplyComposition({
+        sleeveLabels: [...sleeveLabels],
+        enabledSleeves: new Set(nextSleeves),
+        sleeveWeights: Object.fromEntries(
+          sleeveLabels.map((label) => [label, nextWeights[label] ?? 1]),
+        ),
+      })
     },
-    [],
+    [onApplyComposition, sleeveLabels],
   )
 
-  const resetToBaseline = useCallback(() => {
-    setEnabledSleeves(new Set(sleeveLabels))
-    setSleeveWeights(buildDefaultWeights(sleeveLabels))
-  }, [sleeveLabels])
+  const resetToBaseline = useCallback(() => onResetComposition(), [onResetComposition])
 
   return {
     enabledSleeves,
     sleeveWeights,
     enabledCount: enabledSleeves.size,
     totalSleeves: sleeveLabels.length,
-    isFiltered: enabledSleeves.size !== sleeveLabels.length,
+    isFiltered: compositionChanged,
     hasCustomWeights: weightsChanged,
     isModified: compositionChanged || weightsChanged,
     modifiedWeightCount,

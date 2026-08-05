@@ -3,6 +3,7 @@ import { createContext, useContext } from 'react'
 import type { DealRow, ReportModel, UnderlyingSeries } from '../../../engine/types'
 import type { ReportTab } from '../types'
 import type { CorrelationMatrix, PerformanceRow, PortfolioSummary, RiskRow } from '../types'
+import type { AppliedPortfolioComposition } from '../hooks/usePortfolioComposition'
 import type { PdfColumn } from './PdfTable'
 import type { SleeveMetrics } from './SleeveSection'
 
@@ -50,6 +51,9 @@ export type ReportSleevesContextValue = SharedChartState & {
 export type ReportPortfolioContextValue = SharedChartState & {
   report: ReportModel
   deals: DealRow[] | null
+  appliedComposition: AppliedPortfolioComposition | null
+  onApplyComposition: (composition: AppliedPortfolioComposition) => void
+  onResetComposition: () => void
   portfolioDrawdown: ReportModel['portfolio']['drawdown']
   portfolioDrawdownFallback: ReportModel['portfolio']['drawdown']
   portfolioDrawdownSource?: ReportModel['portfolio']['drawdownSource']
