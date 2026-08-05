@@ -174,6 +174,7 @@ export const DrawdownChart = ({
   const chartTheme = getReportChartTheme(theme)
   return (
     <ReactECharts
+      replaceMerge="series"
       option={buildDrawdownOptions({
         data,
         realizedFallback,

@@ -272,12 +272,13 @@ export const buildDrawdownOptions = ({
   )
 
   if (hasRealizedFallback) {
-    fallbackValues.forEach((value, index) => {
+    const fallbackBoundarySource = [...fallbackValues]
+    fallbackBoundarySource.forEach((value, index) => {
       if (value == null) return
-      if (index > 0 && fallbackValues[index - 1] == null) {
+      if (index > 0 && fallbackBoundarySource[index - 1] == null) {
         fallbackValues[index - 1] = filled[index - 1].value
       }
-      if (index < fallbackValues.length - 1 && fallbackValues[index + 1] == null) {
+      if (index < fallbackBoundarySource.length - 1 && fallbackBoundarySource[index + 1] == null) {
         fallbackValues[index + 1] = filled[index + 1].value
       }
     })

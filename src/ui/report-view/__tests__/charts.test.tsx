@@ -286,6 +286,32 @@ describe('report charts', () => {
     expect(option.tooltip.formatter([{ dataIndex: 2 }])).toContain(
       'Realized DD (candles unavailable for this period)',
     )
+    expect(echartsSpy.mock.calls[0][0].replaceMerge).toBe('series')
+  })
+
+  it('does not propagate an initial realized fallback across MTM candle coverage', () => {
+    const points = [0, -1, -2, -3].map((value, index) => ({
+      time: Date.UTC(2024, 0, index + 1),
+      value,
+    }))
+
+    renderWithTheme(<DrawdownChart data={points} realizedFallback={[points[0]]} />)
+
+    const option = echartsSpy.mock.calls[0][0].option as {
+      series: Array<{ data: Array<[number, number | null]> }>
+    }
+    expect(option.series[0].data).toEqual([
+      [points[0].time, null],
+      [points[1].time, -1],
+      [points[2].time, -2],
+      [points[3].time, -3],
+    ])
+    expect(option.series[1].data).toEqual([
+      [points[0].time, 0],
+      [points[1].time, -1],
+      [points[2].time, null],
+      [points[3].time, null],
+    ])
   })
 
   it('keeps one long-range drawdown-source boundary without monthly ticks', () => {

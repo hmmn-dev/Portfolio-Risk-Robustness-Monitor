@@ -143,24 +143,26 @@ describe('usePortfolioAnalytics', () => {
     ]
     const report = buildPortfolioReport(deals, { initialCapital: 1000, underlyingSeries })
 
-    const { result } = renderHook(() =>
-      usePortfolioAnalytics({
-        report,
-        deals,
-        baseCapital: 1000,
-        drawdownMode: 'mtm',
-        portfolioDrawdown: report.portfolio.drawdown,
-        portfolioDrawdownFallback: [],
-        portfolioDrawdownSource: report.portfolio.drawdownMtmSource,
-        portfolioSummary: null,
-        correlationMatrix: { labels: [], values: [] },
-        underlyingSeries,
-        enabledSleeves: new Set(['Alpha - EURUSD']),
-        sleeveWeights: { 'Alpha - EURUSD': 2 },
-        isFiltered: false,
-        hasCustomWeights: true,
-        rangeSelection: ALL_CHART_RANGE,
-      }),
+    const { result, rerender } = renderHook(
+      ({ drawdownMode }: { drawdownMode: 'deal' | 'mtm' }) =>
+        usePortfolioAnalytics({
+          report,
+          deals,
+          baseCapital: 1000,
+          drawdownMode,
+          portfolioDrawdown: report.portfolio.drawdown,
+          portfolioDrawdownFallback: [],
+          portfolioDrawdownSource: report.portfolio.drawdownMtmSource,
+          portfolioSummary: null,
+          correlationMatrix: { labels: [], values: [] },
+          underlyingSeries,
+          enabledSleeves: new Set(['Alpha - EURUSD']),
+          sleeveWeights: { 'Alpha - EURUSD': 2 },
+          isFiltered: false,
+          hasCustomWeights: true,
+          rangeSelection: ALL_CHART_RANGE,
+        }),
+      { initialProps: { drawdownMode: 'mtm' as 'deal' | 'mtm' } },
     )
 
     expect(result.current.effectiveDrawdownMode).toBe('mtm')
@@ -172,5 +174,11 @@ describe('usePortfolioAnalytics', () => {
     expect(result.current.chartDrawdownFallback).toEqual([
       { time: day(2), value: expect.closeTo(-2) },
     ])
+
+    rerender({ drawdownMode: 'deal' })
+
+    expect(result.current.effectiveDrawdownMode).toBe('deal')
+    expect(result.current.chartDrawdownFallback).toEqual([])
+    expect(result.current.chartDrawdown.at(-1)?.value).toBeCloseTo(-2)
   })
 })
