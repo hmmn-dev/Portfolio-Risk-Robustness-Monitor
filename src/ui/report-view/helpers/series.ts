@@ -55,6 +55,11 @@ export const getLastFinite = (values: number[]) => {
   return Number.NaN
 }
 
+export const getCurrentFinite = (values: number[]) => {
+  const value = values[values.length - 1]
+  return Number.isFinite(value) ? value : Number.NaN
+}
+
 export const computeSharpe = (values: number[]) => {
   const finite = values.filter((value) => Number.isFinite(value))
   if (finite.length === 0) return Number.NaN

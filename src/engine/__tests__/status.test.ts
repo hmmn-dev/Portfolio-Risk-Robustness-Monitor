@@ -1,20 +1,42 @@
 import { describe, expect, it } from 'vitest'
-import { computeAlphaPercentiles, computeStatus } from '../status'
 import type { ShockFlag } from '../ddShock'
+import {
+  DECAY_STATUS_POLICY,
+  computeAlphaPercentiles,
+  computeStatus,
+  type AlphaEvidenceInput,
+} from '../status'
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const reportTime = Date.UTC(2026, 6, 31)
+
+const alphaEvidence = (overrides: Partial<AlphaEvidenceInput> = {}): AlphaEvidenceInput => ({
+  source: 'PORTFOLIO',
+  alignedObservations: 504,
+  requiredAlignedObservations: 403,
+  activeObservations: 30,
+  requiredActiveObservations: 30,
+  reportTime,
+  lastValidTime: reportTime,
+  ...overrides,
+})
+
+const strongAlpha = Array.from({ length: 40 }, (_, index) => index + 1)
 
 const statusInputs = (
   overrides: Partial<{
     alphaSeries: number[]
+    alphaEvidence: AlphaEvidenceInput
     winrateSeries: number[]
     last1YSharpe: number | null
     last2YSharpe: number | null
     overallSharpe: number | null
     last2YWinrate: number | null
     shock: ShockFlag
-    weakWindowDays: number
   }> = {},
 ) => ({
-  alphaSeries: [1, 2],
+  alphaSeries: strongAlpha,
+  alphaEvidence: alphaEvidence(),
   winrateSeries: [0.4, 0.6],
   last1YSharpe: 0.8,
   last2YSharpe: 0.8,
@@ -40,8 +62,13 @@ describe('computeAlphaPercentiles', () => {
 })
 
 describe('computeStatus', () => {
-  it('returns green for strong alpha percentile and two-year Sharpe', () => {
-    expect(computeStatus(statusInputs()).status).toBe('GREEN')
+  it('returns green for current supported alpha without confirmed decay', () => {
+    const result = computeStatus(statusInputs())
+
+    expect(result.status).toBe('GREEN')
+    expect(result.alphaPercentile).toBe(100)
+    expect(result.alphaEvidence.state).toBe('CURRENT')
+    expect(result.reasons).toEqual(['NO_CONFIRMED_DECAY'])
   })
 
   it('uses red conditions before otherwise green conditions', () => {
@@ -49,49 +76,103 @@ describe('computeStatus', () => {
     expect(computeStatus(statusInputs({ overallSharpe: -0.01 })).status).toBe('RED')
   })
 
-  it('returns yellow for medium alpha or a negative one-year Sharpe', () => {
-    const mediumAlpha = computeStatus(
-      statusInputs({ alphaSeries: [2, 3, 4, 1], last2YSharpe: 0.8 }),
-    )
-    const weakRecentSharpe = computeStatus(statusInputs({ last1YSharpe: -0.01 }))
+  it('keeps real warnings yellow when alpha evidence is unavailable', () => {
+    const unavailableAlpha = [...strongAlpha, Number.NaN]
+    const evidence = alphaEvidence({
+      activeObservations: 29,
+      lastValidTime: reportTime - DAY_MS,
+    })
 
-    expect(mediumAlpha.alphaPercentile).toBe(25)
-    expect(mediumAlpha.status).toBe('YELLOW')
-    expect(weakRecentSharpe.status).toBe('YELLOW')
-  })
-
-  it('downgrades an otherwise green result for an orange drawdown shock', () => {
-    const result = computeStatus(statusInputs({ shock: 'ORANGE' }))
-
-    expect(result.status).toBe('YELLOW')
-    expect(result.shock).toBe('ORANGE')
-  })
-
-  it('counts the trailing weak-alpha streak and caps it to the configured window', () => {
-    const alphaSeries = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 2, 1]
-
-    expect(computeStatus(statusInputs({ alphaSeries })).alphaWeakStreakDays).toBe(2)
     expect(
-      computeStatus(statusInputs({ alphaSeries, weakWindowDays: 1 })).alphaWeakStreakDays,
-    ).toBe(1)
+      computeStatus(
+        statusInputs({
+          alphaSeries: unavailableAlpha,
+          alphaEvidence: evidence,
+          last1YSharpe: -0.01,
+        }),
+      ).status,
+    ).toBe('YELLOW')
+    expect(
+      computeStatus(
+        statusInputs({
+          alphaSeries: unavailableAlpha,
+          alphaEvidence: evidence,
+          shock: 'ORANGE',
+        }),
+      ).status,
+    ).toBe('YELLOW')
   })
 
-  it('normalizes non-finite summary metrics to null', () => {
+  it('returns unknown instead of yellow for missing or stale alpha alone', () => {
     const result = computeStatus(
       statusInputs({
-        alphaSeries: [Number.NaN],
-        winrateSeries: [0.2, 0.8, 0.5],
+        alphaSeries: [...strongAlpha, Number.NaN],
+        alphaEvidence: alphaEvidence({
+          activeObservations: 29,
+          lastValidTime: reportTime - DAY_MS,
+        }),
+      }),
+    )
+
+    expect(result.status).toBe('UNKNOWN')
+    expect(result.alphaPercentile).toBeNull()
+    expect(result.alphaEvidence).toMatchObject({
+      state: 'INSUFFICIENT',
+      activeObservations: 29,
+      requiredActiveObservations: 30,
+      lastValidTime: reportTime - DAY_MS,
+    })
+    expect(result.reasons).toEqual(['ALPHA_INSUFFICIENT'])
+  })
+
+  it('requires enough percentile history before resolving a healthy status', () => {
+    const alphaSeries = strongAlpha.slice(0, DECAY_STATUS_POLICY.minAlphaHistory - 1)
+    const result = computeStatus(statusInputs({ alphaSeries }))
+
+    expect(result.status).toBe('UNKNOWN')
+    expect(result.alphaEvidence.historyObservations).toBe(29)
+    expect(result.alphaEvidence.requiredHistoryObservations).toBe(30)
+  })
+
+  it('confirms alpha decay from a persistent recent percentile signal', () => {
+    const historicalHigh = Array.from({ length: 40 }, (_, index) => 100 + index)
+    const recentLow = Array.from({ length: 21 }, (_, index) => index + 1)
+    const result = computeStatus(statusInputs({ alphaSeries: [...historicalHigh, ...recentLow] }))
+
+    expect(result.status).toBe('YELLOW')
+    expect(result.alphaPercentile).toBeLessThan(40)
+    expect(result.alphaRecentObservationCount).toBe(21)
+    expect(result.alphaWeakObservations).toBe(21)
+    expect(result.reasons).toContain('ALPHA_WEAK_PERSISTENT')
+  })
+
+  it('does not flag a short alpha dip as confirmed decay', () => {
+    const historicalHigh = Array.from({ length: 40 }, (_, index) => 100 + index)
+    const recentLow = Array.from({ length: 5 }, (_, index) => index + 1)
+    const result = computeStatus(statusInputs({ alphaSeries: [...historicalHigh, ...recentLow] }))
+
+    expect(result.alphaPercentile).toBeLessThan(40)
+    expect(result.alphaWeakObservations).toBe(5)
+    expect(result.status).toBe('GREEN')
+  })
+
+  it('treats a two-year Sharpe at or below the floor as an observed warning', () => {
+    expect(computeStatus(statusInputs({ last2YSharpe: 0.5 })).status).toBe('YELLOW')
+    expect(computeStatus(statusInputs({ last2YSharpe: 0.500001 })).status).toBe('GREEN')
+  })
+
+  it('uses only the current winrate percentile rather than a stale value', () => {
+    const result = computeStatus(
+      statusInputs({
+        winrateSeries: [0.2, 0.8, Number.NaN],
         last1YSharpe: Number.NaN,
-        last2YSharpe: Number.POSITIVE_INFINITY,
         overallSharpe: null,
         last2YWinrate: Number.NaN,
       }),
     )
 
-    expect(Number.isNaN(result.alphaPercentile)).toBe(true)
-    expect(result.winratePercentile).toBeCloseTo(200 / 3)
+    expect(result.winratePercentile).toBeNull()
     expect(result.last1YSharpe).toBeNull()
-    expect(result.last2YSharpe).toBeNull()
     expect(result.overallSharpe).toBeNull()
     expect(result.last2YWinrate).toBeNull()
   })

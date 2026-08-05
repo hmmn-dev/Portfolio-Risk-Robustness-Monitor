@@ -4,6 +4,7 @@ import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { createReportContext } from '../../../../test/reportFixtures'
 import { renderWithTheme } from '../../../../test/render'
+import { PDF_RISK_COLUMNS } from '../../reportColumns'
 import ReportPdf from '../ReportPdf'
 import ReportViewProvider from '../ReportViewProvider'
 
@@ -35,5 +36,34 @@ describe('ReportPdf', () => {
     expect(screen.getAllByTestId('print-sleeve')).toHaveLength(2)
     expect(screen.getAllByText('Test Portfolio')).toHaveLength(8)
     expect(screen.queryByRole('group', { name: /equity date range/i })).not.toBeInTheDocument()
+  })
+
+  it('prints insufficient alpha evidence without presenting it as a warning', () => {
+    const base = createReportContext()
+    const row = base.tables.riskRows[0]
+    const insufficient = {
+      ...row,
+      status: 'UNKNOWN' as const,
+      alphaPct: null,
+      alphaEvidence: {
+        ...row.alphaEvidence,
+        state: 'INSUFFICIENT' as const,
+        activeObservations: 24,
+      },
+      statusReasonCodes: ['ALPHA_INSUFFICIENT' as const],
+    }
+    const value = createReportContext({
+      pdfRiskRows: [insufficient],
+      pdfRiskColumns: PDF_RISK_COLUMNS,
+    })
+
+    renderWithTheme(
+      <ReportViewProvider value={value}>
+        <ReportPdf />
+      </ReportViewProvider>,
+    )
+
+    expect(screen.getByText('INSUFFICIENT')).toBeInTheDocument()
+    expect(screen.getByText('24/30 active · underlying')).toBeInTheDocument()
   })
 })

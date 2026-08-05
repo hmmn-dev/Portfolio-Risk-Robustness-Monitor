@@ -98,11 +98,28 @@ export const rollingOls = (x: number[], y: number[], window: number) => {
   return { alpha, beta }
 }
 
+export const getPairCoverage = (x: number[], y: number[], window: number, eps = 1e-8) => {
+  if (window <= 0 || x.length !== y.length) {
+    return { alignedObservations: 0, activeObservations: 0 }
+  }
+
+  const start = Math.max(0, x.length - window)
+  let alignedObservations = 0
+  let activeObservations = 0
+  for (let index = start; index < x.length; index += 1) {
+    if (!Number.isFinite(x[index]) || !Number.isFinite(y[index])) continue
+    alignedObservations += 1
+    if (Math.abs(y[index]) > eps) activeObservations += 1
+  }
+
+  return { alignedObservations, activeObservations }
+}
+
 export const rollingOlsPairs = (
   x: number[],
   y: number[],
   window: number,
-  options: { minObs?: number; minActive?: number; eps?: number } = {}
+  options: { minObs?: number; minActive?: number; eps?: number } = {},
 ) => {
   if (window <= 0 || x.length !== y.length) {
     return { alpha: x.map(() => Number.NaN), beta: x.map(() => Number.NaN) }
@@ -117,9 +134,7 @@ export const rollingOlsPairs = (
   const xxs = xs.map((value) => value * value)
   const xys = xs.map((value, idx) => value * ys[idx])
   const counts = valid.map((value) => (value ? 1 : 0))
-  const activeCounts = y.map((value, idx) =>
-    valid[idx] && Math.abs(value) > eps ? 1 : 0
-  )
+  const activeCounts = y.map((value, idx) => (valid[idx] && Math.abs(value) > eps ? 1 : 0))
 
   const sumX = prefixSums(xs)
   const sumY = prefixSums(ys)

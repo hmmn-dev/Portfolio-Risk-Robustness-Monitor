@@ -1,7 +1,17 @@
 import { computeDdShock } from '../../engine/ddShock'
 import { resolveMtmDrawdownCoverage } from '../../engine/drawdownCoverage'
-import { rollingOlsPairs, rollingSharpe, rollingWinrate } from '../../engine/statsRolling'
-import { computeAlphaPercentiles, computeStatus } from '../../engine/status'
+import {
+  getPairCoverage,
+  rollingOlsPairs,
+  rollingSharpe,
+  rollingWinrate,
+} from '../../engine/statsRolling'
+import {
+  DECAY_STATUS_POLICY,
+  computeStatus,
+  type StatusReason,
+  type StatusResult,
+} from '../../engine/status'
 import type { ReportModel, UnderlyingDailyReturn, UnderlyingSeries } from '../../engine/types'
 import type { SleeveMetrics } from './components/SleeveSection'
 import {
@@ -17,7 +27,7 @@ import {
   buildReturnMap,
   computeMean,
   computeSharpe,
-  getLastFinite,
+  getCurrentFinite,
   getSeriesValues,
   sanitizeSeries,
   sumFinite,
@@ -110,13 +120,14 @@ export const computeSleeveMetrics = (
   underlying: UnderlyingDailyReturn[] | null,
 ): SleeveMetrics => {
   const returns = sanitizeSeries(getSeriesValues(item.returns))
-  const minObs = Math.floor(window * 0.8)
-  const minActive = Math.floor(window * 0.2)
+  const minObs = Math.floor(window * DECAY_STATUS_POLICY.minAlignedRatio)
+  const minActive = DECAY_STATUS_POLICY.minActiveObservations
   const hasUnderlying = !!underlying && underlying.length > 0
   const returnsMap = hasUnderlying ? buildReturnMap(underlying) : null
   const alignedPrimary = alignPairsByDay(item.returns, returnsMap ?? portfolioReturnMap)
   const alignedFallback = alignPairsByDay(item.returns, portfolioReturnMap)
-  const useFallback = !hasUnderlying || (returnsMap && alignedPrimary.validCount < minObs)
+  const primaryCoverage = getPairCoverage(alignedPrimary.xs, alignedPrimary.ys, window)
+  const useFallback = !hasUnderlying || (returnsMap && primaryCoverage.alignedObservations < minObs)
   const aligned = useFallback ? alignedFallback : alignedPrimary
   const alphaValues = rollingOlsPairs(aligned.xs, aligned.ys, window, {
     minObs,
@@ -216,6 +227,77 @@ export const buildPerformanceRows = (report: ReportModel): PerformanceRow[] =>
     }
   })
 
+const formatEvidenceDate = (value: number | null) => {
+  if (value == null || !Number.isFinite(value)) return 'never'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 'never' : date.toISOString().slice(0, 10)
+}
+
+const formatStatusReason = (reason: StatusReason, status: StatusResult) => {
+  switch (reason) {
+    case 'DD_SHOCK_RED':
+      return 'DD shock RED'
+    case 'OVERALL_SHARPE_NEGATIVE':
+      return 'overall Sharpe < 0'
+    case 'DD_SHOCK_ORANGE':
+      return 'DD shock ORANGE'
+    case 'ONE_YEAR_SHARPE_NEGATIVE':
+      return '1Y Sharpe < 0'
+    case 'TWO_YEAR_SHARPE_WEAK':
+      return `2Y Sharpe <= ${DECAY_STATUS_POLICY.last2YSharpeFloor}`
+    case 'ALPHA_WEAK_PERSISTENT':
+      return `alpha pctile < ${DECAY_STATUS_POLICY.alphaWarningPercentile} in ${status.alphaWeakObservations}/${status.alphaRecentObservationCount} recent observations`
+    case 'ALPHA_INSUFFICIENT': {
+      const evidence = status.alphaEvidence
+      if (evidence.alignedObservations < evidence.requiredAlignedObservations) {
+        return `alpha unavailable: ${evidence.alignedObservations}/${evidence.requiredAlignedObservations} aligned observations`
+      }
+      if (evidence.activeObservations < evidence.requiredActiveObservations) {
+        return `alpha unavailable: ${evidence.activeObservations}/${evidence.requiredActiveObservations} active observations`
+      }
+      if (evidence.historyObservations < evidence.requiredHistoryObservations) {
+        return `alpha percentile unavailable: ${evidence.historyObservations}/${evidence.requiredHistoryObservations} historical estimates`
+      }
+      if (evidence.lastValidTime !== evidence.reportTime) {
+        return `alpha is stale; last valid ${formatEvidenceDate(evidence.lastValidTime)}`
+      }
+      if (status.alphaRecentObservationCount < DECAY_STATUS_POLICY.alphaWarningLookback) {
+        return `alpha not yet current for ${DECAY_STATUS_POLICY.alphaWarningLookback} consecutive observations`
+      }
+      return 'alpha unavailable for the current observation'
+    }
+    case 'ONE_YEAR_SHARPE_INSUFFICIENT':
+      return '1Y Sharpe unavailable'
+    case 'TWO_YEAR_SHARPE_INSUFFICIENT':
+      return '2Y Sharpe unavailable'
+    case 'OVERALL_SHARPE_INSUFFICIENT':
+      return 'overall Sharpe unavailable'
+    case 'NO_CONFIRMED_DECAY':
+      return 'no confirmed decay and 2Y Sharpe > 0.5'
+  }
+}
+
+const buildStatusCopy = (status: StatusResult) => ({
+  reasons: `Reason: ${status.reasons
+    .map((reason) => formatStatusReason(reason, status))
+    .join('; ')}.`,
+  action:
+    status.status === 'RED'
+      ? 'Reduce weight 50–100%, recheck in 3 months.'
+      : status.status === 'YELLOW'
+        ? 'Keep weight, review the warning in 4–6 weeks.'
+        : status.status === 'UNKNOWN'
+          ? 'Collect more observations; do not infer health or decay yet.'
+          : 'No change.',
+})
+
+const findLastValidTime = (values: number[], times: number[]) => {
+  for (let index = values.length - 1; index >= 0; index -= 1) {
+    if (Number.isFinite(values[index])) return times[index] ?? null
+  }
+  return null
+}
+
 export const buildRiskRows = (
   report: ReportModel,
   drawdownMode: DrawdownMode,
@@ -224,49 +306,46 @@ export const buildRiskRows = (
 ): RiskRow[] =>
   report.contributions.map((item, index) => {
     const returns = sanitizeSeries(getSeriesValues(item.returns))
-    const minObs = Math.floor(METRIC_WINDOW.long * 0.8)
-    const minActive = Math.floor(METRIC_WINDOW.long * 0.2)
+    const minObs = Math.floor(METRIC_WINDOW.long * DECAY_STATUS_POLICY.minAlignedRatio)
+    const minActive = DECAY_STATUS_POLICY.minActiveObservations
     const underlying = findUnderlyingForSymbol(normalizedUnderlying, item.symbol, item.sleeve)
-    const returnsMap =
-      underlying && underlying.length > 0 ? buildReturnMap(underlying) : portfolioReturnMap
-    const alignedPrimary = alignPairsByDay(item.returns, returnsMap)
-    const aligned =
-      returnsMap !== portfolioReturnMap && alignedPrimary.validCount < minObs
-        ? alignPairsByDay(item.returns, portfolioReturnMap)
-        : alignedPrimary
+    const hasUnderlying = !!underlying && underlying.length > 0
+    const primaryReturnMap = hasUnderlying ? buildReturnMap(underlying) : portfolioReturnMap
+    const alignedPrimary = alignPairsByDay(item.returns, primaryReturnMap)
+    const primaryCoverage = getPairCoverage(
+      alignedPrimary.xs,
+      alignedPrimary.ys,
+      METRIC_WINDOW.long,
+    )
+    const usePortfolioFallback = !hasUnderlying || primaryCoverage.alignedObservations < minObs
+    const aligned = usePortfolioFallback
+      ? alignPairsByDay(item.returns, portfolioReturnMap)
+      : alignedPrimary
+    const coverage = getPairCoverage(aligned.xs, aligned.ys, METRIC_WINDOW.long)
     const alphaSeries = rollingOlsPairs(aligned.xs, aligned.ys, METRIC_WINDOW.long, {
       minObs,
       minActive,
     }).alpha
-    const alphaPct = getLastFinite(computeAlphaPercentiles(alphaSeries))
-    const last1YSharpe = getLastFinite(rollingSharpe(returns, METRIC_WINDOW.short))
-    const last2YSharpe = getLastFinite(rollingSharpe(returns, METRIC_WINDOW.long))
+    const reportTime = aligned.times[aligned.times.length - 1] ?? null
+    const lastValidTime = findLastValidTime(alphaSeries, aligned.times)
+    const last1YSharpe = getCurrentFinite(rollingSharpe(returns, METRIC_WINDOW.short))
+    const last2YSharpe = getCurrentFinite(rollingSharpe(returns, METRIC_WINDOW.long))
     const overallSharpe = computeSharpe(returns)
     const winrateSeries = rollingWinrate(returns, METRIC_WINDOW.long)
-    const last2YWinrate = getLastFinite(winrateSeries)
+    const last2YWinrate = getCurrentFinite(winrateSeries)
     const shock = computeDdShock(resolveSleeveDrawdown(item, drawdownMode)).flag
-    const alphaPctFinite = Number.isFinite(alphaPct) ? alphaPct : null
-    const redTriggers: string[] = []
-    const yellowTriggers: string[] = []
-
-    if (alphaPctFinite != null && alphaPctFinite < 15) {
-      yellowTriggers.push('alpha pctile < 15')
-    } else if (alphaPctFinite != null && alphaPctFinite < 40) {
-      yellowTriggers.push('alpha pctile 15–40')
-    }
-    const hasNegativeSharpe = Number.isFinite(overallSharpe) && overallSharpe < 0
-    if (hasNegativeSharpe) redTriggers.push('Overall Sharpe < 0')
-    if (Number.isFinite(last1YSharpe) && last1YSharpe < 0) {
-      yellowTriggers.push('1Y Sharpe < 0')
-    }
-    if (shock === 'ORANGE') {
-      yellowTriggers.push('dd shock ORANGE')
-      if (hasNegativeSharpe) redTriggers.push('dd shock ORANGE')
-    }
-    if (shock === 'RED') redTriggers.push('dd shock RED')
 
     const status = computeStatus({
       alphaSeries,
+      alphaEvidence: {
+        source: usePortfolioFallback ? 'PORTFOLIO' : 'UNDERLYING',
+        alignedObservations: coverage.alignedObservations,
+        requiredAlignedObservations: minObs,
+        activeObservations: coverage.activeObservations,
+        requiredActiveObservations: minActive,
+        reportTime,
+        lastValidTime,
+      },
       winrateSeries,
       last1YSharpe: Number.isFinite(last1YSharpe) ? last1YSharpe : null,
       last2YSharpe: Number.isFinite(last2YSharpe) ? last2YSharpe : null,
@@ -274,18 +353,7 @@ export const buildRiskRows = (
       last2YWinrate: Number.isFinite(last2YWinrate) ? last2YWinrate : null,
       shock,
     })
-    const statusReasons =
-      status.status === 'RED'
-        ? `Reason: ${redTriggers.length > 0 ? redTriggers.join('; ') : 'Overall Sharpe < 0'}.`
-        : status.status === 'YELLOW'
-          ? `Reason: ${yellowTriggers.length > 0 ? yellowTriggers.join('; ') : 'insufficient signal for green'}.`
-          : 'Reason: alpha pctile >= 40 and 2Y Sharpe > 0.5.'
-    const statusAction =
-      status.status === 'RED'
-        ? 'Reduce weight 50–100%, recheck in 3 months.'
-        : status.status === 'YELLOW'
-          ? 'Keep weight, recheck in 4–6 weeks.'
-          : 'No change.'
+    const statusCopy = buildStatusCopy(status)
     const sleeveParts = splitSleeveLabel(item.sleeve)
 
     return {
@@ -294,14 +362,18 @@ export const buildRiskRows = (
       symbol: sleeveParts.symbol || item.symbol,
       status: status.status,
       shock: status.shock,
-      alphaPct: Number.isFinite(alphaPct) ? alphaPct : null,
+      alphaPct: status.alphaPercentile,
+      alphaEvidence: status.alphaEvidence,
+      alphaWeakObservations: status.alphaWeakObservations,
+      alphaRecentObservationCount: status.alphaRecentObservationCount,
       winratePctile: status.winratePercentile,
       last1ySharpe: status.last1YSharpe,
       last2ySharpe: status.last2YSharpe,
       overallSharpe: status.overallSharpe,
       last2yWinrate: status.last2YWinrate,
-      statusReasons,
-      statusAction,
+      statusReasonCodes: status.reasons,
+      statusReasons: statusCopy.reasons,
+      statusAction: statusCopy.action,
     }
   })
 

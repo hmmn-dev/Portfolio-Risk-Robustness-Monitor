@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  getPairCoverage,
   rollingAverage,
   rollingOls,
   rollingOlsPairs,
@@ -104,5 +105,25 @@ describe('rollingOlsPairs', () => {
     expect(result.alpha).toHaveLength(2)
     expectAllNaN(result.alpha)
     expectAllNaN(result.beta)
+  })
+})
+
+describe('getPairCoverage', () => {
+  it('counts aligned and active dependent observations in the latest window', () => {
+    expect(getPairCoverage([1, 2, Number.NaN, 4, 5], [0, 0.2, 0.3, Number.NaN, -0.1], 4)).toEqual({
+      alignedObservations: 2,
+      activeObservations: 2,
+    })
+  })
+
+  it('returns empty coverage for invalid inputs', () => {
+    expect(getPairCoverage([1], [1, 2], 2)).toEqual({
+      alignedObservations: 0,
+      activeObservations: 0,
+    })
+    expect(getPairCoverage([1], [1], 0)).toEqual({
+      alignedObservations: 0,
+      activeObservations: 0,
+    })
   })
 })

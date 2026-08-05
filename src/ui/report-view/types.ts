@@ -1,4 +1,6 @@
 import type { DailyPoint } from '../../engine/types'
+import type { ShockFlag } from '../../engine/ddShock'
+import type { AlphaEvidence, StatusFlag, StatusReason } from '../../engine/status'
 
 export type ReportTab = 'performance' | 'risk' | 'sleeves' | 'portfolio'
 
@@ -18,14 +20,18 @@ export type RiskRow = {
   id: number
   sleeve: string
   symbol: string
-  status: string
-  shock: string
+  status: StatusFlag
+  shock: ShockFlag
   alphaPct: number | null
+  alphaEvidence: AlphaEvidence
+  alphaWeakObservations: number
+  alphaRecentObservationCount: number
   winratePctile: number | null
   last1ySharpe: number | null
   last2ySharpe: number | null
   overallSharpe: number | null
   last2yWinrate: number | null
+  statusReasonCodes: StatusReason[]
   statusReasons: string
   statusAction: string
 }

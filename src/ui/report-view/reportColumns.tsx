@@ -11,6 +11,7 @@ import {
   StatusHeader,
 } from './components/ReportGridCells'
 import { formatCurrency, formatNumber, formatPercent, formatRate } from './formatters'
+import { formatAlphaEvidence, getStatusLabel } from './riskStatusPresentation'
 import type { PerformanceRow, RiskRow } from './types'
 
 export const createPerformanceColumns = (theme: Theme): GridColDef[] => {
@@ -243,7 +244,7 @@ export const PDF_PERFORMANCE_COLUMNS: PdfColumn<PerformanceRow>[] = [
 export const PDF_RISK_COLUMNS: PdfColumn<RiskRow>[] = [
   { header: 'Sleeve', getCell: (row) => ({ text: row.sleeve }) },
   { header: 'Symbol', getCell: (row) => ({ text: row.symbol || '-' }) },
-  { header: 'Status', getCell: (row) => ({ text: row.status || '-' }) },
+  { header: 'Status', getCell: (row) => ({ text: getStatusLabel(row.status) }) },
   { header: 'Shock', getCell: (row) => ({ text: row.shock || '-' }) },
   {
     header: 'Alpha pctile',
@@ -252,6 +253,10 @@ export const PDF_RISK_COLUMNS: PdfColumn<RiskRow>[] = [
       negative: (row.alphaPct ?? 0) < 0,
       align: 'right',
     }),
+  },
+  {
+    header: 'Alpha support',
+    getCell: (row) => ({ text: formatAlphaEvidence(row) }),
   },
   {
     header: 'Last 1Y Sharpe',

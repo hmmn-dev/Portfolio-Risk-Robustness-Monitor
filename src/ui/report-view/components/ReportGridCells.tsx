@@ -1,21 +1,31 @@
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
-import { Box, Chip, Stack, Tooltip, Typography } from '@mui/material'
+import { Box, Chip, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
 import type { ReactNode } from 'react'
+import {
+  formatAlphaEvidence,
+  formatAlphaEvidenceDate,
+  getStatusLabel,
+} from '../riskStatusPresentation'
 import type { RiskRow } from '../types'
 
-const LegendHelp = ({ children, maxWidth }: { children: ReactNode; maxWidth: number }) => (
+const LegendHelp = ({
+  children,
+  maxWidth,
+  label,
+}: {
+  children: ReactNode
+  maxWidth: number
+  label: string
+}) => (
   <Tooltip
     placement="top"
     slotProps={{ tooltip: { sx: { maxWidth } } }}
     title={<Box sx={{ p: 1, maxWidth }}>{children}</Box>}
   >
-    <Box
-      component="span"
-      sx={{ display: 'inline-flex', alignItems: 'center', color: 'text.secondary' }}
-    >
+    <IconButton size="small" aria-label={label} sx={{ p: 0.25, color: 'text.secondary' }}>
       <HelpOutlineOutlinedIcon fontSize="small" />
-    </Box>
+    </IconButton>
   </Tooltip>
 )
 
@@ -69,7 +79,7 @@ export const StatusHeader = ({ theme }: { theme: Theme }) => (
     <Typography variant="body2" sx={{ fontWeight: 600 }}>
       Status
     </Typography>
-    <LegendHelp maxWidth={600}>
+    <LegendHelp maxWidth={680} label="Explain status logic">
       <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, mb: 0.5 }}>
         Status Legend
       </Typography>
@@ -77,13 +87,14 @@ export const StatusHeader = ({ theme }: { theme: Theme }) => (
         <Stack direction="row" spacing={1} alignItems="center">
           <LegendChip label="GREEN" color={theme.palette.success.main} theme={theme} />
           <Typography variant="caption">
-            <strong>Alpha pctile</strong> {'\u2265'} 40 and <strong>2Y Sharpe</strong> {'>'} 0.5
+            Current alpha evidence, no confirmed decay, and <strong>2Y Sharpe</strong> {'>'} 0.5
           </Typography>
         </Stack>
         <Stack direction="row" spacing={1} alignItems="center">
           <LegendChip label="YELLOW" color={theme.palette.warning.dark} theme={theme} />
           <Typography variant="caption" sx={{ fontWeight: 600 }}>
-            <strong>Alpha pctile</strong> {'<'} 40 or <strong>1Y Sharpe</strong> {'<'} 0 or
+            <strong>Alpha pctile</strong> {'<'} 40 in at least 16/21 recent observations,
+            <strong> 1Y Sharpe</strong> {'<'} 0, <strong>2Y Sharpe</strong> {'\u2264'} 0.5, or
             <strong> DD shock</strong> ORANGE
           </Typography>
         </Stack>
@@ -94,10 +105,14 @@ export const StatusHeader = ({ theme }: { theme: Theme }) => (
           </Typography>
         </Stack>
         <Stack direction="row" spacing={1} alignItems="center">
-          <LegendChip label="SHOCK" color={theme.palette.warning.dark} theme={theme} />
+          <LegendChip label="INSUFFICIENT" color={theme.palette.grey[600]} theme={theme} />
           <Typography variant="caption">
-            ORANGE downgrades GREEN → YELLOW; RED forces RED
+            Required current observations are missing; this is neither healthy nor a decay warning
           </Typography>
+        </Stack>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <LegendChip label="SHOCK" color={theme.palette.warning.dark} theme={theme} />
+          <Typography variant="caption">ORANGE sets YELLOW; RED sets RED</Typography>
         </Stack>
       </Stack>
     </LegendHelp>
@@ -109,14 +124,14 @@ export const ShockHeader = ({ theme }: { theme: Theme }) => (
     <Typography variant="body2" sx={{ fontWeight: 600 }}>
       Shock
     </Typography>
-    <LegendHelp maxWidth={360}>
+    <LegendHelp maxWidth={360} label="Explain drawdown shock logic">
       <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, mb: 0.5 }}>
         DD Shock Logic
       </Typography>
       <Stack spacing={0.75}>
         <Stack direction="row" spacing={1} alignItems="center">
           <LegendChip label="ORANGE" color={theme.palette.warning.main} theme={theme} />
-          <Typography variant="caption">Downgrades GREEN → YELLOW</Typography>
+          <Typography variant="caption">Sets YELLOW status</Typography>
         </Stack>
         <Stack direction="row" spacing={1} alignItems="center">
           <LegendChip label="RED" color={theme.palette.error.main} theme={theme} />
@@ -139,6 +154,7 @@ export const ShockHeader = ({ theme }: { theme: Theme }) => (
 )
 
 export const StatusCell = ({ row, theme }: { row: RiskRow; theme: Theme }) => {
+  const statusLabel = getStatusLabel(row.status)
   const statusColor =
     row.status === 'GREEN'
       ? theme.palette.success.main
@@ -150,14 +166,24 @@ export const StatusCell = ({ row, theme }: { row: RiskRow; theme: Theme }) => {
   const severityColor =
     row.status === 'RED'
       ? theme.palette.error.light
-      : row.status === 'YELLOW' || row.shock === 'ORANGE'
+      : row.status === 'YELLOW'
         ? theme.palette.warning.light
-        : theme.palette.error.light
+        : theme.palette.grey[300]
   const metrics = [
     {
       label: 'alpha pctile',
       value: row.alphaPct != null ? `${Math.round(row.alphaPct)}%` : 'n/a',
-      emphasized: row.alphaPct == null || row.alphaPct < 40,
+      emphasized: row.statusReasonCodes.includes('ALPHA_WEAK_PERSISTENT'),
+    },
+    {
+      label: 'alpha support',
+      value: formatAlphaEvidence(row),
+      emphasized: false,
+    },
+    {
+      label: 'alpha as of',
+      value: formatAlphaEvidenceDate(row),
+      emphasized: false,
     },
     {
       label: 'winrate pctile',
@@ -172,7 +198,7 @@ export const StatusCell = ({ row, theme }: { row: RiskRow; theme: Theme }) => {
     {
       label: 'last 2Y sharpe',
       value: row.last2ySharpe != null ? row.last2ySharpe.toFixed(2) : 'n/a',
-      emphasized: row.last2ySharpe != null && row.last2ySharpe < 0,
+      emphasized: row.statusReasonCodes.includes('TWO_YEAR_SHARPE_WEAK'),
     },
     {
       label: 'overall sharpe',
@@ -216,16 +242,30 @@ export const StatusCell = ({ row, theme }: { row: RiskRow; theme: Theme }) => {
         </Box>
       }
     >
-      <Chip
-        size="small"
-        label={row.status || '-'}
+      <Box
+        component="button"
+        type="button"
+        aria-label={`${statusLabel}. ${row.statusReasons}`}
         sx={{
-          backgroundColor: statusColor,
-          color: theme.palette.getContrastText(statusColor),
-          fontWeight: 500,
-          borderColor: statusColor,
+          display: 'inline-flex',
+          p: 0,
+          border: 0,
+          background: 'transparent',
+          cursor: 'help',
         }}
-      />
+      >
+        <Chip
+          component="span"
+          size="small"
+          label={statusLabel}
+          sx={{
+            backgroundColor: statusColor,
+            color: theme.palette.getContrastText(statusColor),
+            fontWeight: 500,
+            borderColor: statusColor,
+          }}
+        />
+      </Box>
     </Tooltip>
   )
 }

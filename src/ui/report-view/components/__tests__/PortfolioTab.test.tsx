@@ -63,6 +63,7 @@ describe('PortfolioTab', () => {
     expect(within(factors).getByText('Observations')).toBeInTheDocument()
     expect(within(factors).getByText('20')).toBeInTheDocument()
     expect(within(health).getByText('Healthy')).toBeInTheDocument()
+    expect(within(health).getByText('Insufficient')).toBeInTheDocument()
     expect(within(health).getByText('1')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Log' }))
@@ -70,6 +71,33 @@ describe('PortfolioTab', () => {
 
     expect(onPnlScaleModeChange).toHaveBeenCalledWith('log')
     expect(onShowCorrNumbersChange).toHaveBeenCalledWith(false)
+  })
+
+  it('shows insufficient evidence separately from healthy and review statuses', () => {
+    const base = createReportContext()
+    const healthy = base.tables.riskRows[0]
+    const insufficient = {
+      ...healthy,
+      id: 2,
+      status: 'UNKNOWN' as const,
+      alphaPct: null,
+      alphaEvidence: { ...healthy.alphaEvidence, state: 'INSUFFICIENT' as const },
+      statusReasonCodes: ['ALPHA_INSUFFICIENT' as const],
+    }
+
+    renderWithTheme(
+      <ReportViewProvider value={createReportContext({ riskRows: [healthy, insufficient] })}>
+        <PortfolioTab />
+      </ReportViewProvider>,
+    )
+
+    const health = screen.getByRole('region', { name: 'Portfolio health' })
+    const insufficientCell = within(health).getByText('Insufficient').parentElement?.parentElement
+    expect(insufficientCell).not.toBeNull()
+    expect(within(insufficientCell as HTMLElement).getByText('1')).toBeInTheDocument()
+    expect(
+      within(insufficientCell as HTMLElement).getByText('50% of 2 sleeves'),
+    ).toBeInTheDocument()
   })
 
   it('supports filtering the portfolio composition', async () => {

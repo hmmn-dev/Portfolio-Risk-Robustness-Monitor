@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/material'
+import { Box } from '@mui/material'
 import { computeDdShock } from '../../../../../engine/ddShock'
 import type { DailyPoint } from '../../../../../engine/types'
 import { buildPortfolioStatusCounts } from '../../../portfolio/portfolioSummaryMetrics'
@@ -49,7 +49,7 @@ const PortfolioHealthSummary = ({
         subtitle="Sleeve status distribution and current drawdown shock"
         headingComponent="h3"
       />
-      <MetricGrid columns={{ xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }}>
+      <MetricGrid columns={{ xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(5, 1fr)' }}>
         <SummaryMetricCell
           label="Healthy"
           value={String(counts.green)}
@@ -72,6 +72,12 @@ const PortfolioHealthSummary = ({
           description="Sleeves whose combined risk and decay rules currently resolve to RED and require action."
         />
         <SummaryMetricCell
+          label="Insufficient"
+          value={String(counts.unknown)}
+          detail={countDetail(counts.unknown, counts.total)}
+          description="Sleeves without enough current evidence to infer either health or decay."
+        />
+        <SummaryMetricCell
           label="DD shock"
           value={shockView.value}
           detail={shockView.detail}
@@ -79,15 +85,6 @@ const PortfolioHealthSummary = ({
           description="Compares the worst drawdown in the latest 63 observations with the previous maximum. Elevated starts at 1.5x and severe at 2x; a 5% minimum applies when no prior drawdown exists."
         />
       </MetricGrid>
-      {counts.unknown > 0 && (
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', px: 2.5, py: 1 }}
-        >
-          {counts.unknown} sleeve status {counts.unknown === 1 ? 'is' : 'are'} unknown.
-        </Typography>
-      )}
     </Box>
   )
 }
