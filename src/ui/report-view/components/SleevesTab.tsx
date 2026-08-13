@@ -53,7 +53,8 @@ const SleevesTab = () => {
       {sleeveViewMode === 'single' && (
         <Box
           sx={{
-            width: { xs: '100%', lg: 260 },
+            width: { xs: '100%', lg: 300 },
+            minWidth: { lg: 300 },
             borderRight: { lg: `1px solid ${alpha(theme.palette.text.primary, 0.12)}` },
             height: { lg: '100%' },
             overflowY: { lg: 'auto' },
