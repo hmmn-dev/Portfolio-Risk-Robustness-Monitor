@@ -117,6 +117,7 @@ export const EquityChart = ({
           paddingRatio: 0.02,
           minClamp: pnlScaleMode === 'log' ? 0 : 1,
           smooth: false,
+          step: 'end',
           axisType: 'time',
           minOffsetRatio,
           reserveGridlines,

@@ -24,6 +24,29 @@ describe('report charts', () => {
     echartsSpy.mockClear()
   })
 
+  it('renders equity observations as unsmoothed end-aligned steps', () => {
+    const points = [
+      { time: Date.UTC(2024, 0, 1), value: 1 },
+      { time: Date.UTC(2024, 0, 2), value: 1.1 },
+      { time: Date.UTC(2024, 0, 3), value: 0.9 },
+    ]
+
+    renderWithTheme(<EquityChart data={points} scaleMode="currency" />)
+
+    const option = echartsSpy.mock.calls[0][0].option as {
+      series: Array<{
+        data: Array<[number, number]>
+        smooth: boolean
+        step?: 'start' | 'middle' | 'end'
+      }>
+    }
+    expect(option.series[0]).toMatchObject({
+      data: points.map((point) => [point.time, point.value]),
+      smooth: false,
+      step: 'end',
+    })
+  })
+
   it('converts an equity index to percentage PnL and includes drawdown in the tooltip', () => {
     renderWithTheme(
       <EquityChart
