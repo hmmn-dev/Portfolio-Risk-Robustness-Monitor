@@ -109,7 +109,7 @@ describe('report analytics', () => {
     const obfuscated = obfuscatePerformanceRows(rows, obfuscation)
 
     expect(obfuscated[0]).toMatchObject({
-      sleeve: 'SLEEVE-01',
+      sleeve: 'STRATEGY-01',
       symbol: 'SYM-01',
       totalPnl: rows[0].totalPnl,
     })

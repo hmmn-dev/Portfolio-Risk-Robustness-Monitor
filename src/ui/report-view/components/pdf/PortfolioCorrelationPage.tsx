@@ -29,7 +29,7 @@ const PortfolioCorrelationPage = ({
 }: PortfolioCorrelationPageProps) => (
   <PdfPage title="Portfolio correlation" pdfName={pdfName} width={width} minHeight={minHeight}>
     <Paper variant="outlined" sx={{ p: 2 }}>
-      <Typography variant="subtitle2">Cross-sleeve correlation</Typography>
+      <Typography variant="subtitle2">Cross-strategy correlation</Typography>
       <Box
         sx={{
           mt: 2,

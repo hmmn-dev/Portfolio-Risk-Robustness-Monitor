@@ -67,7 +67,7 @@ const PdfSettingsDialog = ({
               onChange={(event) => onObfuscateChange(event.target.checked)}
             />
           }
-          label="Obfuscate sleeve and symbol names"
+          label="Obfuscate strategy and symbol names"
         />
       </Stack>
     </DialogContent>

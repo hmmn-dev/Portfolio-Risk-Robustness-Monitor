@@ -129,7 +129,7 @@ export const createReportContext = (
       },
     ],
     gridPerformanceColumns: [
-      { field: 'sleeve', headerName: 'Sleeve' },
+      { field: 'sleeve', headerName: 'Strategy' },
       { field: 'symbol', headerName: 'Symbol' },
     ],
     riskRows: [
@@ -165,7 +165,7 @@ export const createReportContext = (
       },
     ],
     gridRiskColumns: [
-      { field: 'sleeve', headerName: 'Sleeve' },
+      { field: 'sleeve', headerName: 'Strategy' },
       { field: 'status', headerName: 'Status' },
     ],
     sleeves: report.contributions.map((item) => item.sleeve),
@@ -226,7 +226,7 @@ export const createReportContext = (
     pdfPageWidth: 1120,
     pdfPageMinHeight: 794,
     pdfCorrelationCellSize: 28,
-    pdfCorrelationLabels: ['Sleeve 1', 'Sleeve 2'],
+    pdfCorrelationLabels: ['Strategy 1', 'Strategy 2'],
     formatPdfSleeveLabel: (label) => `PDF ${label}`,
     formatPdfSymbol: (symbol) => `PDF ${symbol}`,
     onSelectSleeve: noop,

@@ -33,12 +33,14 @@ describe('ReportHeader', () => {
     )
 
     await user.click(screen.getByRole('tab', { name: 'Risk / Decay' }))
+    await user.click(screen.getByRole('tab', { name: 'Strategies' }))
     await user.click(screen.getByRole('button', { name: 'Generate PDF report' }))
     await user.click(screen.getByRole('button', { name: 'Regenerate report' }))
     await user.click(screen.getByRole('button', { name: 'Report actions' }))
     await user.click(screen.getByRole('menuitem', { name: 'Apply MAR degradation' }))
 
     expect(onTabChange).toHaveBeenCalledWith('risk')
+    expect(onTabChange).toHaveBeenCalledWith('sleeves')
     expect(onOpenPdf).toHaveBeenCalledOnce()
     expect(onRegenerate).toHaveBeenCalledOnce()
     expect(onOpenMarDegradation).toHaveBeenCalledOnce()
@@ -96,7 +98,7 @@ describe('PdfSettingsDialog', () => {
     await user.type(screen.getByRole('textbox', { name: 'Portfolio name' }), ' 2026')
     await user.click(screen.getByRole('combobox', { name: 'Orientation' }))
     await user.click(screen.getByRole('option', { name: 'Landscape' }))
-    await user.click(screen.getByRole('switch', { name: 'Obfuscate sleeve and symbol names' }))
+    await user.click(screen.getByRole('switch', { name: 'Obfuscate strategy and symbol names' }))
     await user.click(screen.getByRole('button', { name: 'Generate PDF' }))
 
     expect(onNameChange).toHaveBeenCalled()

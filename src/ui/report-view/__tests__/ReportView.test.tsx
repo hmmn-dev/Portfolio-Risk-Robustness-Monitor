@@ -65,6 +65,7 @@ describe('ReportView', () => {
       'aria-selected',
       'true',
     )
+    expect(screen.getByRole('tab', { name: 'Strategies' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'Risk / Decay' }))
 
@@ -84,7 +85,9 @@ describe('ReportView', () => {
     expect(screen.getByRole('textbox', { name: 'Portfolio name' })).toHaveValue(
       'Portfolio Monitoring Tool',
     )
-    expect(screen.getByRole('switch', { name: 'Obfuscate sleeve and symbol names' })).toBeChecked()
+    expect(
+      screen.getByRole('switch', { name: 'Obfuscate strategy and symbol names' }),
+    ).toBeChecked()
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 

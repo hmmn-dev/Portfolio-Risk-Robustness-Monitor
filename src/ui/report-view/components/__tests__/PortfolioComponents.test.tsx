@@ -92,7 +92,7 @@ describe('portfolio presentation components', () => {
       />,
     )
 
-    expect(screen.getByText('1 out of 2 sleeves selected')).toBeInTheDocument()
+    expect(screen.getByText('1 out of 2 strategy sleeves selected')).toBeInTheDocument()
     expect(screen.getByText('custom weights (1)')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'In-Trade' })).toBeEnabled()
 
@@ -126,7 +126,10 @@ describe('portfolio presentation components', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Change portfolio composition' })
     await user.click(screen.getByRole('checkbox', { name: 'Beta' }))
-    fireEvent.change(screen.getByRole('textbox', { name: 'All sleeves weight' }), {
+    expect(
+      screen.getByText(/1.00 preserves each strategy sleeve's baseline contribution/),
+    ).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Weight for all strategy sleeves' }), {
       target: { value: '0.80' },
     })
     await user.click(screen.getByRole('button', { name: 'Apply to all' }))
@@ -373,7 +376,7 @@ describe('portfolio presentation components', () => {
     expect(within(factors).getByText('TEST-EURUSD')).toBeInTheDocument()
     expect(within(factors).getByText('0.70')).toBeInTheDocument()
     expect(
-      within(summary).getByText(/Results use the selected sleeve series and weights/),
+      within(summary).getByText(/Results use the selected strategy sleeves and their weights/),
     ).toBeInTheDocument()
 
     await user.hover(within(summary).getByRole('button', { name: 'Explain Daily SQN' }))

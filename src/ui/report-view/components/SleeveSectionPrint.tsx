@@ -31,7 +31,7 @@ const SleeveSectionPrint = ({
   return (
     <Stack spacing={2}>
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle2">Contribution equity</Typography>
+        <Typography variant="subtitle2">Strategy contribution equity</Typography>
         <EquityChart
           data={item.index ?? []}
           scaleMode="percent"
@@ -42,7 +42,7 @@ const SleeveSectionPrint = ({
       </Paper>
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle2">
-          Contribution drawdown ({formatDrawdownSourceLabel(drawdownSource)})
+          Strategy contribution drawdown ({formatDrawdownSourceLabel(drawdownSource)})
         </Typography>
         <DrawdownChart data={drawdownSeries} />
       </Paper>

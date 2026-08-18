@@ -67,7 +67,7 @@ describe('PortfolioTab', () => {
 
     renderWithTheme(<PortfolioTabHarness value={value} />)
 
-    expect(screen.getByText('2 out of 2 sleeves selected')).toBeInTheDocument()
+    expect(screen.getByText('2 out of 2 strategy sleeves selected')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Reset to baseline' })).not.toBeInTheDocument()
     expect(screen.getByText('Portfolio equity')).toBeInTheDocument()
     expect(screen.getByText('Portfolio monthly returns')).toBeInTheDocument()
@@ -76,7 +76,7 @@ describe('PortfolioTab', () => {
     const factors = screen.getByRole('region', { name: 'Factor diagnostics' })
     const summary = screen.getByRole('region', { name: 'Portfolio summary' })
     const equityHeading = screen.getByText('Portfolio equity')
-    const correlationHeading = screen.getByText('Cross-sleeve correlation')
+    const correlationHeading = screen.getByText('Cross-strategy correlation')
     expect(
       equityHeading.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
@@ -117,7 +117,7 @@ describe('PortfolioTab', () => {
     expect(insufficientCell).not.toBeNull()
     expect(within(insufficientCell as HTMLElement).getByText('1')).toBeInTheDocument()
     expect(
-      within(insufficientCell as HTMLElement).getByText('50% of 2 sleeves'),
+      within(insufficientCell as HTMLElement).getByText('50% of 2 strategy sleeves'),
     ).toBeInTheDocument()
   })
 
@@ -132,16 +132,16 @@ describe('PortfolioTab', () => {
 
     expect(screen.queryByRole('dialog', { name: 'Change portfolio composition' })).toBeNull()
     await waitFor(() => {
-      expect(screen.getByText('1 out of 2 sleeves selected')).toBeInTheDocument()
+      expect(screen.getByText('1 out of 2 strategy sleeves selected')).toBeInTheDocument()
     })
     expect(
-      screen.getByText(/Results use the selected sleeve series and weights/),
+      screen.getByText(/Results use the selected strategy sleeves and their weights/),
     ).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Reset to baseline' }))
 
     await waitFor(() => {
-      expect(screen.getByText('2 out of 2 sleeves selected')).toBeInTheDocument()
+      expect(screen.getByText('2 out of 2 strategy sleeves selected')).toBeInTheDocument()
     })
     expect(screen.queryByRole('button', { name: 'Reset to baseline' })).not.toBeInTheDocument()
   })

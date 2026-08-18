@@ -215,7 +215,8 @@ const PortfolioCompositionDialog = ({
               variant="outlined"
             />
             <Typography variant="caption" color="text.secondary">
-              Weights scale return exposure; 1.00 preserves each sleeve's baseline contribution.
+              Weights scale return exposure; 1.00 preserves each strategy sleeve's baseline
+              contribution.
             </Typography>
           </Stack>
           <Button
@@ -245,7 +246,7 @@ const PortfolioCompositionDialog = ({
         </Stack>
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap' }}>
           <TextField
-            label="All sleeves weight"
+            label="Weight for all strategy sleeves"
             size="small"
             value={draft.globalWeightDraft}
             onChange={(event) =>

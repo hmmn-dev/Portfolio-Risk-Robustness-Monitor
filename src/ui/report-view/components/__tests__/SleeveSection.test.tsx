@@ -37,11 +37,11 @@ describe('SleeveSection', () => {
     )
 
     expect(screen.getByRole('heading', { name: item.sleeve })).toBeInTheDocument()
-    expect(screen.getByText('Contribution equity')).toBeInTheDocument()
+    expect(screen.getByText('Strategy contribution equity')).toBeInTheDocument()
     expect(
       screen.getByRole('group', { name: `${item.sleeve} equity date range` }),
     ).toBeInTheDocument()
-    expect(screen.getByText('Contribution drawdown (H1 candles)')).toBeInTheDocument()
+    expect(screen.getByText('Strategy contribution drawdown (H1 candles)')).toBeInTheDocument()
     expect(screen.getByText('Alpha (rolling)')).toBeInTheDocument()
     expect(screen.getAllByTestId('rolling-chart')).toHaveLength(3)
   })
@@ -74,7 +74,8 @@ describe('SleeveSectionPrint', () => {
       />,
     )
 
-    expect(screen.getByText('Contribution drawdown (D1 candles)')).toBeInTheDocument()
+    expect(screen.getByText('Strategy contribution equity')).toBeInTheDocument()
+    expect(screen.getByText('Strategy contribution drawdown (D1 candles)')).toBeInTheDocument()
     expect(screen.getAllByTestId('rolling-chart')).toHaveLength(3)
   })
 })

@@ -33,6 +33,8 @@ describe('ReportPdf', () => {
     expect(screen.getByText('Risk / decay table')).toBeInTheDocument()
     expect(screen.getByText('Portfolio equity & drawdown')).toBeInTheDocument()
     expect(screen.getByText('Portfolio correlation')).toBeInTheDocument()
+    expect(screen.getByText('Cross-strategy correlation')).toBeInTheDocument()
+    expect(screen.getByText('Strategy: PDF Alpha - EURUSD')).toBeInTheDocument()
     expect(screen.getAllByTestId('print-sleeve')).toHaveLength(2)
     expect(screen.getAllByText('Test Portfolio')).toHaveLength(8)
     expect(screen.queryByRole('group', { name: /equity date range/i })).not.toBeInTheDocument()

@@ -79,14 +79,14 @@ describe('ReportView portfolio composition', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Apply' }))
 
     await waitFor(() => {
-      expect(screen.getByText('1 out of 2 sleeves selected')).toBeInTheDocument()
+      expect(screen.getByText('1 out of 2 strategy sleeves selected')).toBeInTheDocument()
     })
     expect(calculationSpies.weightedPortfolio).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('tab', { name: 'Performance' }))
     await user.click(screen.getByRole('tab', { name: 'Portfolio' }))
 
-    expect(screen.getByText('1 out of 2 sleeves selected')).toBeInTheDocument()
+    expect(screen.getByText('1 out of 2 strategy sleeves selected')).toBeInTheDocument()
     expect(calculationSpies.weightedPortfolio).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'Change portfolio composition' }))
@@ -106,7 +106,7 @@ describe('ReportView portfolio composition', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Apply' }))
 
     await waitFor(() => {
-      expect(screen.getByText('1 out of 2 sleeves selected')).toBeInTheDocument()
+      expect(screen.getByText('1 out of 2 strategy sleeves selected')).toBeInTheDocument()
     })
 
     await user.click(screen.getByRole('button', { name: 'Change portfolio composition' }))
@@ -114,12 +114,12 @@ describe('ReportView portfolio composition', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Reset to baseline' }))
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
-    expect(screen.getByText('2 out of 2 sleeves selected')).toBeInTheDocument()
+    expect(screen.getByText('2 out of 2 strategy sleeves selected')).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'Risk / Decay' }))
     await user.click(screen.getByRole('tab', { name: 'Portfolio' }))
 
-    expect(screen.getByText('2 out of 2 sleeves selected')).toBeInTheDocument()
+    expect(screen.getByText('2 out of 2 strategy sleeves selected')).toBeInTheDocument()
     expect(screen.queryByText('custom weights (1)')).not.toBeInTheDocument()
     expect(calculationSpies.weightedPortfolio).toHaveBeenCalledTimes(1)
   })

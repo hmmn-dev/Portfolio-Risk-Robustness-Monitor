@@ -99,7 +99,7 @@ const SleevesTab = () => {
         <Stack spacing={2} sx={{ maxWidth: 1200, mx: 'auto', width: '100%', pb: 4 }}>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
             <Typography variant="h6">
-              {sleeveViewMode === 'single' ? selectedContribution?.sleeve : 'All sleeves'}
+              {sleeveViewMode === 'single' ? selectedContribution?.sleeve : 'All strategies'}
             </Typography>
             <Box sx={{ flexGrow: 1 }} />
             <ToggleButtonGroup
@@ -137,7 +137,7 @@ const SleevesTab = () => {
               }}
             >
               <ToggleButton value="single">Tabbed</ToggleButton>
-              <ToggleButton value="all">All sleeves</ToggleButton>
+              <ToggleButton value="all">All strategies</ToggleButton>
             </ToggleButtonGroup>
           </Stack>
           {sleeveViewMode === 'single' ? (

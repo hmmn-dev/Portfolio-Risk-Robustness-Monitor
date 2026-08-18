@@ -92,8 +92,8 @@ const PortfolioSummaryPanel = ({
 
       {customPortfolio && (
         <Alert severity="info" variant="outlined" sx={{ mx: 2.5, mb: 2 }}>
-          Results use the selected sleeve series and weights and may differ from jointly traded
-          portfolio performance.
+          Results use the selected strategy sleeves and their weights and may differ from jointly
+          traded portfolio performance.
         </Alert>
       )}
 

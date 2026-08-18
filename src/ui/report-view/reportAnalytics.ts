@@ -393,7 +393,7 @@ export const buildReportObfuscation = (
     return parts.symbol || item.symbol
   })
   portfolioSummary?.regression?.betas.forEach((item) => symbols.push(item.symbol))
-  const sleeveMap = buildObfuscationMap(sleeveKeys, 'SLEEVE')
+  const sleeveMap = buildObfuscationMap(sleeveKeys, 'STRATEGY')
   const symbolMap = buildObfuscationMap(symbols, 'SYM')
   const formatSleeve = (value: string, symbol: string) =>
     sleeveMap.get(buildSleeveKey(value, symbol)) ?? value

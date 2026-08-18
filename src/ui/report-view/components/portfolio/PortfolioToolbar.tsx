@@ -50,7 +50,7 @@ const PortfolioToolbar = ({
       </Button>
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
         <Typography variant="caption" color="text.secondary">
-          {enabledCount} out of {totalSleeves} sleeves selected
+          {enabledCount} out of {totalSleeves} strategy sleeves selected
         </Typography>
         {customPortfolio && (
           <Button

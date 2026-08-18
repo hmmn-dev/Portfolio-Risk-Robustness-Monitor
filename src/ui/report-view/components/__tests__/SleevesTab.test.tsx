@@ -59,7 +59,7 @@ describe('SleevesTab', () => {
     )
 
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'All sleeves' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'All strategies' })).toBeInTheDocument()
     expect(screen.getAllByTestId('sleeve-section')).toHaveLength(2)
   })
 })

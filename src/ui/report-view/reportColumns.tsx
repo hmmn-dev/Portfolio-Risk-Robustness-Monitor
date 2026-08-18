@@ -22,7 +22,7 @@ export const createPerformanceColumns = (theme: Theme): GridColDef[] => {
   )
 
   return [
-    { field: 'sleeve', headerName: 'Sleeve', flex: 1.2, minWidth: 180 },
+    { field: 'sleeve', headerName: 'Strategy', flex: 1.2, minWidth: 180 },
     {
       field: 'symbol',
       headerName: 'Symbol',
@@ -113,7 +113,7 @@ export const createRiskColumns = (theme: Theme): GridColDef[] => {
   )
 
   return [
-    { field: 'sleeve', headerName: 'Sleeve', flex: 1.2, minWidth: 180 },
+    { field: 'sleeve', headerName: 'Strategy', flex: 1.2, minWidth: 180 },
     {
       field: 'symbol',
       headerName: 'Symbol',
@@ -189,7 +189,7 @@ export const createRiskColumns = (theme: Theme): GridColDef[] => {
 }
 
 export const PDF_PERFORMANCE_COLUMNS: PdfColumn<PerformanceRow>[] = [
-  { header: 'Sleeve', getCell: (row) => ({ text: row.sleeve }) },
+  { header: 'Strategy', getCell: (row) => ({ text: row.sleeve }) },
   { header: 'Symbol', getCell: (row) => ({ text: row.symbol || '-' }) },
   {
     header: 'Total PnL',
@@ -242,7 +242,7 @@ export const PDF_PERFORMANCE_COLUMNS: PdfColumn<PerformanceRow>[] = [
 ]
 
 export const PDF_RISK_COLUMNS: PdfColumn<RiskRow>[] = [
-  { header: 'Sleeve', getCell: (row) => ({ text: row.sleeve }) },
+  { header: 'Strategy', getCell: (row) => ({ text: row.sleeve }) },
   { header: 'Symbol', getCell: (row) => ({ text: row.symbol || '-' }) },
   { header: 'Status', getCell: (row) => ({ text: getStatusLabel(row.status) }) },
   { header: 'Shock', getCell: (row) => ({ text: row.shock || '-' }) },

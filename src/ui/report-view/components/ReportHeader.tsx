@@ -49,7 +49,7 @@ const reportTabs = [
     icon: <AssessmentOutlinedIcon fontSize="small" />,
   },
   {
-    label: 'Sleeves',
+    label: 'Strategies',
     value: 'sleeves',
     icon: <ShowChartOutlinedIcon fontSize="small" />,
   },

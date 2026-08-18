@@ -64,7 +64,7 @@ const SleeveSection = ({
           alignItems={{ sm: 'center' }}
           justifyContent="space-between"
         >
-          <Typography variant="subtitle2">Contribution equity</Typography>
+          <Typography variant="subtitle2">Strategy contribution equity</Typography>
           <ChartRangeSelector
             value={range}
             bounds={rangeBounds}
@@ -82,7 +82,7 @@ const SleeveSection = ({
       </Paper>
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle2">
-          Contribution drawdown ({formatDrawdownSourceLabel(drawdownSource)})
+          Strategy contribution drawdown ({formatDrawdownSourceLabel(drawdownSource)})
         </Typography>
         <DrawdownChart data={visibleSeries.drawdown} />
       </Paper>

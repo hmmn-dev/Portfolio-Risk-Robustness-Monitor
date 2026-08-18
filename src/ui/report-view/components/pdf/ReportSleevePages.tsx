@@ -39,7 +39,7 @@ const ReportSleevePages = ({
       return (
         <PdfPage
           key={item.sleeve}
-          title={`Sleeve: ${formatLabel(item.sleeve)}`}
+          title={`Strategy: ${formatLabel(item.sleeve)}`}
           pdfName={pdfName}
           width={width}
           minHeight={minHeight}

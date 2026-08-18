@@ -8,7 +8,9 @@ import ReportSectionHeader from './ReportSectionHeader'
 import SummaryMetricCell, { type MetricTone } from './SummaryMetricCell'
 
 const countDetail = (count: number, total: number) =>
-  total > 0 ? `${Math.round((count / total) * 100)}% of ${total} sleeves` : 'No sleeve statuses'
+  total > 0
+    ? `${Math.round((count / total) * 100)}% of ${total} strategy sleeves`
+    : 'No strategy statuses'
 
 const PortfolioHealthSummary = ({
   riskRows,
@@ -46,7 +48,7 @@ const PortfolioHealthSummary = ({
     >
       <ReportSectionHeader
         title="Portfolio health"
-        subtitle="Sleeve status distribution and current drawdown shock"
+        subtitle="Status distribution across strategy sleeves and current drawdown shock"
         headingComponent="h3"
       />
       <MetricGrid columns={{ xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(5, 1fr)' }}>
@@ -55,27 +57,27 @@ const PortfolioHealthSummary = ({
           value={String(counts.green)}
           detail={countDetail(counts.green, counts.total)}
           tone="positive"
-          description="Sleeves whose combined risk and decay rules currently resolve to GREEN."
+          description="Strategy sleeves whose combined risk and decay rules currently resolve to GREEN."
         />
         <SummaryMetricCell
           label="Review"
           value={String(counts.yellow)}
           detail={countDetail(counts.yellow, counts.total)}
           tone="warning"
-          description="Sleeves whose combined risk and decay rules currently resolve to YELLOW and should be reviewed."
+          description="Strategy sleeves whose combined risk and decay rules currently resolve to YELLOW and should be reviewed."
         />
         <SummaryMetricCell
           label="Critical"
           value={String(counts.red)}
           detail={countDetail(counts.red, counts.total)}
           tone="negative"
-          description="Sleeves whose combined risk and decay rules currently resolve to RED and require action."
+          description="Strategy sleeves whose combined risk and decay rules currently resolve to RED and require action."
         />
         <SummaryMetricCell
           label="Insufficient"
           value={String(counts.unknown)}
           detail={countDetail(counts.unknown, counts.total)}
-          description="Sleeves without enough current evidence to infer either health or decay."
+          description="Strategy sleeves without enough current evidence to infer either health or decay."
         />
         <SummaryMetricCell
           label="DD shock"
