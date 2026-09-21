@@ -72,6 +72,16 @@ export type ContributionSeries = {
   drawdownMtm?: DailyPoint[]
   drawdownMtmSource?: 'H1' | 'D1'
   baseCapital?: number
+  grouping?: {
+    kind: 'bucket'
+    name: string
+    strategy: string
+    members: Array<{
+      key: string
+      sleeve: SleeveKey
+      symbol: string
+    }>
+  }
 }
 
 export type ReportModel = {
@@ -86,4 +96,5 @@ export type ReportModel = {
     drawdownMtmSource?: 'H1' | 'D1'
   }
   contributions: ContributionSeries[]
+  bucketedContributions?: ContributionSeries[]
 }

@@ -50,6 +50,19 @@ export type ReportObfuscation = {
   formatSleeveLabel: (value: string) => string
 }
 
+const getContributionDisplay = (item: ReportModel['contributions'][number]) => {
+  if (item.grouping?.kind === 'bucket') {
+    return { sleeve: item.sleeve, symbol: '' }
+  }
+  const parts = splitSleeveLabel(item.sleeve)
+  return { sleeve: parts.sleeve, symbol: parts.symbol || item.symbol }
+}
+
+const getContributionSymbols = (item: ReportModel['contributions'][number]) =>
+  item.grouping?.kind === 'bucket'
+    ? item.grouping.members.map((member) => member.symbol)
+    : [item.symbol]
+
 export const normalizeUnderlyingBySymbol = (
   underlyingBySymbol: Record<string, UnderlyingSeries>,
 ): NormalizedUnderlying => {
@@ -192,7 +205,8 @@ export const buildPortfolioSummary = (
   const symbols = Array.from(
     new Set(
       report.contributions
-        .map((item) => normalizeSymbol(item.symbol))
+        .flatMap(getContributionSymbols)
+        .map(normalizeSymbol)
         .filter((value) => value.length > 0),
     ),
   )
@@ -212,12 +226,12 @@ export const buildPerformanceRows = (report: ReportModel): PerformanceRow[] =>
     const pnl = getSeriesValues(item.pnl)
     const returns = getSeriesValues(item.returns)
     const last2yReturns = returns.slice(-METRIC_WINDOW.long)
-    const sleeveParts = splitSleeveLabel(item.sleeve)
+    const display = getContributionDisplay(item)
 
     return {
       id: index,
-      sleeve: sleeveParts.sleeve,
-      symbol: sleeveParts.symbol || item.symbol,
+      sleeve: display.sleeve,
+      symbol: display.symbol,
       totalPnl: sumFinite(pnl),
       meanAnn: computeMean(returns) * 252 * 100,
       sharpe: computeSharpe(returns),
@@ -308,7 +322,9 @@ export const buildRiskRows = (
     const returns = sanitizeSeries(getSeriesValues(item.returns))
     const minObs = Math.floor(METRIC_WINDOW.long * DECAY_STATUS_POLICY.minAlignedRatio)
     const minActive = DECAY_STATUS_POLICY.minActiveObservations
-    const underlying = findUnderlyingForSymbol(normalizedUnderlying, item.symbol, item.sleeve)
+    const underlying = item.grouping
+      ? null
+      : findUnderlyingForSymbol(normalizedUnderlying, item.symbol, item.sleeve)
     const hasUnderlying = !!underlying && underlying.length > 0
     const primaryReturnMap = hasUnderlying ? buildReturnMap(underlying) : portfolioReturnMap
     const alignedPrimary = alignPairsByDay(item.returns, primaryReturnMap)
@@ -354,12 +370,12 @@ export const buildRiskRows = (
       shock,
     })
     const statusCopy = buildStatusCopy(status)
-    const sleeveParts = splitSleeveLabel(item.sleeve)
+    const display = getContributionDisplay(item)
 
     return {
       id: index,
-      sleeve: sleeveParts.sleeve,
-      symbol: sleeveParts.symbol || item.symbol,
+      sleeve: display.sleeve,
+      symbol: display.symbol,
       status: status.status,
       shock: status.shock,
       alphaPct: status.alphaPercentile,
@@ -385,16 +401,18 @@ export const buildReportObfuscation = (
   portfolioSummary: PortfolioSummary | null,
 ): ReportObfuscation => {
   const sleeveKeys = report.contributions.map((item) => {
-    const parts = splitSleeveLabel(item.sleeve)
-    return buildSleeveKey(parts.sleeve, parts.symbol || item.symbol)
+    const display = getContributionDisplay(item)
+    return buildSleeveKey(display.sleeve, display.symbol)
   })
-  const symbols = report.contributions.map((item) => {
-    const parts = splitSleeveLabel(item.sleeve)
-    return parts.symbol || item.symbol
-  })
+  const symbols = report.contributions.flatMap(getContributionSymbols)
   portfolioSummary?.regression?.betas.forEach((item) => symbols.push(item.symbol))
   const sleeveMap = buildObfuscationMap(sleeveKeys, 'STRATEGY')
   const symbolMap = buildObfuscationMap(symbols, 'SYM')
+  const bucketLabels = new Set(
+    report.contributions
+      .filter((item) => item.grouping?.kind === 'bucket')
+      .map((item) => item.sleeve),
+  )
   const formatSleeve = (value: string, symbol: string) =>
     sleeveMap.get(buildSleeveKey(value, symbol)) ?? value
   const formatSymbol = (value: string) => symbolMap.get(value) ?? value
@@ -403,6 +421,7 @@ export const buildReportObfuscation = (
     formatSleeve,
     formatSymbol,
     formatSleeveLabel: (label) => {
+      if (bucketLabels.has(label)) return formatSleeve(label, '')
       const parts = splitSleeveLabel(label)
       const sleeve = formatSleeve(parts.sleeve, parts.symbol)
       return parts.symbol ? `${sleeve} - ${formatSymbol(parts.symbol)}` : sleeve

@@ -1,5 +1,6 @@
 import { Stack, useTheme } from '@mui/material'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import { groupDealsIntoBuckets } from '../../engine/sleeveBuckets'
 import { useReportStore } from '../../store/report'
 import { useUnderlyingStore } from '../../store/underlying'
 import { useWizardStore } from '../../store/wizard'
@@ -45,25 +46,37 @@ const ReportView = () => {
   const clearUnderlying = useUnderlyingStore((state) => state.clearUnderlying)
   const resetWizard = useWizardStore((state) => state.resetWizard)
   const theme = useTheme()
-  const hasMtmDrawdown = !!report?.portfolio.drawdownMtm?.length
   const [tab, setTab] = useState<ReportTab>('performance')
+  const [bucketViewEnabled, setBucketViewEnabled] = useState(true)
   const [selectedSleeve, setSelectedSleeve] = useState<string | null>(null)
   const [rollingWindow, setRollingWindow] = useState<number>(METRIC_WINDOW.long)
   const [showCorrNumbers, setShowCorrNumbers] = useState(true)
   const [sleeveViewMode, setSleeveViewMode] = useState<'single' | 'all'>('single')
   const [drawdownMode, setDrawdownMode] = useState<DrawdownMode>(() =>
-    hasMtmDrawdown ? 'mtm' : 'deal',
+    report?.portfolio.drawdownMtm?.length ? 'mtm' : 'deal',
   )
   const [pnlScaleMode, setPnlScaleMode] = useState<'linear' | 'log'>('linear')
   const [appliedComposition, setAppliedComposition] = useState<AppliedPortfolioComposition | null>(
     null,
   )
   const [isSleevePending, startSleeveTransition] = useTransition()
+  const activeReport = useMemo(() => {
+    if (!report || !bucketViewEnabled || !report.bucketedContributions?.length) return report
+    return { ...report, contributions: report.bucketedContributions }
+  }, [bucketViewEnabled, report])
+  const activeDeals = useMemo(
+    () =>
+      deals && bucketViewEnabled && report?.bucketedContributions?.length
+        ? groupDealsIntoBuckets(deals).deals
+        : deals,
+    [bucketViewEnabled, deals, report?.bucketedContributions?.length],
+  )
+  const hasMtmDrawdown = !!activeReport?.portfolio.drawdownMtm?.length
   const pdf = usePdfExport(Boolean(report))
   const pdfPageWidth = pdf.orientation === 'landscape' ? 1120 : 840
   const pdfPageMinHeight = pdf.orientation === 'landscape' ? 794 : 1123
   const analytics = useReportAnalytics({
-    report,
+    report: activeReport,
     underlyingBySymbol,
     drawdownMode,
     rollingWindow,
@@ -106,7 +119,7 @@ const ReportView = () => {
     }
   }, [tab])
 
-  if (!report) return null
+  if (!report || !activeReport) return null
 
   const handleRegenerate = () => {
     resetWizard()
@@ -127,7 +140,7 @@ const ReportView = () => {
       gridRiskColumns: riskColumns,
     },
     sleeves: {
-      report,
+      report: activeReport,
       sleeves: analytics.sleeves,
       selectedContribution: analytics.selectedContribution,
       selectedSleeveMetrics: analytics.selectedSleeveMetrics,
@@ -149,8 +162,8 @@ const ReportView = () => {
       onSelectSleeve: setSelectedSleeve,
     },
     portfolio: {
-      report,
-      deals,
+      report: activeReport,
+      deals: activeDeals,
       appliedComposition,
       onApplyComposition: handleApplyComposition,
       onResetComposition: handleResetComposition,
@@ -174,7 +187,7 @@ const ReportView = () => {
       underlyingSeries: analytics.underlyingSeries,
     },
     pdf: {
-      report,
+      report: activeReport,
       riskRows: analytics.riskRows,
       baseCapital: analytics.baseCapital,
       portfolioDrawdown: analytics.portfolioDrawdown,
@@ -220,11 +233,13 @@ const ReportView = () => {
           isPdfGenerating={pdf.isGenerating}
           isMarApplying={mar.isApplying}
           canApplyMarDegradation={mar.canApply}
+          bucketViewEnabled={bucketViewEnabled}
           onTabChange={setTab}
           onOpenPdf={pdf.openDialog}
           onRegenerate={handleRegenerate}
           onOpenMarDegradation={mar.openDialog}
           onRemoveMarDegradation={mar.remove}
+          onBucketViewEnabledChange={setBucketViewEnabled}
         />
         <PdfSettingsDialog
           open={pdf.dialogOpen}

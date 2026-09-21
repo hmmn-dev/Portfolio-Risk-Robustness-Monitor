@@ -7,6 +7,7 @@ import {
   toHourStart,
 } from './portfolioSeriesHelpers'
 import { stableSort } from './stableSort'
+import { groupDealsIntoBuckets, parseSleeveBucket } from './sleeveBuckets'
 import { normalizeSymbol } from './underlying'
 import type {
   ContributionSeries,
@@ -23,6 +24,8 @@ type PortfolioReportOptions = {
   dealsSourceName?: string
   underlyingTimeframes?: Record<string, 'H1' | 'D1'>
   underlyingSeries?: UnderlyingSeries[]
+  groupContributionSleeves?: ReadonlySet<string>
+  includeBucketedContributions?: boolean
 }
 
 export const buildPortfolioReport = (
@@ -35,6 +38,15 @@ export const buildPortfolioReport = (
   })
   const getTimeframeForSymbol = (symbol: string) =>
     normalizedTimeframes.get(normalizeSymbol(symbol))
+  const getTimeframeForSymbols = (symbols: Iterable<string>) => {
+    let source: 'H1' | 'D1' | undefined
+    for (const symbol of symbols) {
+      const timeframe = getTimeframeForSymbol(symbol)
+      if (timeframe === 'H1') return 'H1'
+      if (timeframe === 'D1') source = 'D1'
+    }
+    return source
+  }
   const portfolioDrawdownSource = (() => {
     for (const timeframe of normalizedTimeframes.values()) {
       if (timeframe === 'H1') return 'H1'
@@ -140,7 +152,7 @@ export const buildPortfolioReport = (
     hours.forEach((time, index) => {
       const pnl = pnlByHour.get(time) ?? 0
       const previousEquity = index === 0 ? Number.NaN : portfolioHourSeries[index - 1].equity
-      let equity: number;
+      let equity: number
       if (hasBalance) {
         const lastBalance = balanceByHour.get(time)
         if (Number.isFinite(lastBalance ?? NaN)) {
@@ -167,17 +179,20 @@ export const buildPortfolioReport = (
     {
       sleeve: SleeveKey
       symbol: string
+      symbols: Set<string>
       pnlByDay: Map<number, number>
       pnlByHour: Map<number, number>
     }
   >()
   sortedDeals.forEach((deal) => {
     const symbol = getDealSymbol(deal)
-    const key = `${deal.sleeve}::${symbol}`
+    const groupBySleeve = options.groupContributionSleeves?.has(deal.sleeve) ?? false
+    const key = groupBySleeve ? `bucket::${deal.sleeve}` : `${deal.sleeve}::${symbol}`
     if (!contributionMap.has(key)) {
       contributionMap.set(key, {
         sleeve: deal.sleeve,
-        symbol,
+        symbol: groupBySleeve ? '' : symbol,
+        symbols: new Set(),
         pnlByDay: new Map(),
         pnlByHour: new Map(),
       })
@@ -185,9 +200,11 @@ export const buildPortfolioReport = (
     const entry = contributionMap.get(key) as {
       sleeve: SleeveKey
       symbol: string
+      symbols: Set<string>
       pnlByDay: Map<number, number>
       pnlByHour: Map<number, number>
     }
+    entry.symbols.add(symbol)
     const day = toDayStart(deal.time)
     entry.pnlByDay.set(day, (entry.pnlByDay.get(day) ?? 0) + deal.notional)
     const hour = toHourStart(deal.time)
@@ -227,7 +244,7 @@ export const buildPortfolioReport = (
     })
 
     const dailySeries = buildIndexAndDrawdown(returns)
-    const drawdownSource = getTimeframeForSymbol(entry.symbol)
+    const drawdownSource = getTimeframeForSymbols(entry.symbols)
     const useHourlyContribution =
       drawdownSource === 'H1' && useHourlyDrawdown && portfolioHourSeries.length > 0
     const drawdown = useHourlyContribution
@@ -259,7 +276,7 @@ export const buildPortfolioReport = (
     }
   })
 
-  return {
+  const report: ReportModel = {
     generatedAt: options.generatedAt ?? 0,
     dealsSourceName: options.dealsSourceName,
     portfolio: {
@@ -272,4 +289,32 @@ export const buildPortfolioReport = (
     },
     contributions,
   }
+
+  if (options.includeBucketedContributions !== false) {
+    const grouped = groupDealsIntoBuckets(sortedDeals)
+    if (grouped.hasBuckets) {
+      const bucketedReport = buildPortfolioReport(grouped.deals, {
+        ...options,
+        groupContributionSleeves: grouped.bucketSleeves,
+        includeBucketedContributions: false,
+      })
+      report.bucketedContributions = bucketedReport.contributions.map((contribution) => {
+        const members = grouped.membersByBucket.get(contribution.sleeve)
+        const bucket = members ? parseSleeveBucket(members[0]?.sleeve ?? '') : null
+        return bucket && members
+          ? {
+              ...contribution,
+              grouping: {
+                kind: 'bucket' as const,
+                name: bucket.name,
+                strategy: bucket.strategy,
+                members,
+              },
+            }
+          : contribution
+      })
+    }
+  }
+
+  return report
 }

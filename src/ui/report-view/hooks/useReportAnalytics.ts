@@ -88,7 +88,7 @@ export const useReportAnalytics = ({
             item,
             portfolioReturnMap,
             rollingWindow,
-            getUnderlyingForSymbol(item.symbol, item.sleeve),
+            item.grouping ? null : getUnderlyingForSymbol(item.symbol, item.sleeve),
           )
         : null,
     [getUnderlyingForSymbol, portfolioReturnMap, report, rollingWindow],
@@ -110,7 +110,9 @@ export const useReportAnalytics = ({
   const selectedContribution = useMemo(() => {
     if (!report) return null
     const sleeve = selectedSleeve ?? report.contributions[0]?.sleeve
-    return report.contributions.find((item) => item.sleeve === sleeve) ?? null
+    return (
+      report.contributions.find((item) => item.sleeve === sleeve) ?? report.contributions[0] ?? null
+    )
   }, [report, selectedSleeve])
   const selectedSleeveMetrics = useMemo(
     () => (selectedContribution ? buildSleeveMetrics(selectedContribution) : null),

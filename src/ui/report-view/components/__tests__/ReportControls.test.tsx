@@ -15,6 +15,7 @@ describe('ReportHeader', () => {
     const onOpenPdf = vi.fn()
     const onRegenerate = vi.fn()
     const onOpenMarDegradation = vi.fn()
+    const onBucketViewEnabledChange = vi.fn()
 
     renderWithTheme(
       <ReportHeader
@@ -24,11 +25,13 @@ describe('ReportHeader', () => {
         isPdfGenerating={false}
         isMarApplying={false}
         canApplyMarDegradation
+        bucketViewEnabled
         onTabChange={onTabChange}
         onOpenPdf={onOpenPdf}
         onRegenerate={onRegenerate}
         onOpenMarDegradation={onOpenMarDegradation}
         onRemoveMarDegradation={vi.fn()}
+        onBucketViewEnabledChange={onBucketViewEnabledChange}
       />,
     )
 
@@ -38,12 +41,14 @@ describe('ReportHeader', () => {
     await user.click(screen.getByRole('button', { name: 'Regenerate report' }))
     await user.click(screen.getByRole('button', { name: 'Report actions' }))
     await user.click(screen.getByRole('menuitem', { name: 'Apply MAR degradation' }))
+    await user.click(screen.getByRole('switch', { name: 'Bucket view' }))
 
     expect(onTabChange).toHaveBeenCalledWith('risk')
     expect(onTabChange).toHaveBeenCalledWith('sleeves')
     expect(onOpenPdf).toHaveBeenCalledOnce()
     expect(onRegenerate).toHaveBeenCalledOnce()
     expect(onOpenMarDegradation).toHaveBeenCalledOnce()
+    expect(onBucketViewEnabledChange).toHaveBeenCalledWith(false)
   })
 
   it('shows an applied degradation and supports removing it', async () => {
@@ -58,11 +63,13 @@ describe('ReportHeader', () => {
         isPdfGenerating={false}
         isMarApplying={false}
         canApplyMarDegradation
+        bucketViewEnabled
         onTabChange={vi.fn()}
         onOpenPdf={vi.fn()}
         onRegenerate={vi.fn()}
         onOpenMarDegradation={vi.fn()}
         onRemoveMarDegradation={onRemoveMarDegradation}
+        onBucketViewEnabledChange={vi.fn()}
       />,
     )
 

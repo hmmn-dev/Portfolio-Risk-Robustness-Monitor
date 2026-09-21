@@ -214,4 +214,72 @@ describe('buildPortfolioReport', () => {
     expect(report.dealsSourceName).toBe('deals.csv')
     expect(report.contributions[0].symbol).toBe('XAUUSD')
   })
+
+  it('builds aggregated bracket bucket contributions while preserving their members', () => {
+    const deals = [
+      makeDeal({
+        deal: 'SPY-1',
+        time: day(0),
+        sleeve: 'Daily Capitulation MR [EQ] - SPY',
+        symbol: 'SPY',
+        notional: 100,
+      }),
+      makeDeal({
+        deal: 'QQQ-1',
+        time: day(1),
+        sleeve: 'Daily Capitulation MR [EQ] - QQQ',
+        symbol: 'QQQ',
+        notional: 55,
+      }),
+      makeDeal({
+        deal: 'TLT-1',
+        time: day(1),
+        sleeve: 'Trend [FI] - TLT',
+        symbol: 'TLT',
+        notional: -11,
+      }),
+      makeDeal({
+        deal: 'GLD-1',
+        time: day(1),
+        sleeve: 'Unbucketed - GLD',
+        symbol: 'GLD',
+        notional: 5,
+      }),
+    ]
+
+    const report = buildPortfolioReport(deals, { initialCapital: 1000 })
+    const bucketed = report.bucketedContributions ?? []
+    const equityBucket = bucketed.find((item) => item.sleeve === 'Daily Capitulation MR - EQ')
+
+    expect(report.contributions).toHaveLength(4)
+    expect(bucketed.map((item) => item.sleeve)).toEqual([
+      'Daily Capitulation MR - EQ',
+      'Trend - FI',
+      'Unbucketed - GLD',
+    ])
+    expect(equityBucket?.symbol).toBe('')
+    expect(equityBucket?.pnl.map((point) => point.value)).toEqual([100, 55])
+    expect(equityBucket?.returns[1].value).toBeCloseTo(0.05)
+    expect(equityBucket?.grouping).toEqual({
+      kind: 'bucket',
+      name: 'EQ',
+      strategy: 'Daily Capitulation MR',
+      members: [
+        {
+          key: 'Daily Capitulation MR [EQ] - QQQ::QQQ',
+          sleeve: 'Daily Capitulation MR [EQ] - QQQ',
+          symbol: 'QQQ',
+        },
+        {
+          key: 'Daily Capitulation MR [EQ] - SPY::SPY',
+          sleeve: 'Daily Capitulation MR [EQ] - SPY',
+          symbol: 'SPY',
+        },
+      ],
+    })
+    expect(report.portfolio.days.map((item) => item.pnl)).toEqual([100, 49])
+    expect(bucketed.reduce((total, item) => total + (item.returns[1]?.value ?? 0), 0)).toBeCloseTo(
+      report.portfolio.days[1].return,
+    )
+  })
 })

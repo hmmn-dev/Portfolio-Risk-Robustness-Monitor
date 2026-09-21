@@ -116,6 +116,43 @@ describe('report analytics', () => {
     expect(rows[0]).toMatchObject({ sleeve: 'Alpha', symbol: 'EURUSD' })
   })
 
+  it('presents a bucket as one strategy without exposing a member symbol', () => {
+    const report = createReport()
+    report.contributions = [
+      {
+        ...report.contributions[0],
+        key: 'bucket::Daily Capitulation MR - EQ',
+        sleeve: 'Daily Capitulation MR - EQ',
+        symbol: '',
+        grouping: {
+          kind: 'bucket',
+          name: 'EQ',
+          strategy: 'Daily Capitulation MR',
+          members: [
+            {
+              key: 'Daily Capitulation MR [EQ] - SPY::SPY',
+              sleeve: 'Daily Capitulation MR [EQ] - SPY',
+              symbol: 'SPY',
+            },
+            {
+              key: 'Daily Capitulation MR [EQ] - QQQ::QQQ',
+              sleeve: 'Daily Capitulation MR [EQ] - QQQ',
+              symbol: 'QQQ',
+            },
+          ],
+        },
+      },
+    ]
+
+    const performanceRow = buildPerformanceRows(report)[0]
+    const riskRow = buildRiskRows(report, 'deal', {}, buildPortfolioReturnMap(report))[0]
+    const obfuscation = buildReportObfuscation(report, null)
+
+    expect(performanceRow).toMatchObject({ sleeve: 'Daily Capitulation MR - EQ', symbol: '' })
+    expect(riskRow).toMatchObject({ sleeve: 'Daily Capitulation MR - EQ', symbol: '' })
+    expect(obfuscation.formatSleeveLabel('Daily Capitulation MR - EQ')).toBe('STRATEGY-01')
+  })
+
   it('supports sparse sleeves with 30 active observations in the current two-year window', () => {
     const report = createRiskReport(
       563,
@@ -164,5 +201,42 @@ describe('report analytics', () => {
 
     expect(row.alphaEvidence.source).toBe('PORTFOLIO')
     expect(row.alphaEvidence.state).toBe('CURRENT')
+  })
+
+  it('does not reinterpret a bucket name as a single underlying symbol', () => {
+    const report = createRiskReport(
+      563,
+      new Set(Array.from({ length: 30 }, (_, index) => 503 + index)),
+    )
+    report.contributions[0] = {
+      ...report.contributions[0],
+      key: 'bucket::Sparse - EQ',
+      sleeve: 'Sparse - EQ',
+      symbol: '',
+      grouping: {
+        kind: 'bucket',
+        name: 'EQ',
+        strategy: 'Sparse',
+        members: [
+          { key: 'Sparse [EQ] - SPY::SPY', sleeve: 'Sparse [EQ] - SPY', symbol: 'SPY' },
+          { key: 'Sparse [EQ] - QQQ::QQQ', sleeve: 'Sparse [EQ] - QQQ', symbol: 'QQQ' },
+        ],
+      },
+    }
+    const fakeEqUnderlying = report.portfolio.days.map((day) => ({
+      symbol: 'EQ',
+      time: day.time,
+      close: 100,
+      return: day.return,
+    }))
+
+    const row = buildRiskRows(
+      report,
+      'deal',
+      { EQ: fakeEqUnderlying },
+      buildPortfolioReturnMap(report),
+    )[0]
+
+    expect(row.alphaEvidence.source).toBe('PORTFOLIO')
   })
 })

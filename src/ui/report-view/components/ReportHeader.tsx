@@ -11,12 +11,15 @@ import {
   Box,
   Button,
   Chip,
+  FormControlLabel,
   IconButton,
   Menu,
   MenuItem,
   Stack,
+  Switch,
   Tab,
   Tabs,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import type { SyntheticEvent } from 'react'
@@ -30,11 +33,13 @@ type ReportHeaderProps = {
   isPdfGenerating: boolean
   isMarApplying: boolean
   canApplyMarDegradation: boolean
+  bucketViewEnabled: boolean
   onTabChange: (tab: ReportTab) => void
   onOpenPdf: () => void
   onRegenerate: () => void
   onOpenMarDegradation: () => void
   onRemoveMarDegradation: () => void
+  onBucketViewEnabledChange: (enabled: boolean) => void
 }
 
 const reportTabs = [
@@ -67,11 +72,13 @@ const ReportHeader = ({
   isPdfGenerating,
   isMarApplying,
   canApplyMarDegradation,
+  bucketViewEnabled,
   onTabChange,
   onOpenPdf,
   onRegenerate,
   onOpenMarDegradation,
   onRemoveMarDegradation,
+  onBucketViewEnabledChange,
 }: ReportHeaderProps) => {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const handleTabChange = (_event: SyntheticEvent, value: ReportTab) => onTabChange(value)
@@ -88,6 +95,22 @@ const ReportHeader = ({
         <Typography variant="caption" color="text.secondary">
           {reportMeta}
         </Typography>
+        <Tooltip
+          describeChild
+          title="Combine each strategy's symbol sleeves using its trailing [bucket] tag."
+        >
+          <FormControlLabel
+            sx={{ m: 0, whiteSpace: 'nowrap' }}
+            control={
+              <Switch
+                size="small"
+                checked={bucketViewEnabled}
+                onChange={(event) => onBucketViewEnabledChange(event.target.checked)}
+              />
+            }
+            label={<Typography variant="caption">Bucket view</Typography>}
+          />
+        </Tooltip>
         {marDegradationPct != null && marDegradationPct > 0 && (
           <Chip
             size="medium"

@@ -3,6 +3,8 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { buildPortfolioReport } from '../../../engine/portfolioSeries'
+import type { DealRow } from '../../../engine/types'
 import { useReportStore } from '../../../store/report'
 import { useUnderlyingStore } from '../../../store/underlying'
 import { useWizardStore } from '../../../store/wizard'
@@ -19,13 +21,23 @@ vi.mock('../../../store/idbStorage', () => ({
 }))
 
 vi.mock('../components/ReportTabsContent', async () => {
-  const { useReportPortfolio } = await import('../components/ReportViewContext')
+  const { useReportPdf, useReportPortfolio, useReportSleeves, useReportTables } =
+    await import('../components/ReportViewContext')
   const MockReportTabsContent = () => {
-    const { showCorrNumbers } = useReportPortfolio()
+    const portfolio = useReportPortfolio()
+    const sleeves = useReportSleeves()
+    const tables = useReportTables()
+    const pdf = useReportPdf()
     return (
       <div>
         Active report content
-        <span data-testid="correlation-values-default">{String(showCorrNumbers)}</span>
+        <span data-testid="correlation-values-default">{String(portfolio.showCorrNumbers)}</span>
+        <span data-testid="table-sleeves">
+          {tables.performanceRows.map((row) => `${row.sleeve}:${row.symbol}`).join('|')}
+        </span>
+        <span data-testid="strategy-count">{sleeves.report.contributions.length}</span>
+        <span data-testid="portfolio-count">{portfolio.report.contributions.length}</span>
+        <span data-testid="pdf-count">{pdf.report.contributions.length}</span>
       </div>
     )
   }
@@ -73,6 +85,53 @@ describe('ReportView', () => {
       'aria-selected',
       'true',
     )
+  })
+
+  it('enables one global bucket view by default and can reveal member sleeves', async () => {
+    const user = userEvent.setup()
+    const deals: DealRow[] = [
+      {
+        deal: 'SPY-1',
+        time: Date.UTC(2026, 0, 1),
+        sleeve: 'Daily Capitulation MR [EQ] - SPY',
+        symbol: 'SPY',
+        notional: 100,
+        _seq: 0,
+      },
+      {
+        deal: 'QQQ-1',
+        time: Date.UTC(2026, 0, 2),
+        sleeve: 'Daily Capitulation MR [EQ] - QQQ',
+        symbol: 'QQQ',
+        notional: 50,
+        _seq: 1,
+      },
+    ]
+    const report = buildPortfolioReport(deals, {
+      initialCapital: 1000,
+      generatedAt: Date.UTC(2026, 0, 3),
+      dealsSourceName: 'bucketed.csv',
+    })
+    useReportStore.setState({ report, baseReport: report, deals, baseDeals: deals })
+
+    renderWithTheme(<ReportView />)
+
+    const bucketSwitch = screen.getByRole('switch', { name: 'Bucket view' })
+    expect(bucketSwitch).toBeChecked()
+    expect(screen.getByTestId('table-sleeves')).toHaveTextContent('Daily Capitulation MR - EQ:')
+    expect(screen.getByTestId('strategy-count')).toHaveTextContent('1')
+    expect(screen.getByTestId('portfolio-count')).toHaveTextContent('1')
+    expect(screen.getByTestId('pdf-count')).toHaveTextContent('1')
+
+    await user.click(bucketSwitch)
+
+    expect(bucketSwitch).not.toBeChecked()
+    expect(screen.getByTestId('table-sleeves')).toHaveTextContent(
+      'Daily Capitulation MR [EQ]:QQQ|Daily Capitulation MR [EQ]:SPY',
+    )
+    expect(screen.getByTestId('strategy-count')).toHaveTextContent('2')
+    expect(screen.getByTestId('portfolio-count')).toHaveTextContent('2')
+    expect(screen.getByTestId('pdf-count')).toHaveTextContent('2')
   })
 
   it('opens and cancels PDF generation settings', async () => {
