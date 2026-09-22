@@ -5,18 +5,9 @@ import {
   computeDailySqn,
   computeLongestStagnationDays,
 } from '../portfolio/portfolioSummaryMetrics'
-import type { PortfolioSummary, RiskRow } from '../types'
+import type { RiskRow } from '../types'
 
 const day = (offset: number) => Date.UTC(2024, 0, 1 + offset)
-
-const summary: PortfolioSummary = {
-  totalReturnPct: 20,
-  cagr: 10,
-  maxDrawdown: -5,
-  mar: 2,
-  sharpe: 1,
-  regression: null,
-}
 
 describe('portfolio summary metrics', () => {
   it('calculates daily SQN with sample deviation and rejects insufficient variation', () => {
@@ -51,32 +42,32 @@ describe('portfolio summary metrics', () => {
     ).toBe(3)
   })
 
-  it('derives recovery, current drawdown, profitable days, and track-record bounds', () => {
+  it('derives Sortino, current drawdown, profitable days, and track-record bounds', () => {
     const metrics = buildPortfolioSummaryMetrics(
-      summary,
       [
-        { time: day(1), value: 2.2 },
+        { time: Date.UTC(2024, 1, 1), value: 2.2 },
         { time: day(0), value: 2 },
-        { time: day(2), value: 2.1 },
+        { time: day(1), value: 2.1 },
       ],
       [
         { time: day(0), value: Number.NaN },
         { time: day(1), value: 0.1 },
-        { time: day(2), value: -0.05 },
+        { time: Date.UTC(2024, 1, 1), value: -0.05 },
       ],
       [
-        { time: day(2), value: -4.5 },
+        { time: Date.UTC(2024, 1, 1), value: -4.5 },
         { time: day(0), value: 0 },
       ],
     )
 
     expect(metrics.currentDrawdown).toBe(-4.5)
     expect(metrics.profitableDaysPct).toBe(50)
+    expect(metrics.profitableMonthsPct).toBe(50)
     expect(metrics.highWaterReturnPct).toBeCloseTo(10)
-    expect(metrics.recoveryFactor).toBe(4)
+    expect(metrics.sortino).toBeCloseTo((0.025 * Math.sqrt(252)) / Math.sqrt(0.00125))
     expect(metrics.tradingDays).toBe(3)
     expect(metrics.startTime).toBe(day(0))
-    expect(metrics.endTime).toBe(day(2))
+    expect(metrics.endTime).toBe(Date.UTC(2024, 1, 1))
   })
 
   it('keeps unknown status values separate from healthy sleeves', () => {

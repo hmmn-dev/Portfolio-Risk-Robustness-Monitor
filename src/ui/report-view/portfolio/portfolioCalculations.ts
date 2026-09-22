@@ -1,5 +1,6 @@
 import { correlation } from '../../../engine/correlation'
 import { buildIndexAndDrawdown } from '../../../engine/portfolioSeriesHelpers'
+import { computeMonthlyReturns } from '../../../engine/returnMetrics'
 import { stableSort } from '../../../engine/stableSort'
 import type { DailyPoint, ReportModel } from '../../../engine/types'
 import { computeSharpe, getSeriesValues } from '../helpers/series'
@@ -40,15 +41,12 @@ export const buildMonthlyReturnRows = (
   drawdown: DailyPoint[],
 ): MonthlyReturnRow[] => {
   const yearMap = new Map<number, { months: (number | null)[]; yearProduct: number | null }>()
-  dailyReturns.forEach((point) => {
-    if (!Number.isFinite(point.value)) return
+  computeMonthlyReturns(dailyReturns).forEach((point) => {
     const date = new Date(point.time)
-    if (Number.isNaN(date.getTime())) return
     const year = date.getUTCFullYear()
     const month = date.getUTCMonth()
     const entry = yearMap.get(year) ?? { months: Array(12).fill(null), yearProduct: null }
-    const monthProduct = entry.months[month]
-    entry.months[month] = (monthProduct == null ? 1 : monthProduct) * (1 + point.value)
+    entry.months[month] = point.value
     entry.yearProduct = (entry.yearProduct == null ? 1 : entry.yearProduct) * (1 + point.value)
     yearMap.set(year, entry)
   })
@@ -69,7 +67,7 @@ export const buildMonthlyReturnRows = (
     const entry = yearMap.get(year) as { months: (number | null)[]; yearProduct: number | null }
     return {
       year,
-      months: entry.months.map((product) => (product == null ? null : product - 1)),
+      months: [...entry.months],
       total: entry.yearProduct == null ? null : entry.yearProduct - 1,
       maxDrawdown: drawdownByYear.get(year) ?? null,
     }

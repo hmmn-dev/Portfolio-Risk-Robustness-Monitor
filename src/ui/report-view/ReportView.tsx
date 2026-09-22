@@ -1,6 +1,7 @@
 import { Stack, useTheme } from '@mui/material'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { groupDealsIntoBuckets } from '../../engine/sleeveBuckets'
+import { computeTradeStats } from '../../engine/tradeStats'
 import { useReportStore } from '../../store/report'
 import { useUnderlyingStore } from '../../store/underlying'
 import { useWizardStore } from '../../store/wizard'
@@ -70,6 +71,10 @@ const ReportView = () => {
         ? groupDealsIntoBuckets(deals).deals
         : deals,
     [bucketViewEnabled, deals, report?.bucketedContributions?.length],
+  )
+  const tradeStats = useMemo(
+    () => (activeDeals ? computeTradeStats(activeDeals) : null),
+    [activeDeals],
   )
   const hasMtmDrawdown = !!activeReport?.portfolio.drawdownMtm?.length
   const pdf = usePdfExport(Boolean(report))
@@ -199,6 +204,7 @@ const ReportView = () => {
       correlationLegend: CORRELATION_LEGEND,
       showCorrNumbers,
       portfolioSummary: analytics.portfolioSummary,
+      tradeStats,
       buildSleeveMetrics: analytics.buildSleeveMetrics,
       getSleeveDrawdown: analytics.getSleeveDrawdown,
       getSleeveDrawdownSource: analytics.getSleeveDrawdownSource,

@@ -1,6 +1,7 @@
+import { computeAnnualizedSortino, computeProfitableMonthsPct } from '../../../engine/returnMetrics'
 import { stableSort } from '../../../engine/stableSort'
 import type { DailyPoint } from '../../../engine/types'
-import type { PortfolioSummary, RiskRow } from '../types'
+import type { RiskRow } from '../types'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -56,8 +57,9 @@ export type PortfolioSummaryMetrics = {
   currentDrawdown: number
   dailySqn: number
   profitableDaysPct: number
+  profitableMonthsPct: number
   highWaterReturnPct: number
-  recoveryFactor: number
+  sortino: number
   stagnationDays: number
   tradingDays: number
   startTime?: number
@@ -65,7 +67,6 @@ export type PortfolioSummaryMetrics = {
 }
 
 export const buildPortfolioSummaryMetrics = (
-  summary: PortfolioSummary | null,
   index: DailyPoint[],
   returns: DailyPoint[],
   drawdown: DailyPoint[],
@@ -79,21 +80,18 @@ export const buildPortfolioSummaryMetrics = (
   )
   const startingIndex = indexPoints[0]?.value ?? Number.NaN
   const profitableDays = finiteReturns.filter((point) => point.value > 0).length
-  const maxDrawdown = summary?.maxDrawdown ?? Number.NaN
 
   return {
     currentDrawdown: drawdownPoints.at(-1)?.value ?? Number.NaN,
     dailySqn: computeDailySqn(returns),
     profitableDaysPct:
       finiteReturns.length > 0 ? (profitableDays / finiteReturns.length) * 100 : Number.NaN,
+    profitableMonthsPct: computeProfitableMonthsPct(returns),
     highWaterReturnPct:
       Number.isFinite(highWater) && startingIndex > 0
         ? (highWater / startingIndex - 1) * 100
         : Number.NaN,
-    recoveryFactor:
-      summary && Number.isFinite(summary.totalReturnPct) && maxDrawdown < 0
-        ? summary.totalReturnPct / Math.abs(maxDrawdown)
-        : Number.NaN,
+    sortino: computeAnnualizedSortino(returns),
     stagnationDays: computeLongestStagnationDays(index),
     tradingDays: indexPoints.length,
     startTime: indexPoints[0]?.time,

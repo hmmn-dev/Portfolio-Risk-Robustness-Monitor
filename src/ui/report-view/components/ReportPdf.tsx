@@ -34,6 +34,7 @@ const ReportPdf = () => {
     formatPdfSleeveLabel,
     formatPdfSymbol,
     portfolioSummary,
+    tradeStats,
     buildSleeveMetrics,
     getSleeveDrawdown,
     getSleeveDrawdownSource,
@@ -104,6 +105,7 @@ const ReportPdf = () => {
         drawdownMode={drawdownMode}
         drawdownSource={portfolioDrawdownSource}
         riskRows={riskRows}
+        tradeStats={tradeStats}
         formatSymbol={formatPdfSymbol}
       />
     </>

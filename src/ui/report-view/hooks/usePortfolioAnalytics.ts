@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { resolveMtmDrawdownCoverage } from '../../../engine/drawdownCoverage'
 import { buildMtmDrawdown } from '../../../engine/mtmDrawdown'
+import { toDayStart } from '../../../engine/portfolioSeriesHelpers'
+import { computeTradeStats } from '../../../engine/tradeStats'
 import type { DealRow, ReportModel, UnderlyingSeries } from '../../../engine/types'
 import {
   applyDrawdownToSummary,
@@ -21,6 +23,8 @@ import {
 } from '../helpers/chartRange'
 import { normalizeSymbol } from '../helpers/labels'
 import { portfolioRegression } from '../helpers/regression'
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 type UsePortfolioAnalyticsOptions = {
   report: ReportModel
@@ -175,6 +179,18 @@ export const usePortfolioAnalytics = ({
     () => resolveChartRange(rangeBounds, rangeSelection),
     [rangeBounds, rangeSelection],
   )
+  const tradeStats = useMemo(
+    () =>
+      deals
+        ? computeTradeStats(deals, {
+            sleeves: enabledSleeves,
+            startTime: resolvedRange?.minTime,
+            endTime:
+              resolvedRange == null ? undefined : toDayStart(resolvedRange.maxTime) + DAY_MS - 1,
+          })
+        : null,
+    [deals, enabledSleeves, resolvedRange],
+  )
   const isFullRange = rangeSelection.type === 'preset' && rangeSelection.preset === 'all'
   const effectiveIndex = useMemo(
     () => (isFullRange ? fullIndex : filterSeriesByRange(fullIndex, resolvedRange)),
@@ -251,6 +267,7 @@ export const usePortfolioAnalytics = ({
     effectiveSummary,
     effectiveCorrelationMatrix,
     monthlyReturns,
+    tradeStats,
     chartIndex: fullIndex,
     chartDrawdown: fullDrawdown,
     chartDrawdownFallback: fullDrawdownFallback,

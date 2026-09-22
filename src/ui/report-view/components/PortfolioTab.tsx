@@ -73,6 +73,7 @@ const PortfolioTab = ({ viewModel }: PortfolioTabProps) => {
           drawdownSource={analytics.effectiveDrawdownSource}
           riskRows={riskRows}
           customPortfolio={analytics.usesCustomPortfolio}
+          tradeStats={analytics.tradeStats}
         />
         <MonthlyReturnsTable rows={analytics.monthlyReturns} theme={theme} />
         <PortfolioCorrelationPanel

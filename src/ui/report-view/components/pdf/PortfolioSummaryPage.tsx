@@ -1,4 +1,5 @@
 import { Stack } from '@mui/material'
+import type { TradeStats } from '../../../../engine/tradeStats'
 import type { DailyPoint, ReportModel } from '../../../../engine/types'
 import type { DrawdownMode } from '../../reportAnalytics'
 import type { PortfolioSummary, RiskRow } from '../../types'
@@ -17,6 +18,7 @@ type PortfolioSummaryPageProps = {
   drawdownMode: DrawdownMode
   drawdownSource?: ReportModel['portfolio']['drawdownSource']
   riskRows: RiskRow[]
+  tradeStats: TradeStats | null
   formatSymbol: (symbol: string) => string
 }
 
@@ -31,6 +33,7 @@ const PortfolioSummaryPage = ({
   drawdownMode,
   drawdownSource,
   riskRows,
+  tradeStats,
   formatSymbol,
 }: PortfolioSummaryPageProps) => (
   <PdfPage title="Portfolio summary" pdfName={pdfName} width={width} minHeight={minHeight}>
@@ -44,6 +47,7 @@ const PortfolioSummaryPage = ({
         drawdownSource={drawdownSource}
         riskRows={riskRows}
         customPortfolio={false}
+        tradeStats={tradeStats}
       />
       <PortfolioRegressionSummary
         regression={summary?.regression ?? null}

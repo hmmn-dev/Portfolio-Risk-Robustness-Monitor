@@ -1,5 +1,6 @@
 import type { GridColDef } from '@mui/x-data-grid'
 import { createContext, useContext } from 'react'
+import type { TradeStats } from '../../../engine/tradeStats'
 import type { DealRow, ReportModel, UnderlyingSeries } from '../../../engine/types'
 import type { ReportTab } from '../types'
 import type { CorrelationMatrix, PerformanceRow, PortfolioSummary, RiskRow } from '../types'
@@ -81,6 +82,7 @@ export type ReportPdfContextValue = {
   correlationLegend: string
   showCorrNumbers: boolean
   portfolioSummary: PortfolioSummary | null
+  tradeStats: TradeStats | null
   buildSleeveMetrics: (item: ReportModel['contributions'][number]) => SleeveMetrics | null
   getSleeveDrawdown: (
     item: ReportModel['contributions'][number],

@@ -339,17 +339,18 @@ describe('portfolio presentation components', () => {
           summary={context.portfolio.portfolioSummary}
           index={[
             { time: Date.UTC(2024, 0, 1), value: 1 },
-            { time: Date.UTC(2024, 0, 2), value: 1.1 },
+            { time: Date.UTC(2024, 1, 1), value: 1.1 },
           ]}
           returns={[
             { time: Date.UTC(2024, 0, 1), value: 0.1 },
-            { time: Date.UTC(2024, 0, 2), value: -0.05 },
+            { time: Date.UTC(2024, 1, 1), value: -0.05 },
           ]}
           drawdown={drawdown}
           drawdownMode="deal"
           drawdownSource="D1"
           riskRows={context.portfolio.riskRows}
           customPortfolio
+          tradeStats={{ tradeCount: 3, directionalTradeCount: 3, longExposurePct: 200 / 3 }}
         />
         <PortfolioRegressionSummary
           regression={context.portfolio.portfolioSummary?.regression ?? null}
@@ -366,6 +367,13 @@ describe('portfolio presentation components', () => {
 
     expect(screen.getAllByText('10.00%')).toHaveLength(3)
     expect(within(summary).getByText('Daily SQN')).toBeInTheDocument()
+    expect(within(summary).getByText('Profitable months')).toBeInTheDocument()
+    expect(within(summary).getAllByText('50.0%')).toHaveLength(2)
+    expect(within(summary).getByText('Sortino ratio')).toBeInTheDocument()
+    expect(within(summary).queryByText('Recovery factor')).not.toBeInTheDocument()
+    expect(within(summary).getByText('Trades')).toBeInTheDocument()
+    expect(within(summary).getByText('Long exposure')).toBeInTheDocument()
+    expect(within(summary).getByText('66.7%')).toBeInTheDocument()
     expect(within(summary).queryByText('ACF')).not.toBeInTheDocument()
     expect(within(health).getByText('Healthy')).toBeInTheDocument()
     expect(within(health).getByText('No shock')).toBeInTheDocument()

@@ -1,5 +1,6 @@
 import { Alert, Box, Chip, Paper, Stack } from '@mui/material'
 import { memo } from 'react'
+import type { TradeStats } from '../../../../engine/tradeStats'
 import type { DailyPoint, ReportModel } from '../../../../engine/types'
 import { formatDrawdownModeLabel, formatDrawdownSourceLabel, formatSigned } from '../../formatters'
 import {
@@ -22,6 +23,7 @@ type PortfolioSummaryPanelProps = {
   drawdownSource?: ReportModel['portfolio']['drawdownSource']
   riskRows: RiskRow[]
   customPortfolio: boolean
+  tradeStats: TradeStats | null
 }
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -54,8 +56,9 @@ const PortfolioSummaryPanel = ({
   drawdownSource,
   riskRows,
   customPortfolio,
+  tradeStats,
 }: PortfolioSummaryPanelProps) => {
-  const metrics = buildPortfolioSummaryMetrics(summary, index, returns, drawdown)
+  const metrics = buildPortfolioSummaryMetrics(index, returns, drawdown)
   const totalReturn = summary?.totalReturnPct ?? Number.NaN
   const cagr = summary?.cagr ?? Number.NaN
   const maxDrawdown = summary?.maxDrawdown ?? Number.NaN
@@ -145,10 +148,10 @@ const PortfolioSummaryPanel = ({
           description="Annualized mean daily portfolio return divided by daily return volatility, with no risk-free-rate adjustment."
         />
         <SummaryMetricCell
-          label="Recovery factor"
-          value={formatSigned(metrics.recoveryFactor, 2)}
-          tone={signedTone(metrics.recoveryFactor)}
-          description="Total return divided by the absolute maximum drawdown. It measures cumulative return relative to the worst loss from a peak."
+          label="Sortino ratio"
+          value={formatSigned(metrics.sortino, 2)}
+          tone={signedTone(metrics.sortino)}
+          description="Annualized mean daily portfolio return divided by zero-target downside deviation. Only negative returns contribute to downside risk."
         />
       </MetricGrid>
 
@@ -159,16 +162,27 @@ const PortfolioSummaryPanel = ({
       >
         <ReportSectionHeader
           title="Track-record quality"
-          subtitle="Consistency and recovery characteristics of the daily return series"
+          subtitle="Consistency, trading activity, and recovery characteristics"
           headingComponent="h3"
         />
         <MetricGrid
           columns={{
             xs: '1fr',
             sm: 'repeat(2, minmax(0, 1fr))',
-            md: 'repeat(5, minmax(0, 1fr))',
+            md: 'repeat(3, minmax(0, 1fr))',
+            lg: 'repeat(4, minmax(0, 1fr))',
           }}
         >
+          <SummaryMetricCell
+            label="Profitable days"
+            value={formatSigned(metrics.profitableDaysPct, 1, '%')}
+            description="Percentage of finite daily portfolio returns that are greater than zero."
+          />
+          <SummaryMetricCell
+            label="Profitable months"
+            value={formatSigned(metrics.profitableMonthsPct, 1, '%')}
+            description="Percentage of observed UTC calendar months whose compounded portfolio return is greater than zero."
+          />
           <SummaryMetricCell
             label="Daily SQN"
             value={formatSigned(metrics.dailySqn, 2)}
@@ -176,9 +190,14 @@ const PortfolioSummaryPanel = ({
             description="SQN-style score calculated as square root of N times mean daily return divided by sample standard deviation. This is a daily-return measure, not trade-level SQN based on R-multiples."
           />
           <SummaryMetricCell
-            label="Profitable days"
-            value={formatSigned(metrics.profitableDaysPct, 1, '%')}
-            description="Percentage of finite daily portfolio returns that are greater than zero."
+            label="Trades"
+            value={tradeStats ? String(tradeStats.tradeCount) : 'n/a'}
+            description="Number of unique positions opened in the displayed date range and selected composition. Multiple entry fills for the same position count as one trade."
+          />
+          <SummaryMetricCell
+            label="Long exposure"
+            value={formatSigned(tradeStats?.longExposurePct ?? Number.NaN, 1, '%')}
+            description="Percentage of trades with an identifiable entry direction that opened long. This is a trade-count share, not a time- or notional-weighted exposure measure."
           />
           <SummaryMetricCell
             label="Longest stagnation"

@@ -95,6 +95,11 @@ describe('usePortfolioAnalytics', () => {
     expect(result.current.effectiveDrawdownSource).toBe('D1')
     expect(result.current.chartDrawdown[1].value).toBeCloseTo(-1)
     expect(result.current.effectiveSummary?.maxDrawdown).toBeCloseTo(-1)
+    expect(result.current.tradeStats).toEqual({
+      tradeCount: 1,
+      directionalTradeCount: 1,
+      longExposurePct: 100,
+    })
 
     const { result: weightedResult } = renderHook(() =>
       usePortfolioAnalytics({
@@ -126,6 +131,11 @@ describe('usePortfolioAnalytics', () => {
     expect(weightedResult.current.chartDrawdown[1].value).toBeCloseTo(-4)
     expect(weightedResult.current.effectiveIndex.at(-1)?.value).toBeCloseTo(0.96)
     expect(weightedResult.current.effectiveSummary?.maxDrawdown).toBeCloseTo(-4)
+    expect(weightedResult.current.tradeStats).toEqual({
+      tradeCount: 2,
+      directionalTradeCount: 2,
+      longExposurePct: 100,
+    })
   })
 
   it('uses realized drawdown after custom MTM candle coverage ends', () => {
@@ -180,5 +190,35 @@ describe('usePortfolioAnalytics', () => {
     expect(result.current.effectiveDrawdownMode).toBe('deal')
     expect(result.current.chartDrawdownFallback).toEqual([])
     expect(result.current.chartDrawdown.at(-1)?.value).toBeCloseTo(-2)
+  })
+
+  it('includes trades opened later on the final displayed day', () => {
+    const deals = makePositionDeals('Alpha - EURUSD', 1, 1, 0).map((deal, index) => ({
+      ...deal,
+      time: day(2) + (12 + index) * 60 * 60 * 1000,
+    }))
+    const report = buildPortfolioReport(deals, { initialCapital: 1000 })
+
+    const { result } = renderHook(() =>
+      usePortfolioAnalytics({
+        report,
+        deals,
+        baseCapital: 1000,
+        drawdownMode: 'deal',
+        portfolioDrawdown: report.portfolio.drawdown,
+        portfolioDrawdownFallback: [],
+        portfolioDrawdownSource: report.portfolio.drawdownSource,
+        portfolioSummary: null,
+        correlationMatrix: { labels: [], values: [] },
+        underlyingSeries: [],
+        enabledSleeves: new Set(['Alpha - EURUSD']),
+        sleeveWeights: { 'Alpha - EURUSD': 1 },
+        isFiltered: false,
+        hasCustomWeights: false,
+        rangeSelection: ALL_CHART_RANGE,
+      }),
+    )
+
+    expect(result.current.tradeStats?.tradeCount).toBe(1)
   })
 })
