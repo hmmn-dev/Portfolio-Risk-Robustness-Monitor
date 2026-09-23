@@ -23,10 +23,7 @@ export const useWizardWorkflow = () => {
   const setActiveStep = useWizardStore((state) => state.setActiveStep)
   const previousStep = useWizardStore((state) => state.prevStep)
   const setLoading = useWizardStore((state) => state.setLoading)
-  const setReport = useReportStore((state) => state.setReport)
-  const setDeals = useReportStore((state) => state.setDeals)
-  const setBaseReport = useReportStore((state) => state.setBaseReport)
-  const setBaseDeals = useReportStore((state) => state.setBaseDeals)
+  const setGeneratedReport = useReportStore((state) => state.setGeneratedReport)
   const setAllUnderlying = useUnderlyingStore((state) => state.setAllUnderlying)
   const clearUnderlying = useUnderlyingStore((state) => state.clearUnderlying)
   const underlyingSeries = useUnderlyingStore((state) => state.seriesBySymbol)
@@ -133,10 +130,7 @@ export const useWizardWorkflow = () => {
         underlyingTimeframes: buildUnderlyingTimeframes(underlyingSeries),
         underlyingSeries: Object.values(underlyingSeries),
       })
-      setBaseDeals(parsedDeals)
-      setBaseReport(report)
-      setDeals(parsedDeals)
-      setReport(report)
+      setGeneratedReport(report, parsedDeals)
     } finally {
       setLoading('computingReport', false)
     }
@@ -144,11 +138,8 @@ export const useWizardWorkflow = () => {
     dealsFile?.name,
     missingSymbols.length,
     parsedDeals,
-    setBaseDeals,
-    setBaseReport,
-    setDeals,
+    setGeneratedReport,
     setLoading,
-    setReport,
     underlyingSeries,
   ])
 

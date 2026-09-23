@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { createJSONStorage, persist } from 'zustand/middleware'
+import { persist } from 'zustand/middleware'
 import type { UnderlyingSeries } from '../engine/types'
 import { idbStorage } from './idbStorage'
 
@@ -9,11 +9,12 @@ type UnderlyingState = {
   setUnderlying: (symbol: string, series: UnderlyingSeries) => void
   setAllUnderlying: (entries: Record<string, UnderlyingSeries>) => void
   clearUnderlying: () => void
-  setHasHydrated: (value: boolean) => void
 }
 
+type UnderlyingPersistedState = Pick<UnderlyingState, 'seriesBySymbol'>
+
 export const useUnderlyingStore = create<UnderlyingState>()(
-  persist(
+  persist<UnderlyingState, [], [], UnderlyingPersistedState>(
     (set) => ({
       seriesBySymbol: {},
       hasHydrated: false,
@@ -26,15 +27,16 @@ export const useUnderlyingStore = create<UnderlyingState>()(
         })),
       setAllUnderlying: (entries) => set({ seriesBySymbol: entries }),
       clearUnderlying: () => set({ seriesBySymbol: {} }),
-      setHasHydrated: (value) => set({ hasHydrated: value }),
     }),
     {
       name: 'healthreport.latestUnderlyingV2',
-      storage: createJSONStorage(() => idbStorage),
+      storage: idbStorage,
       partialize: (state) => ({ seriesBySymbol: state.seriesBySymbol }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true)
-      },
-    }
-  )
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as UnderlyingPersistedState | undefined),
+        hasHydrated: true,
+      }),
+    },
+  ),
 )

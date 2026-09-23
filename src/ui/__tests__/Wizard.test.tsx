@@ -12,18 +12,24 @@ import { createReport } from '../../test/reportFixtures'
 import { renderWithTheme } from '../../test/render'
 import Wizard from '../Wizard'
 
-const { parseDealsMock, parseUnderlyingMock, normalizeUnderlyingMock, buildReportMock } =
-  vi.hoisted(() => ({
-    parseDealsMock: vi.fn(),
-    parseUnderlyingMock: vi.fn(),
-    normalizeUnderlyingMock: vi.fn(),
-    buildReportMock: vi.fn(),
-  }))
+const {
+  parseDealsMock,
+  parseUnderlyingMock,
+  normalizeUnderlyingMock,
+  buildReportMock,
+  idbSetItemMock,
+} = vi.hoisted(() => ({
+  parseDealsMock: vi.fn(),
+  parseUnderlyingMock: vi.fn(),
+  normalizeUnderlyingMock: vi.fn(),
+  buildReportMock: vi.fn(),
+  idbSetItemMock: vi.fn(async () => undefined),
+}))
 
 vi.mock('../../store/idbStorage', () => ({
   idbStorage: {
     getItem: async () => null,
-    setItem: async () => undefined,
+    setItem: idbSetItemMock,
     removeItem: async () => undefined,
   },
 }))
@@ -97,6 +103,7 @@ describe('Wizard', () => {
     parseUnderlyingMock.mockReset().mockReturnValue(underlying)
     normalizeUnderlyingMock.mockReset().mockReturnValue(underlying)
     buildReportMock.mockReset().mockReturnValue(createReport())
+    idbSetItemMock.mockClear()
   })
 
   it('keeps parsing disabled until a deals file is selected and supports removal', async () => {
@@ -141,6 +148,11 @@ describe('Wizard', () => {
 
     expect(await screen.findByText('Ready to generate')).toBeInTheDocument()
     expect(screen.getByText('All checks passed.')).toBeInTheDocument()
+    expect(idbSetItemMock).toHaveBeenCalledWith(
+      'healthreport.latestUnderlyingV2',
+      expect.objectContaining({ state: { seriesBySymbol: { EURUSD: underlying } } }),
+    )
+    idbSetItemMock.mockClear()
     await user.click(screen.getByRole('button', { name: 'Generate report' }))
 
     expect(parseDealsMock).toHaveBeenCalledOnce()
@@ -159,6 +171,18 @@ describe('Wizard', () => {
     expect(useReportStore.getState().report).toBe(report)
     expect(useReportStore.getState().baseReport).toBe(report)
     expect(useReportStore.getState().deals).toEqual([deal])
+    expect(idbSetItemMock).toHaveBeenCalledOnce()
+    expect(idbSetItemMock).toHaveBeenCalledWith(
+      'healthreport.latestReport',
+      expect.objectContaining({
+        state: expect.objectContaining({
+          report,
+          baseReport: report,
+          deals: [deal],
+          baseDeals: [deal],
+        }),
+      }),
+    )
   })
 
   it('supports bulk uploads and derives symbols from file names', async () => {

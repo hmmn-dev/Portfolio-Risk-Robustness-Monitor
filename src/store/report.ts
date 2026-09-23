@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { createJSONStorage, persist } from 'zustand/middleware'
+import { persist } from 'zustand/middleware'
 import type { DealRow, ReportModel } from '../engine/types'
 import { idbStorage } from './idbStorage'
 
@@ -14,20 +14,14 @@ type ReportState = {
   setBaseReport: (report: ReportModel) => void
   setDeals: (deals: DealRow[]) => void
   setBaseDeals: (deals: DealRow[]) => void
+  setGeneratedReport: (report: ReportModel, deals: DealRow[]) => void
   setMarDegradationPct: (value: number | null) => void
   clearReport: () => void
-  setHasHydrated: (value: boolean) => void
 }
 
-type ReportPersistedState = Omit<
+type ReportPersistedState = Pick<
   ReportState,
-  | 'setReport'
-  | 'setBaseReport'
-  | 'setDeals'
-  | 'setBaseDeals'
-  | 'setMarDegradationPct'
-  | 'clearReport'
-  | 'setHasHydrated'
+  'report' | 'baseReport' | 'deals' | 'baseDeals' | 'marDegradationPct'
 >
 
 export const useReportStore = create<ReportState>()(
@@ -43,15 +37,35 @@ export const useReportStore = create<ReportState>()(
       setBaseReport: (baseReport) => set({ baseReport }),
       setDeals: (deals) => set({ deals }),
       setBaseDeals: (baseDeals) => set({ baseDeals }),
+      setGeneratedReport: (report, deals) =>
+        set({
+          report,
+          baseReport: report,
+          deals,
+          baseDeals: deals,
+          marDegradationPct: null,
+        }),
       setMarDegradationPct: (value) => set({ marDegradationPct: value }),
       clearReport: () =>
-        set({ report: null, baseReport: null, deals: null, baseDeals: null, marDegradationPct: null }),
-      setHasHydrated: (value) => set({ hasHydrated: value }),
+        set({
+          report: null,
+          baseReport: null,
+          deals: null,
+          baseDeals: null,
+          marDegradationPct: null,
+        }),
     }),
     {
       name: 'healthreport.latestReport',
-      storage: createJSONStorage(() => idbStorage),
-      version: 5,
+      storage: idbStorage,
+      partialize: ({ report, baseReport, deals, baseDeals, marDegradationPct }) => ({
+        report,
+        baseReport,
+        deals,
+        baseDeals,
+        marDegradationPct,
+      }),
+      version: 6,
       migrate: (state) => {
         const stored = state as Partial<ReportPersistedState> | undefined
         const report = stored?.report as ReportModel | null | undefined
@@ -68,18 +82,20 @@ export const useReportStore = create<ReportState>()(
           report.contributions.length > 0 &&
           Array.isArray(report.portfolio?.days) &&
           report.portfolio.days.length > 0
+        const hasMarDegradation = marDegradationPct != null
         return {
           report: isValid ? report : null,
-          baseReport: isValid ? baseReport ?? (report ?? null) : null,
+          baseReport: isValid ? (hasMarDegradation ? (baseReport ?? report) : report) : null,
           deals,
-          baseDeals: baseDeals ?? deals,
+          baseDeals: hasMarDegradation ? (baseDeals ?? deals) : deals,
           marDegradationPct,
-          hasHydrated: stored?.hasHydrated ?? false,
         }
       },
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true)
-      },
-    }
-  )
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as ReportPersistedState | undefined),
+        hasHydrated: true,
+      }),
+    },
+  ),
 )

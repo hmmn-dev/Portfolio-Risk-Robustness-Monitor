@@ -1,3 +1,5 @@
+import type { StorageValue } from 'zustand/middleware'
+
 const DB_NAME = 'healthreport'
 const STORE_NAME = 'report-cache'
 
@@ -20,18 +22,33 @@ const openDb = () => {
   return dbPromise
 }
 
+const decodeStoredValue = <State>(value: unknown): StorageValue<State> | null => {
+  if (value == null) return null
+
+  if (typeof value === 'string') {
+    try {
+      return decodeStoredValue<State>(JSON.parse(value))
+    } catch {
+      return null
+    }
+  }
+
+  if (typeof value !== 'object' || !('state' in value)) return null
+  return value as StorageValue<State>
+}
+
 export const idbStorage = {
-  async getItem(name: string) {
+  async getItem<State>(name: string): Promise<StorageValue<State> | null> {
     const db = await openDb()
-    return new Promise<string | null>((resolve, reject) => {
+    return new Promise<StorageValue<State> | null>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly')
       const store = tx.objectStore(STORE_NAME)
       const request = store.get(name)
-      request.onsuccess = () => resolve((request.result as string) ?? null)
+      request.onsuccess = () => resolve(decodeStoredValue<State>(request.result))
       request.onerror = () => reject(request.error)
     })
   },
-  async setItem(name: string, value: string) {
+  async setItem<State>(name: string, value: StorageValue<State>) {
     const db = await openDb()
     return new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite')
