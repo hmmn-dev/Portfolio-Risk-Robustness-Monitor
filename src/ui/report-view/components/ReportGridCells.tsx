@@ -1,6 +1,6 @@
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
 import { Box, Chip, IconButton, Stack, Tooltip, Typography } from '@mui/material'
-import type { Theme } from '@mui/material/styles'
+import { getContrastRatio, type Theme } from '@mui/material/styles'
 import type { ReactNode } from 'react'
 import {
   formatAlphaEvidence,
@@ -8,6 +8,88 @@ import {
   getStatusLabel,
 } from '../riskStatusPresentation'
 import type { RiskRow } from '../types'
+import { getSymbolChipStyles } from '../colors'
+
+export const SymbolCell = ({
+  symbol,
+  isBucket,
+  isDark,
+  hasFocus,
+}: {
+  symbol: string
+  isBucket?: boolean
+  isDark: boolean
+  hasFocus: boolean
+}) => {
+  const symbolStyles = getSymbolChipStyles(symbol, isDark)
+  const chip = (
+    <Chip
+      component="span"
+      size="small"
+      label={
+        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+          <Box component="span" sx={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
+            {symbol || '-'}
+          </Box>
+          {isBucket && (
+            <Box
+              component="span"
+              aria-hidden="true"
+              sx={{
+                bgcolor: symbolStyles.color,
+                color:
+                  getContrastRatio(symbolStyles.color, '#fff') >= 4.5
+                    ? 'common.white'
+                    : 'common.black',
+                borderRadius: 0.5,
+                px: 0.5,
+                fontSize: 10,
+                lineHeight: '16px',
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+              B
+            </Box>
+          )}
+        </Box>
+      }
+      sx={{
+        ...symbolStyles,
+        height: 'auto',
+        minHeight: 24,
+        maxWidth: '100%',
+      }}
+    />
+  )
+
+  return isBucket ? (
+    <Tooltip describeChild title="Bucket: combines this strategy's symbol sleeves." placement="top">
+      <Box
+        component="button"
+        type="button"
+        aria-label={`${symbol} bucket`}
+        tabIndex={hasFocus ? 0 : -1}
+        sx={{
+          p: 0,
+          border: 0,
+          background: 'transparent',
+          cursor: 'help',
+          maxWidth: '100%',
+          '&:focus-visible': {
+            outline: '2px solid',
+            outlineColor: 'primary.main',
+            outlineOffset: 2,
+          },
+        }}
+      >
+        {chip}
+      </Box>
+    </Tooltip>
+  ) : (
+    chip
+  )
+}
 
 const LegendHelp = ({
   children,

@@ -59,6 +59,17 @@ describe('report grid tabs', () => {
     expect(screen.getByTestId('data-grid')).toHaveTextContent('Alpha:GREEN')
   })
 
+  it('marks buckets explicitly in both PDF tables', () => {
+    const context = createReportContext()
+    const performanceRow = { ...context.tables.performanceRows[0], symbol: 'EQ', isBucket: true }
+    const riskRow = { ...context.tables.riskRows[0], symbol: 'EQ', isBucket: true }
+    expect(PDF_PERFORMANCE_COLUMNS[1].getCell(performanceRow).text).toBe('EQ (bucket)')
+    expect(PDF_RISK_COLUMNS[1].getCell(riskRow).text).toBe('EQ (bucket)')
+    expect(PDF_PERFORMANCE_COLUMNS[1].getCell({ ...performanceRow, isBucket: false }).text).toBe(
+      'EQ',
+    )
+  })
+
   it('uses the same strategy terminology in PDF tables', () => {
     expect(PDF_PERFORMANCE_COLUMNS[0].header).toBe('Strategy')
     expect(PDF_RISK_COLUMNS[0].header).toBe('Strategy')

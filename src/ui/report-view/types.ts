@@ -8,6 +8,7 @@ export type PerformanceRow = {
   id: number
   sleeve: string
   symbol: string
+  isBucket?: boolean
   totalPnl: number
   meanAnn: number
   sharpe: number
@@ -20,6 +21,7 @@ export type RiskRow = {
   id: number
   sleeve: string
   symbol: string
+  isBucket?: boolean
   status: StatusFlag
   shock: ShockFlag
   alphaPct: number | null

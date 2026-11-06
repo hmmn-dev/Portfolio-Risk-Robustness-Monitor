@@ -47,12 +47,13 @@ export type NormalizedUnderlying = Record<string, UnderlyingDailyReturn[]>
 export type ReportObfuscation = {
   formatSleeve: (value: string, symbol: string) => string
   formatSymbol: (value: string) => string
+  formatBucket: (value: string) => string
   formatSleeveLabel: (value: string) => string
 }
 
 const getContributionDisplay = (item: ReportModel['contributions'][number]) => {
   if (item.grouping?.kind === 'bucket') {
-    return { sleeve: item.sleeve, symbol: '' }
+    return { sleeve: item.grouping.strategy, symbol: item.grouping.name, isBucket: true }
   }
   const parts = splitSleeveLabel(item.sleeve)
   return { sleeve: parts.sleeve, symbol: parts.symbol || item.symbol }
@@ -230,8 +231,7 @@ export const buildPerformanceRows = (report: ReportModel): PerformanceRow[] =>
 
     return {
       id: index,
-      sleeve: display.sleeve,
-      symbol: display.symbol,
+      ...display,
       totalPnl: sumFinite(pnl),
       meanAnn: computeMean(returns) * 252 * 100,
       sharpe: computeSharpe(returns),
@@ -374,8 +374,7 @@ export const buildRiskRows = (
 
     return {
       id: index,
-      sleeve: display.sleeve,
-      symbol: display.symbol,
+      ...display,
       status: status.status,
       shock: status.shock,
       alphaPct: status.alphaPercentile,
@@ -408,10 +407,14 @@ export const buildReportObfuscation = (
   portfolioSummary?.regression?.betas.forEach((item) => symbols.push(item.symbol))
   const sleeveMap = buildObfuscationMap(sleeveKeys, 'STRATEGY')
   const symbolMap = buildObfuscationMap(symbols, 'SYM')
-  const bucketLabels = new Set(
+  const bucketDisplays = new Map(
     report.contributions
       .filter((item) => item.grouping?.kind === 'bucket')
-      .map((item) => item.sleeve),
+      .map((item) => [item.sleeve, getContributionDisplay(item)]),
+  )
+  const bucketMap = buildObfuscationMap(
+    Array.from(bucketDisplays.values(), (display) => display.symbol),
+    'BUCKET',
   )
   const formatSleeve = (value: string, symbol: string) =>
     sleeveMap.get(buildSleeveKey(value, symbol)) ?? value
@@ -420,8 +423,10 @@ export const buildReportObfuscation = (
   return {
     formatSleeve,
     formatSymbol,
+    formatBucket: (value) => bucketMap.get(value) ?? value,
     formatSleeveLabel: (label) => {
-      if (bucketLabels.has(label)) return formatSleeve(label, '')
+      const bucket = bucketDisplays.get(label)
+      if (bucket) return formatSleeve(bucket.sleeve, bucket.symbol)
       const parts = splitSleeveLabel(label)
       const sleeve = formatSleeve(parts.sleeve, parts.symbol)
       return parts.symbol ? `${sleeve} - ${formatSymbol(parts.symbol)}` : sleeve
@@ -433,12 +438,16 @@ export const obfuscatePerformanceRows = (rows: PerformanceRow[], obfuscation: Re
   rows.map((row) => ({
     ...row,
     sleeve: obfuscation.formatSleeve(row.sleeve, row.symbol ?? ''),
-    symbol: row.symbol ? obfuscation.formatSymbol(row.symbol) : row.symbol,
+    symbol: row.isBucket
+      ? obfuscation.formatBucket(row.symbol)
+      : obfuscation.formatSymbol(row.symbol),
   }))
 
 export const obfuscateRiskRows = (rows: RiskRow[], obfuscation: ReportObfuscation) =>
   rows.map((row) => ({
     ...row,
     sleeve: obfuscation.formatSleeve(row.sleeve, row.symbol ?? ''),
-    symbol: row.symbol ? obfuscation.formatSymbol(row.symbol) : row.symbol,
+    symbol: row.isBucket
+      ? obfuscation.formatBucket(row.symbol)
+      : obfuscation.formatSymbol(row.symbol),
   }))

@@ -9,6 +9,7 @@ import {
   buildRiskRows,
   normalizeUnderlyingBySymbol,
   obfuscatePerformanceRows,
+  obfuscateRiskRows,
   resolvePortfolioDrawdown,
   resolvePortfolioDrawdownFallback,
   resolveSleeveDrawdown,
@@ -116,17 +117,17 @@ describe('report analytics', () => {
     expect(rows[0]).toMatchObject({ sleeve: 'Alpha', symbol: 'EURUSD' })
   })
 
-  it('presents a bucket as one strategy without exposing a member symbol', () => {
+  it.each(['EQ', 'Rates - Global'])('presents %s in Symbol with bucket metadata', (bucketName) => {
     const report = createReport()
     report.contributions = [
       {
         ...report.contributions[0],
-        key: 'bucket::Daily Capitulation MR - EQ',
-        sleeve: 'Daily Capitulation MR - EQ',
+        key: `bucket::Daily Capitulation MR - ${bucketName}`,
+        sleeve: `Daily Capitulation MR - ${bucketName}`,
         symbol: '',
         grouping: {
           kind: 'bucket',
-          name: 'EQ',
+          name: bucketName,
           strategy: 'Daily Capitulation MR',
           members: [
             {
@@ -148,9 +149,26 @@ describe('report analytics', () => {
     const riskRow = buildRiskRows(report, 'deal', {}, buildPortfolioReturnMap(report))[0]
     const obfuscation = buildReportObfuscation(report, null)
 
-    expect(performanceRow).toMatchObject({ sleeve: 'Daily Capitulation MR - EQ', symbol: '' })
-    expect(riskRow).toMatchObject({ sleeve: 'Daily Capitulation MR - EQ', symbol: '' })
-    expect(obfuscation.formatSleeveLabel('Daily Capitulation MR - EQ')).toBe('STRATEGY-01')
+    const display = { sleeve: 'Daily Capitulation MR', symbol: bucketName, isBucket: true }
+    expect(performanceRow).toMatchObject(display)
+    expect(riskRow).toMatchObject(display)
+    expect(obfuscation.formatSleeveLabel(`Daily Capitulation MR - ${bucketName}`)).toBe(
+      'STRATEGY-01',
+    )
+    expect(obfuscatePerformanceRows([performanceRow], obfuscation)[0]).toEqual({
+      ...performanceRow,
+      sleeve: 'STRATEGY-01',
+      symbol: 'BUCKET-01',
+    })
+    expect(obfuscateRiskRows([riskRow], obfuscation)[0]).toEqual({
+      ...riskRow,
+      sleeve: 'STRATEGY-01',
+      symbol: 'BUCKET-01',
+    })
+    expect(performanceRow).toMatchObject(display)
+    expect(riskRow).toMatchObject(display)
+    expect(report.contributions[0].symbol).toBe('')
+    expect(report.contributions[0].sleeve).toBe(`Daily Capitulation MR - ${bucketName}`)
   })
 
   it('supports sparse sleeves with 30 active observations in the current two-year window', () => {

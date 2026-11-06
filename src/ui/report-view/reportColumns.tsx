@@ -1,7 +1,5 @@
-import { Chip } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
 import type { GridColDef } from '@mui/x-data-grid'
-import { getSymbolChipStyles } from './colors'
 import type { PdfColumn } from './components/PdfTable'
 import {
   ShockCell,
@@ -9,6 +7,7 @@ import {
   SignedValue,
   StatusCell,
   StatusHeader,
+  SymbolCell,
 } from './components/ReportGridCells'
 import { formatCurrency, formatNumber, formatPercent, formatRate } from './formatters'
 import { formatAlphaEvidence, getStatusLabel } from './riskStatusPresentation'
@@ -29,10 +28,11 @@ export const createPerformanceColumns = (theme: Theme): GridColDef[] => {
       flex: 0.8,
       minWidth: 130,
       renderCell: (params) => (
-        <Chip
-          size="small"
-          label={params.row.symbol || '-'}
-          sx={getSymbolChipStyles(params.row.symbol as string, isDark)}
+        <SymbolCell
+          symbol={params.row.symbol as string}
+          isBucket={params.row.isBucket as boolean | undefined}
+          isDark={isDark}
+          hasFocus={params.hasFocus}
         />
       ),
     },
@@ -120,10 +120,11 @@ export const createRiskColumns = (theme: Theme): GridColDef[] => {
       flex: 0.8,
       minWidth: 130,
       renderCell: (params) => (
-        <Chip
-          size="small"
-          label={params.row.symbol || '-'}
-          sx={getSymbolChipStyles(params.row.symbol as string, isDark)}
+        <SymbolCell
+          symbol={params.row.symbol as string}
+          isBucket={params.row.isBucket as boolean | undefined}
+          isDark={isDark}
+          hasFocus={params.hasFocus}
         />
       ),
     },
@@ -190,7 +191,10 @@ export const createRiskColumns = (theme: Theme): GridColDef[] => {
 
 export const PDF_PERFORMANCE_COLUMNS: PdfColumn<PerformanceRow>[] = [
   { header: 'Strategy', getCell: (row) => ({ text: row.sleeve }) },
-  { header: 'Symbol', getCell: (row) => ({ text: row.symbol || '-' }) },
+  {
+    header: 'Symbol',
+    getCell: (row) => ({ text: row.isBucket ? `${row.symbol} (bucket)` : row.symbol || '-' }),
+  },
   {
     header: 'Total PnL',
     getCell: (row) => ({
@@ -243,7 +247,10 @@ export const PDF_PERFORMANCE_COLUMNS: PdfColumn<PerformanceRow>[] = [
 
 export const PDF_RISK_COLUMNS: PdfColumn<RiskRow>[] = [
   { header: 'Strategy', getCell: (row) => ({ text: row.sleeve }) },
-  { header: 'Symbol', getCell: (row) => ({ text: row.symbol || '-' }) },
+  {
+    header: 'Symbol',
+    getCell: (row) => ({ text: row.isBucket ? `${row.symbol} (bucket)` : row.symbol || '-' }),
+  },
   { header: 'Status', getCell: (row) => ({ text: getStatusLabel(row.status) }) },
   { header: 'Shock', getCell: (row) => ({ text: row.shock || '-' }) },
   {

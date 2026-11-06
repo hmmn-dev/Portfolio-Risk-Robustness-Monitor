@@ -118,7 +118,7 @@ describe('ReportView', () => {
 
     const bucketSwitch = screen.getByRole('switch', { name: 'Bucket view' })
     expect(bucketSwitch).toBeChecked()
-    expect(screen.getByTestId('table-sleeves')).toHaveTextContent('Daily Capitulation MR - EQ:')
+    expect(screen.getByTestId('table-sleeves')).toHaveTextContent('Daily Capitulation MR:EQ')
     expect(screen.getByTestId('strategy-count')).toHaveTextContent('1')
     expect(screen.getByTestId('portfolio-count')).toHaveTextContent('1')
     expect(screen.getByTestId('pdf-count')).toHaveTextContent('1')
