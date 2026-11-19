@@ -33,8 +33,7 @@ const parseTime = (value: string) => {
     const month = Number(dateMatch[2]) - 1
     const day = Number(dateMatch[3])
     const timeMatch =
-      timePart.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/) ||
-      timePart.match(/^(\d{2})(\d{2})(\d{2})?$/)
+      timePart.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/) || timePart.match(/^(\d{2})(\d{2})(\d{2})?$/)
     const hours = timeMatch ? Number(timeMatch[1]) : 0
     const minutes = timeMatch ? Number(timeMatch[2]) : 0
     const seconds = timeMatch && timeMatch[3] ? Number(timeMatch[3]) : 0
@@ -60,7 +59,7 @@ const median = (values: number[]) => {
 
 export const parseDealsWithMagic = (
   buffer: ArrayBuffer | Uint8Array,
-  options: { defaultSleeve?: string } = {}
+  options: { defaultSleeve?: string } = {},
 ): MagicDealRow[] => {
   const fallbackSleeve = options.defaultSleeve?.trim()
   const decoder = new TextDecoder('utf-16le')
@@ -80,17 +79,18 @@ export const parseDealsWithMagic = (
   const magicIndex = indexOf('magic')
   const entryIndex = indexOf('entry')
   const entryCommentIndex = header.findIndex((cell) =>
-    ['entrycomment', 'entry_comment', 'comment'].includes(cell)
+    ['entrycomment', 'entry_comment', 'comment'].includes(cell),
   )
   const sideIndex = header.findIndex((cell) => ['side', 'type', 'direction'].includes(cell))
   const priceIndex = header.findIndex((cell) =>
-    ['price', 'deal_price', 'entry_price', 'exit_price'].includes(cell)
+    ['price', 'deal_price', 'entry_price', 'exit_price'].includes(cell),
   )
   const volumeIndex = indexOf('volume')
   const profitIndex = indexOf('profit')
   const commissionIndex = indexOf('commission')
   const swapIndex = indexOf('swap')
   const balanceIndex = indexOf('balance')
+  const equityIndex = indexOf('equity')
 
   const parsed = rows.slice(1).map((row, index): MagicDealRow => {
     const deal =
@@ -101,7 +101,7 @@ export const parseDealsWithMagic = (
     const magic = toNumber(row[magicIndex] ?? '')
     const entry = row[entryIndex] ?? ''
     const entryComment = row[entryCommentIndex] ?? ''
-    const sideRaw = sideIndex >= 0 ? row[sideIndex] ?? '' : ''
+    const sideRaw = sideIndex >= 0 ? (row[sideIndex] ?? '') : ''
     const side = sideRaw.trim().toLowerCase()
     const sideValue =
       side === 'buy' || side === 'long'
@@ -115,6 +115,9 @@ export const parseDealsWithMagic = (
     const commission = toNumber(row[commissionIndex] ?? '')
     const swap = toNumber(row[swapIndex] ?? '')
     const balance = balanceIndex >= 0 ? toNumber(row[balanceIndex] ?? '') : undefined
+    const equityText = equityIndex >= 0 ? row[equityIndex]?.trim() : undefined
+    const equityValue = equityText ? Number(equityText) : Number.NaN
+    const equity = Number.isFinite(equityValue) ? equityValue : undefined
     const pnl = profit + commission + swap
 
     return {
@@ -123,6 +126,7 @@ export const parseDealsWithMagic = (
       sleeve: '',
       notional: pnl,
       balance,
+      equity,
       _seq: index,
       symbol,
       positionId,

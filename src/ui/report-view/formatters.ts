@@ -1,3 +1,4 @@
+import type { PortfolioEquitySource } from '../../engine/types'
 export const formatAxisDate = (value: number) => {
   if (!Number.isFinite(value) || value <= 0) return ''
   const date = new Date(value)
@@ -27,7 +28,12 @@ export const formatPercent = (value: number | null | undefined, digits = 2) =>
 export const formatRate = (value: number | null | undefined, digits = 1) =>
   Number.isFinite(value) ? `${((value as number) * 100).toFixed(digits)}%` : '-'
 
-export const formatDrawdownSourceLabel = (source?: 'H1' | 'D1') => `${source ?? 'D1'} candles`
+export const formatDrawdownSourceLabel = (source?: PortfolioEquitySource) =>
+  source === 'deal-snapshots'
+    ? 'deal-time equity snapshots'
+    : source?.startsWith('recorded+')
+      ? `recorded equity + ${source.slice(9)} estimates`
+      : `${source ?? 'D1'} candles`
 
 export const formatDrawdownModeLabel = (mode: 'deal' | 'mtm') =>
   mode === 'mtm' ? 'In-Trade' : 'Realized'

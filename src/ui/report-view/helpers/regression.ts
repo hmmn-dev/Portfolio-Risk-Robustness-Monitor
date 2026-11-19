@@ -111,7 +111,7 @@ const buildRegularization = (matrix: number[][]) => {
 }
 
 export const portfolioRegression = (
-  portfolioDays: ReportModel['portfolio']['days'],
+  portfolioDays: Pick<ReportModel['portfolio']['days'][number], 'time' | 'return'>[],
   symbolList: string[],
   underlyingBySymbol: Record<string, UnderlyingDailyReturn[]>,
 ) => {

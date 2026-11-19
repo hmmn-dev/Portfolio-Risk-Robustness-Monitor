@@ -7,6 +7,7 @@ export type DealRow = {
   notional: number
   symbol?: string
   balance?: number
+  equity?: number
   price?: number
   side?: 'buy' | 'sell'
   volume?: number
@@ -52,6 +53,24 @@ export type DailySeries = {
   points: DailyPoint[]
 }
 
+export type PortfolioEquitySource =
+  | 'deal-snapshots'
+  | 'recorded+H1'
+  | 'recorded+D1'
+  | 'recorded+H1/D1'
+  | 'H1'
+  | 'D1'
+
+export type PortfolioEquitySeries = {
+  // Native observations on trading days without candle history for the open book.
+  recordedOnlyDrawdown?: DailyPoint[]
+  source: PortfolioEquitySource
+  index: DailyPoint[]
+  dailyIndex: DailyPoint[]
+  dailyReturns: DailyPoint[]
+  drawdown: DailyPoint[]
+}
+
 export type PortfolioDay = {
   time: number
   pnl: number
@@ -88,12 +107,13 @@ export type ReportModel = {
   generatedAt: number
   dealsSourceName?: string
   portfolio: {
+    equity?: PortfolioEquitySeries
     days: PortfolioDay[]
     index: DailyPoint[]
     drawdown: DailyPoint[]
-    drawdownSource?: 'H1' | 'D1'
+    drawdownSource?: PortfolioEquitySource
     drawdownMtm?: DailyPoint[]
-    drawdownMtmSource?: 'H1' | 'D1'
+    drawdownMtmSource?: PortfolioEquitySource
   }
   contributions: ContributionSeries[]
   bucketedContributions?: ContributionSeries[]

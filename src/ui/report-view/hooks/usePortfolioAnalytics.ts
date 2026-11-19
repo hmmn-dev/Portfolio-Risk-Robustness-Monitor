@@ -1,5 +1,6 @@
+import { resolvePortfolioPerformance } from '../../../engine/portfolioPerformance'
+import { scalePortfolioEquityExposure } from '../../../engine/portfolioEquity'
 import { useMemo } from 'react'
-import { resolveMtmDrawdownCoverage } from '../../../engine/drawdownCoverage'
 import { buildMtmDrawdown } from '../../../engine/mtmDrawdown'
 import { toDayStart } from '../../../engine/portfolioSeriesHelpers'
 import { computeTradeStats } from '../../../engine/tradeStats'
@@ -23,11 +24,13 @@ import {
 } from '../helpers/chartRange'
 import { normalizeSymbol } from '../helpers/labels'
 import { portfolioRegression } from '../helpers/regression'
+import { buildFactorRelationships } from '../portfolio/factorRelationships'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
 type UsePortfolioAnalyticsOptions = {
   report: ReportModel
+  rawContributions?: ReportModel['contributions']
   deals: DealRow[] | null
   baseCapital: number
   drawdownMode: DrawdownMode
@@ -46,6 +49,7 @@ type UsePortfolioAnalyticsOptions = {
 
 export const usePortfolioAnalytics = ({
   report,
+  rawContributions,
   deals,
   baseCapital,
   drawdownMode,
@@ -77,9 +81,20 @@ export const usePortfolioAnalytics = ({
     () => buildCustomPortfolioSummary(customPortfolio),
     [customPortfolio],
   )
+  const uniformEquityExposure = useMemo(() => {
+    if (!usesCustomPortfolio || isFiltered || !report.portfolio.equity || !enabledSleeves.size) {
+      return null
+    }
+    const weights = Array.from(enabledSleeves, (sleeve) => sleeveWeights[sleeve] ?? 1)
+    const multiplier = weights[0]
+    if (!weights.every((weight) => weight === multiplier)) return null
+    const equity = scalePortfolioEquityExposure(report.portfolio.equity, multiplier)
+    return equity ? { multiplier, equity } : null
+  }, [enabledSleeves, isFiltered, report.portfolio.equity, sleeveWeights, usesCustomPortfolio])
   const customMtm = useMemo(() => {
     if (
       !usesCustomPortfolio ||
+      uniformEquityExposure ||
       drawdownMode !== 'mtm' ||
       !deals?.length ||
       !underlyingSeries.length
@@ -89,6 +104,8 @@ export const usePortfolioAnalytics = ({
     return buildMtmDrawdown(deals, underlyingSeries, baseCapital, {
       sleeves: enabledSleeves,
       sleeveWeights,
+      includeRealizedFallback: true,
+      baselineEquityIndex: report.portfolio.equity?.index,
     })
   }, [
     baseCapital,
@@ -98,11 +115,15 @@ export const usePortfolioAnalytics = ({
     sleeveWeights,
     underlyingSeries,
     usesCustomPortfolio,
+    report.portfolio.equity?.index,
+    uniformEquityExposure,
   ])
-  const hasCustomMtm = (customMtm?.drawdown.length ?? 0) > 0
+  const customEquity = uniformEquityExposure?.equity ?? customMtm?.equity
+  const hasCustomMtm = (customEquity?.index.length ?? 0) > 0
   const hasPortfolioMtm = (report.portfolio.drawdownMtm?.length ?? 0) > 0
   const canBuildCustomMtm =
-    !!deals?.some((deal) => enabledSleeves.has(deal.sleeve)) && underlyingSeries.length > 0
+    !!uniformEquityExposure ||
+    (!!deals?.some((deal) => enabledSleeves.has(deal.sleeve)) && underlyingSeries.length > 0)
   const mtmAvailable = usesCustomPortfolio ? canBuildCustomMtm : hasPortfolioMtm
   const effectiveDrawdownMode: DrawdownMode =
     drawdownMode === 'mtm' && (usesCustomPortfolio ? hasCustomMtm : hasPortfolioMtm)
@@ -110,10 +131,15 @@ export const usePortfolioAnalytics = ({
       : 'deal'
   const customDrawdownSeries = useMemo(() => {
     const realized = customPortfolio?.drawdown ?? []
-    return customMtm?.drawdown.length
-      ? resolveMtmDrawdownCoverage(realized, customMtm.drawdown)
-      : { drawdown: realized, realizedFallback: [] }
-  }, [customMtm, customPortfolio])
+    if (customEquity)
+      return {
+        drawdown: customEquity.drawdown,
+        realizedFallback: uniformEquityExposure
+          ? (customEquity.recordedOnlyDrawdown ?? [])
+          : (customMtm?.realizedFallback ?? []),
+      }
+    return { drawdown: realized, realizedFallback: [] }
+  }, [customEquity, customMtm, customPortfolio, uniformEquityExposure])
   const fullDrawdown = useMemo(
     () =>
       usesCustomPortfolio
@@ -146,34 +172,54 @@ export const usePortfolioAnalytics = ({
   const effectiveDrawdownSource =
     effectiveDrawdownMode === 'mtm'
       ? usesCustomPortfolio
-        ? customMtm?.source
-        : report.portfolio.drawdownMtmSource
+        ? customEquity?.source
+        : portfolioDrawdownSource
       : usesCustomPortfolio
         ? report.portfolio.drawdownSource
         : portfolioDrawdownSource
-  const fullIndex = useMemo(
-    () => (usesCustomPortfolio ? (customPortfolio?.index ?? []) : report.portfolio.index),
-    [customPortfolio?.index, report.portfolio.index, usesCustomPortfolio],
-  )
-  const fullReturns = useMemo(
-    () =>
-      buildDailyReturnPoints(
-        report.portfolio.days,
-        usesCustomPortfolio ? (customPortfolio?.returns ?? []) : undefined,
-      ),
-    [customPortfolio?.returns, report.portfolio.days, usesCustomPortfolio],
-  )
+  const performance = useMemo(() => {
+    if (!usesCustomPortfolio) return resolvePortfolioPerformance(report, drawdownMode === 'mtm')
+    const equity = effectiveDrawdownMode === 'mtm' ? customEquity : undefined
+    return {
+      chartIndex: equity?.index ?? customPortfolio?.index ?? [],
+      index: equity?.dailyIndex ?? customPortfolio?.index ?? [],
+      returns:
+        equity?.dailyReturns ??
+        buildDailyReturnPoints(report.portfolio.days, customPortfolio?.returns ?? []),
+      source: equity?.source,
+    }
+  }, [
+    customEquity,
+    customPortfolio,
+    drawdownMode,
+    effectiveDrawdownMode,
+    report,
+    usesCustomPortfolio,
+  ])
+  const fullIndex = performance.index
+  const fullReturns = performance.returns
   const fullSummary = useMemo(
     () =>
       applyDrawdownToSummary(
-        usesCustomPortfolio ? customPortfolioSummary : portfolioSummary,
+        usesCustomPortfolio
+          ? performance.source
+            ? buildRangePortfolioSummary(fullReturns, fullDrawdown, null)
+            : customPortfolioSummary
+          : portfolioSummary,
         fullDrawdown,
       ),
-    [customPortfolioSummary, fullDrawdown, portfolioSummary, usesCustomPortfolio],
+    [
+      customPortfolioSummary,
+      fullDrawdown,
+      fullReturns,
+      performance.source,
+      portfolioSummary,
+      usesCustomPortfolio,
+    ],
   )
   const rangeBounds = useMemo(
-    () => getChartRangeBounds(fullIndex, fullDrawdown),
-    [fullDrawdown, fullIndex],
+    () => getChartRangeBounds(fullIndex, performance.chartIndex, fullDrawdown),
+    [fullDrawdown, fullIndex, performance.chartIndex],
   )
   const resolvedRange = useMemo(
     () => resolveChartRange(rangeBounds, rangeSelection),
@@ -216,9 +262,9 @@ export const usePortfolioAnalytics = ({
   const rangeRegression = useMemo(() => {
     if (isFullRange) return fullSummary?.regression ?? null
     if (usesCustomPortfolio || !resolvedRange) return null
-    const portfolioDays = report.portfolio.days.filter(
-      (day) => day.time >= resolvedRange.minTime && day.time <= resolvedRange.maxTime,
-    )
+    const portfolioDays = fullReturns
+      .map((point) => ({ time: point.time, return: point.value }))
+      .filter((day) => day.time >= resolvedRange.minTime && day.time <= resolvedRange.maxTime)
     const symbols = activeContributions
       .map((item) => normalizeSymbol(item.symbol))
       .filter((symbol) => symbol.length > 0)
@@ -228,7 +274,7 @@ export const usePortfolioAnalytics = ({
     fullSummary?.regression,
     isFullRange,
     normalizedUnderlying,
-    report.portfolio.days,
+    fullReturns,
     resolvedRange,
     usesCustomPortfolio,
   ])
@@ -242,6 +288,17 @@ export const usePortfolioAnalytics = ({
   const monthlyReturns = useMemo(
     () => buildMonthlyReturnRows(effectiveReturns, effectiveDrawdown),
     [effectiveDrawdown, effectiveReturns],
+  )
+  const factorRelationships = useMemo(
+    () =>
+      buildFactorRelationships({
+        portfolioReturns: effectiveReturns,
+        contributions: activeContributions,
+        rawContributions,
+        weights: sleeveWeights,
+        underlying: underlyingSeries,
+      }),
+    [activeContributions, effectiveReturns, rawContributions, sleeveWeights, underlyingSeries],
   )
   const effectiveCorrelationMatrix = useMemo(() => {
     if (isFullRange) {
@@ -267,8 +324,12 @@ export const usePortfolioAnalytics = ({
     effectiveSummary,
     effectiveCorrelationMatrix,
     monthlyReturns,
+    factorRelationships,
     tradeStats,
-    chartIndex: fullIndex,
+    equitySource: performance.source,
+    equityExposureMultiplier:
+      effectiveDrawdownMode === 'mtm' ? uniformEquityExposure?.multiplier : undefined,
+    chartIndex: performance.chartIndex,
     chartDrawdown: fullDrawdown,
     chartDrawdownFallback: fullDrawdownFallback,
   }

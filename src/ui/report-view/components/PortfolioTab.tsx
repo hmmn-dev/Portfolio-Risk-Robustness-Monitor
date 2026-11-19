@@ -56,6 +56,8 @@ const PortfolioTab = ({ viewModel }: PortfolioTabProps) => {
       <PortfolioAnalyticsFrame refreshing={isRefreshing}>
         <PortfolioChartsPanel
           index={analytics.chartIndex}
+          equitySource={analytics.equitySource}
+          equityExposureMultiplier={analytics.equityExposureMultiplier}
           drawdown={analytics.chartDrawdown}
           drawdownFallback={analytics.chartDrawdownFallback}
           drawdownSource={analytics.effectiveDrawdownSource}
@@ -84,7 +86,10 @@ const PortfolioTab = ({ viewModel }: PortfolioTabProps) => {
           theme={theme}
           onShowNumbersChange={onShowCorrNumbersChange}
         />
-        <PortfolioRegressionSummary regression={analytics.effectiveSummary?.regression ?? null} />
+        <PortfolioRegressionSummary
+          regression={analytics.effectiveSummary?.regression ?? null}
+          relationships={analytics.factorRelationships}
+        />
       </PortfolioAnalyticsFrame>
       {composition.dialog.open && (
         <PortfolioCompositionDialog

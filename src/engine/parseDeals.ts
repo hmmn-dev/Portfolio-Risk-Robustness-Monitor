@@ -27,6 +27,7 @@ export const parseDeals = (text: string, options: ParseDealsOptions = {}): DealR
   const sleeveIndex = header.indexOf('sleeve')
   const notionalIndex = header.indexOf('notional')
   const balanceIndex = header.indexOf('balance')
+  const equityIndex = header.indexOf('equity')
 
   const parsed = rows.slice(1).map((row, index): DealRow => {
     const deal = row[dealIndex] ?? ''
@@ -35,12 +36,17 @@ export const parseDeals = (text: string, options: ParseDealsOptions = {}): DealR
     const notional = toNumber(row[notionalIndex] ?? '')
     const balance = balanceIndex >= 0 ? toNumber(row[balanceIndex] ?? '') : undefined
 
+    const equityText = equityIndex >= 0 ? row[equityIndex]?.trim() : undefined
+    const equityValue = equityText ? Number(equityText) : Number.NaN
+    const equity = Number.isFinite(equityValue) ? equityValue : undefined
+
     return {
       deal,
       time,
       sleeve,
       notional,
       balance,
+      equity,
       _seq: index,
     }
   })

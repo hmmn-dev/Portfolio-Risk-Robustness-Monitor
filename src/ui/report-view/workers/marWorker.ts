@@ -1,3 +1,5 @@
+import { resolvePortfolioDrawdown } from '../../../engine/portfolioDrawdown'
+import { resolvePortfolioPerformance } from '../../../engine/portfolioPerformance'
 import { buildPortfolioReport } from '../../../engine/portfolioSeries'
 import type { DealRow, ReportModel, UnderlyingSeries } from '../../../engine/types'
 
@@ -18,9 +20,10 @@ type MarWorkerResponse = {
 }
 
 const computeMarFromReport = (report: ReportModel, drawdownMode: 'deal' | 'mtm') => {
-  const index = report.portfolio.index
+  const performance = resolvePortfolioPerformance(report, drawdownMode === 'mtm')
+  const index = performance.index
   if (!index.length) return Number.NaN
-  const startIndex = index[0]?.value ?? Number.NaN
+  const startIndex = performance.source ? 1 : (index[0]?.value ?? Number.NaN)
   const endIndex = index[index.length - 1]?.value ?? Number.NaN
   const startTime = index[0]?.time ?? Number.NaN
   const endTime = index[index.length - 1]?.time ?? Number.NaN
@@ -37,14 +40,8 @@ const computeMarFromReport = (report: ReportModel, drawdownMode: 'deal' | 'mtm')
     years > 0
       ? (Math.pow(endIndex / startIndex, 1 / years) - 1) * 100
       : Number.NaN
-  const drawdown =
-    drawdownMode === 'mtm' && report.portfolio.drawdownMtm?.length
-      ? report.portfolio.drawdownMtm
-      : report.portfolio.drawdown ?? []
-  const maxDrawdown = drawdown.reduce(
-    (min, point) => (point.value < min ? point.value : min),
-    0
-  )
+  const drawdown = resolvePortfolioDrawdown(report, drawdownMode)
+  const maxDrawdown = drawdown.reduce((min, point) => (point.value < min ? point.value : min), 0)
   return maxDrawdown < 0 ? cagr / Math.abs(maxDrawdown) : Number.NaN
 }
 
@@ -56,16 +53,17 @@ const applySlippage = (inputDeals: DealRow[], slippagePct: number) => {
     if (!Number.isFinite(notional)) return deal
     const cost = Math.abs(notional) * factor
     cumulativeCost += cost
-    const profit = deal.profit
+    // Gross price PnL calibrates the instrument point value during candle replay.
+    // Simulated execution costs change account equity, not that contract multiplier.
     return {
       ...deal,
       notional: notional - cost,
       balance: Number.isFinite(deal.balance ?? NaN)
         ? (deal.balance as number) - cumulativeCost
         : deal.balance,
-      profit: Number.isFinite(profit ?? NaN)
-        ? (profit as number) - Math.abs(profit as number) * factor
-        : profit,
+      equity: Number.isFinite(deal.equity ?? NaN)
+        ? (deal.equity as number) - cumulativeCost
+        : deal.equity,
     }
   })
 }
@@ -75,7 +73,7 @@ const buildReport = (
   slippagePct: number,
   underlyingTimeframes: Record<string, 'H1' | 'D1'>,
   underlyingSeries: UnderlyingSeries[],
-  dealsSourceName?: string
+  dealsSourceName?: string,
 ) =>
   buildPortfolioReport(applySlippage(deals, slippagePct), {
     generatedAt: Date.now(),
@@ -95,13 +93,7 @@ self.onmessage = (event: MessageEvent<MarWorkerRequest>) => {
     dealsSourceName,
   } = event.data
 
-  const baseReport = buildReport(
-    deals,
-    0,
-    underlyingTimeframes,
-    underlyingSeries,
-    dealsSourceName
-  )
+  const baseReport = buildReport(deals, 0, underlyingTimeframes, underlyingSeries, dealsSourceName)
   const baseMar = computeMarFromReport(baseReport, drawdownMode)
   if (!Number.isFinite(baseMar) || baseMar <= 0 || targetPct === 0) {
     const response: MarWorkerResponse = { requestId, report: baseReport, appliedPct: null }
@@ -120,7 +112,7 @@ self.onmessage = (event: MessageEvent<MarWorkerRequest>) => {
       high,
       underlyingTimeframes,
       underlyingSeries,
-      dealsSourceName
+      dealsSourceName,
     )
     const candidateMar = computeMarFromReport(candidate, drawdownMode)
     if (Number.isFinite(candidateMar) && candidateMar <= targetMar) {
@@ -137,7 +129,7 @@ self.onmessage = (event: MessageEvent<MarWorkerRequest>) => {
       mid,
       underlyingTimeframes,
       underlyingSeries,
-      dealsSourceName
+      dealsSourceName,
     )
     const candidateMar = computeMarFromReport(candidate, drawdownMode)
     if (!Number.isFinite(candidateMar)) {

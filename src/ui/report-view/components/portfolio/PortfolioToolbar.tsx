@@ -93,7 +93,7 @@ const PortfolioToolbar = ({
         <ToggleButton value="deal">Realized</ToggleButton>
         {!hasMtmDrawdown ? (
           <Tooltip
-            title="In-Trade drawdown requires matched deal prices and uploaded underlying candles."
+            title="In-Trade requires recorded account equity, or matched deal prices and underlying candles."
             placement="top"
             disableInteractive
           >

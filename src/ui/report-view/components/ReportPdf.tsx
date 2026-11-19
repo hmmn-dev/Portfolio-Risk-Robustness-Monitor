@@ -1,5 +1,6 @@
+import { resolvePortfolioPerformance } from '../../../engine/portfolioPerformance'
 import { useTheme } from '@mui/material/styles'
-import { buildDailyReturnPoints, buildMonthlyReturnRows } from '../portfolio/portfolioCalculations'
+import { buildMonthlyReturnRows } from '../portfolio/portfolioCalculations'
 import PortfolioChartsPage from './pdf/PortfolioChartsPage'
 import PortfolioCorrelationPage from './pdf/PortfolioCorrelationPage'
 import PortfolioMonthlyReturnsPage from './pdf/PortfolioMonthlyReturnsPage'
@@ -39,7 +40,8 @@ const ReportPdf = () => {
     getSleeveDrawdown,
     getSleeveDrawdownSource,
   } = useReportPdf()
-  const dailyReturns = buildDailyReturnPoints(report.portfolio.days)
+  const performance = resolvePortfolioPerformance(report, drawdownMode === 'mtm')
+  const dailyReturns = performance.returns
   const monthlyReturns = buildMonthlyReturnRows(dailyReturns, portfolioDrawdown)
 
   return (
@@ -69,7 +71,8 @@ const ReportPdf = () => {
         pdfName={pdfName}
         width={pdfPageWidth}
         minHeight={pdfPageMinHeight}
-        index={report.portfolio.index}
+        index={performance.chartIndex}
+        equitySource={performance.source}
         drawdown={portfolioDrawdown}
         drawdownFallback={portfolioDrawdownFallback}
         drawdownSource={portfolioDrawdownSource}
@@ -99,7 +102,7 @@ const ReportPdf = () => {
         width={pdfPageWidth}
         minHeight={pdfPageMinHeight}
         summary={portfolioSummary}
-        index={report.portfolio.index}
+        index={performance.index}
         returns={dailyReturns}
         drawdown={portfolioDrawdown}
         drawdownMode={drawdownMode}

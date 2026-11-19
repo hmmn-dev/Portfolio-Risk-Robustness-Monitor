@@ -10,6 +10,15 @@ BETA,1,Opportunistic,30
 `
 
 describe('parseDeals', () => {
+  it('reads optional equity without interpreting blank or malformed values as zero', () => {
+    const rows = parseDeals(`deal,time,sleeve,notional,balance,equity
+1,1,Core,0,1000,950
+2,2,Core,10,1010,
+3,3,Core,0,1010,NaN
+4,4,Core,0,1010,0`)
+    expect(rows.map((row) => row.equity)).toEqual([950, undefined, undefined, 0])
+  })
+
   it('sorts by time then deal', () => {
     const rows = parseDeals(csv)
     expect(rows.map((row) => `${row.time}-${row.deal}`)).toEqual([

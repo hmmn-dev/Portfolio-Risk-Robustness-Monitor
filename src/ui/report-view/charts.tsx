@@ -79,8 +79,14 @@ export const EquityChart = ({
   const formatPercentAxis = (value: number) => `${value.toFixed(percentDigits)}`
   const filled = fillSeries(ensureStartPoint(displaySeries))
   const resolvedDrawdown = drawdownSeries ? fillSeries(ensureStartPoint(drawdownSeries)) : []
-  const getDrawdownAt = (time: number) => {
+  const getDrawdownAt = (time: number, observationIndex: number) => {
     if (!resolvedDrawdown.length) return Number.NaN
+    if (
+      resolvedDrawdown.length === filled.length &&
+      resolvedDrawdown[observationIndex]?.time === time
+    ) {
+      return resolvedDrawdown[observationIndex].value
+    }
     let low = 0
     let high = resolvedDrawdown.length - 1
     if (time <= resolvedDrawdown[low].time) return resolvedDrawdown[low].value
@@ -147,7 +153,7 @@ export const EquityChart = ({
             const date = formatAxisDate(point.time)
             const pnlValue =
               scaleMode === 'percent' ? formatPercent(point.value) : formatCurrency(point.value)
-            const ddAt = getDrawdownAt(point.time)
+            const ddAt = getDrawdownAt(point.time, idx)
             const ddValue = Number.isFinite(ddAt) ? `${ddAt.toFixed(2)}%` : '-'
             return `${date}<br/>PnL: ${pnlValue}<br/>DD: ${ddValue}`
           },
@@ -161,12 +167,14 @@ export const EquityChart = ({
 export const DrawdownChart = ({
   data,
   realizedFallback = [],
+  fallbackSource = 'realized',
   height = 160,
   yAxisName = 'Drawdown %',
   yAxisFormatter,
 }: {
   data: DailyPoint[]
   realizedFallback?: DailyPoint[]
+  fallbackSource?: 'recorded' | 'realized'
   height?: number
   yAxisName?: string
   yAxisFormatter?: (value: number) => string
@@ -175,10 +183,11 @@ export const DrawdownChart = ({
   const chartTheme = getReportChartTheme(theme)
   return (
     <ReactECharts
-      replaceMerge="series"
+      replaceMerge={['series', 'visualMap']}
       option={buildDrawdownOptions({
         data,
         realizedFallback,
+        fallbackSource,
         chartTheme,
         yAxisName,
         yAxisFormatter: yAxisFormatter ?? ((value) => `${value.toFixed(1)}%`),

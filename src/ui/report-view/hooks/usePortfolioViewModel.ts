@@ -7,6 +7,7 @@ import { getPortfolioSleeveLabels, usePortfolioComposition } from './usePortfoli
 type PortfolioViewModelOptions = Pick<
   ReportPortfolioContextValue,
   | 'report'
+  | 'rawContributions'
   | 'deals'
   | 'appliedComposition'
   | 'onApplyComposition'
@@ -23,6 +24,7 @@ type PortfolioViewModelOptions = Pick<
 
 export const usePortfolioViewModel = ({
   report,
+  rawContributions,
   deals,
   appliedComposition,
   onApplyComposition,
@@ -77,6 +79,7 @@ export const usePortfolioViewModel = ({
   }, [resetCompositionToBaseline, startAnalyticsTransition])
   const analytics = usePortfolioAnalytics({
     report,
+    rawContributions,
     deals,
     baseCapital,
     drawdownMode,

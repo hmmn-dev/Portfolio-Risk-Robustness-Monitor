@@ -1,3 +1,4 @@
+import { reconstructPortfolioEquity } from './reconstructPortfolioEquity'
 import { buildMtmDrawdown } from './mtmDrawdown'
 import {
   buildDrawdownFromEquity,
@@ -174,6 +175,10 @@ export const buildPortfolioReport = (
     : portfolioIndex.drawdown
   const mtmResult = buildMtmDrawdown(sortedDeals, options.underlyingSeries ?? [], startCapital)
 
+  const portfolioEquity =
+    reconstructPortfolioEquity(sortedDeals, options.underlyingSeries ?? [], startCapital) ??
+    mtmResult?.equity
+
   const contributionMap = new Map<
     string,
     {
@@ -280,12 +285,13 @@ export const buildPortfolioReport = (
     generatedAt: options.generatedAt ?? 0,
     dealsSourceName: options.dealsSourceName,
     portfolio: {
+      equity: portfolioEquity,
       days: portfolioDays,
       index: portfolioIndex.index,
       drawdown: portfolioDrawdown,
       drawdownSource: portfolioDrawdownSource,
-      drawdownMtm: mtmResult?.drawdown,
-      drawdownMtmSource: mtmResult?.source,
+      drawdownMtm: portfolioEquity?.drawdown ?? mtmResult?.drawdown,
+      drawdownMtmSource: portfolioEquity?.source ?? mtmResult?.source,
     },
     contributions,
   }

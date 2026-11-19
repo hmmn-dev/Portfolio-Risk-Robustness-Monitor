@@ -37,6 +37,35 @@ vi.mock('../../charts', () => ({
 }))
 
 describe('portfolio presentation components', () => {
+  it('identifies recorded equity and its deal-time sampling limit', () => {
+    const value = createReportContext().portfolio
+    renderWithTheme(
+      <PortfolioChartsPanel
+        index={value.report.portfolio.index}
+        drawdown={value.portfolioDrawdown}
+        equitySource="deal-snapshots"
+        drawdownSource="deal-snapshots"
+        pnlScaleMode="linear"
+        baseCapital={1000}
+      />,
+    )
+    expect(screen.getByRole('heading', { name: 'Portfolio equity' })).toBeInTheDocument()
+    expect(screen.getByText(/Recorded account equity · deal-time snapshots/)).toBeInTheDocument()
+    expect(screen.getByText(/moves between deals are not captured/)).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Portfolio drawdown (deal-time equity snapshots)' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Realized DD where candles/)).not.toBeInTheDocument()
+  })
+
+  it('labels realized balance honestly when open-position equity is unavailable', () => {
+    renderWithTheme(
+      <PortfolioChartsPanel index={[]} drawdown={[]} pnlScaleMode="linear" baseCapital={1000} />,
+    )
+    expect(screen.getByRole('heading', { name: 'Portfolio balance' })).toBeInTheDocument()
+    expect(screen.getByText('Realized balance · excludes open-position PnL')).toBeInTheDocument()
+  })
+
   it('shows one refresh status while retaining the current portfolio content', () => {
     renderWithTheme(
       <PortfolioAnalyticsFrame refreshing>

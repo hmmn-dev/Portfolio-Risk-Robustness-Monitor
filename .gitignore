@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local MT5 reference exports
+/public/ReportTester-4000080655.xlsx
+/public/deals_with_magic_2018-01-01_00-00-00.csv

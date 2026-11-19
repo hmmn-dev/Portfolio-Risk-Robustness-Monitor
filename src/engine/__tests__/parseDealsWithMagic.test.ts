@@ -11,6 +11,19 @@ const makeBuffer = (text: string) => {
 }
 
 describe('parseDealsWithMagic', () => {
+  it('reads account equity separately from balance and preserves missing values', () => {
+    const rows = parseDealsWithMagic(
+      makeBuffer(`time;deal;symbol;entry;profit;balance;equity
+2024-01-01;1;SPY;IN;0;1000;980
+2024-01-02;2;SPY;OUT;20;1020;
+2024-01-03;3;SPY;OUT;0;1020;bad
+2024-01-04;4;SPY;OUT;0;1020;0`),
+    )
+    expect(rows.map((row) => row.equity)).toEqual([980, undefined, undefined, 0])
+    expect(rows[0].balance).toBe(1000)
+    expect(rows[0].notional).toBe(0)
+  })
+
   it('handles empty comments and missing position_id with magic fallback', () => {
     const csv = `\uFEFFtime;deal;symbol;position_id;magic;entry;entrycomment;profit;commission;swap
 2024-01-02;A1;EURUSD;0;42;0;;2;-1;0

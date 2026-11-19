@@ -245,12 +245,14 @@ export const buildLineOptions = ({
 export const buildDrawdownOptions = ({
   data,
   realizedFallback,
+  fallbackSource = 'realized',
   chartTheme,
   yAxisName,
   yAxisFormatter,
 }: {
   data: DailyPoint[]
   realizedFallback: DailyPoint[]
+  fallbackSource?: 'recorded' | 'realized'
   chartTheme: ReportChartTheme
   yAxisName: string
   yAxisFormatter: (value: number) => string
@@ -258,29 +260,40 @@ export const buildDrawdownOptions = ({
   const filled = fillSeries(ensureStartPoint(data))
   const fallbackTimes = new Set(realizedFallback.map((point) => point.time))
   const hasRealizedFallback = filled.some((point) => fallbackTimes.has(point.time))
-  const sourceBoundaryTimes = filled.flatMap((point, index) => {
-    if (index === 0) return []
-    const previousUsesFallback = fallbackTimes.has(filled[index - 1].time)
-    const currentUsesFallback = fallbackTimes.has(point.time)
-    return previousUsesFallback === currentUsesFallback ? [] : [point.time]
-  })
-  const primaryValues: Array<number | null> = filled.map((point) =>
-    fallbackTimes.has(point.time) ? null : point.value,
-  )
-  const fallbackValues: Array<number | null> = filled.map((point) =>
-    fallbackTimes.has(point.time) ? point.value : null,
-  )
-
-  if (hasRealizedFallback) {
-    const fallbackBoundarySource = [...fallbackValues]
-    fallbackBoundarySource.forEach((value, index) => {
-      if (value == null) return
-      if (index > 0 && fallbackBoundarySource[index - 1] == null) {
-        fallbackValues[index - 1] = filled[index - 1].value
-      }
-      if (index < fallbackBoundarySource.length - 1 && fallbackBoundarySource[index + 1] == null) {
-        fallbackValues[index + 1] = filled[index + 1].value
-      }
+  // Only delimit uncovered prefixes/suffixes. Internal pricing gaps keep their
+  // source color without drawing dashed artifacts through the backtest.
+  const firstCoveredIndex = filled.findIndex((point) => !fallbackTimes.has(point.time))
+  let lastCoveredIndex = filled.length - 1
+  while (lastCoveredIndex >= 0 && fallbackTimes.has(filled[lastCoveredIndex].time)) {
+    lastCoveredIndex--
+  }
+  const visibleBoundaryTimes =
+    firstCoveredIndex < 0
+      ? []
+      : [
+          ...(firstCoveredIndex > 0 ? [filled[firstCoveredIndex].time] : []),
+          ...(lastCoveredIndex < filled.length - 1 ? [filled[lastCoveredIndex + 1].time] : []),
+        ]
+  const pieces: Array<{ gte: number; lt?: number; lte?: number; color: string }> = []
+  if (filled.length) {
+    let start = filled[0].time
+    let fallback = fallbackTimes.has(start)
+    for (let index = 1; index < filled.length; index++) {
+      const point = filled[index]
+      const nextFallback = fallbackTimes.has(point.time)
+      if (fallback === nextFallback) continue
+      pieces.push({
+        gte: start,
+        lt: point.time,
+        color: fallback ? chartTheme.drawdownFallback : chartTheme.drawdown,
+      })
+      start = point.time
+      fallback = nextFallback
+    }
+    pieces.push({
+      gte: start,
+      lte: filled[filled.length - 1].time,
+      color: fallback ? chartTheme.drawdownFallback : chartTheme.drawdown,
     })
   }
 
@@ -299,61 +312,53 @@ export const buildDrawdownOptions = ({
   })
   const primarySeries = baseOptions.series[0]
   const sourceBoundaryMarkLine =
-    sourceBoundaryTimes.length > 0
+    visibleBoundaryTimes.length > 0
       ? {
           silent: true,
           symbol: 'none',
           z: 8,
           label: { show: false },
           lineStyle: {
-            color: chartTheme.drawdownBoundary,
+            color: chartTheme.drawdownFallback,
             type: 'dashed',
-            width: 1,
+            width: 1.5,
           },
-          data: sourceBoundaryTimes.map((time) => ({ xAxis: time })),
+          data: visibleBoundaryTimes.map((time) => ({ xAxis: time })),
         }
       : undefined
-  const series = hasRealizedFallback
-    ? [
-        {
-          ...primarySeries,
-          name: 'In-trade DD',
-          data: filled.map((point, index) => [point.time, primaryValues[index]]),
-          connectNulls: false,
-          markLine: sourceBoundaryMarkLine,
-        },
-        {
-          ...primarySeries,
-          name: 'Realized DD fallback',
-          data: filled.map((point, index) => [point.time, fallbackValues[index]]),
-          connectNulls: false,
-          markLine: undefined,
-          lineStyle: { color: chartTheme.drawdownFallback, width: 2 },
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: chartTheme.drawdownFallback },
-                { offset: 1, color: 'rgba(0, 0, 0, 0)' },
-              ],
-            },
-            opacity: chartTheme.areaOpacity,
-          },
-        },
-      ]
-    : baseOptions.series
+  const series = [
+    {
+      ...primarySeries,
+      name: 'In-trade DD',
+      connectNulls: false,
+      markLine: sourceBoundaryMarkLine,
+      // A single curve owns every point. Color changes identify provenance without
+      // overlaying a second line or filled area over the same drawdown.
+      lineStyle: hasRealizedFallback ? { width: 2 } : primarySeries.lineStyle,
+      areaStyle: hasRealizedFallback ? undefined : primarySeries.areaStyle,
+    },
+  ]
 
   return {
     ...baseOptions,
     series,
+    visualMap: hasRealizedFallback
+      ? [
+          {
+            id: 'drawdown-source',
+            type: 'piecewise',
+            show: false,
+            dimension: 0,
+            seriesIndex: 0,
+            pieces,
+            outOfRange: { color: chartTheme.drawdown },
+          },
+        ]
+      : [],
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'line' },
-      formatter: (params: { dataIndex: number }[]) => {
+      formatter: (params: { dataIndex: number; seriesIndex?: number }[]) => {
         const first = params?.[0]
         if (!first) return ''
         const point = filled[first.dataIndex]
@@ -361,7 +366,9 @@ export const buildDrawdownOptions = ({
         const date = formatAxisDate(point.time)
         const ddValue = Number.isFinite(point.value) ? `${point.value.toFixed(2)}%` : '-'
         const source = fallbackTimes.has(point.time)
-          ? '<br/>Source: Realized DD (candles unavailable for this period)'
+          ? fallbackSource === 'recorded'
+            ? '<br/>Source: Recorded equity (no candle data for this trading day)'
+            : '<br/>Source: Realized DD (candles unavailable for this period)'
           : ''
         return `${date}<br/>DD: ${ddValue}${source}`
       },

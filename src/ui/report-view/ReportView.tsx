@@ -82,6 +82,7 @@ const ReportView = () => {
   const pdfPageMinHeight = pdf.orientation === 'landscape' ? 794 : 1123
   const analytics = useReportAnalytics({
     report: activeReport,
+    deals: activeDeals,
     underlyingBySymbol,
     drawdownMode,
     rollingWindow,
@@ -145,7 +146,7 @@ const ReportView = () => {
       gridRiskColumns: riskColumns,
     },
     sleeves: {
-      report: activeReport,
+      report: analytics.report ?? activeReport,
       sleeves: analytics.sleeves,
       selectedContribution: analytics.selectedContribution,
       selectedSleeveMetrics: analytics.selectedSleeveMetrics,
@@ -167,7 +168,8 @@ const ReportView = () => {
       onSelectSleeve: setSelectedSleeve,
     },
     portfolio: {
-      report: activeReport,
+      report: analytics.report ?? activeReport,
+      rawContributions: report?.contributions,
       deals: activeDeals,
       appliedComposition,
       onApplyComposition: handleApplyComposition,
@@ -192,7 +194,7 @@ const ReportView = () => {
       underlyingSeries: analytics.underlyingSeries,
     },
     pdf: {
-      report: activeReport,
+      report: analytics.report ?? activeReport,
       riskRows: analytics.riskRows,
       baseCapital: analytics.baseCapital,
       portfolioDrawdown: analytics.portfolioDrawdown,

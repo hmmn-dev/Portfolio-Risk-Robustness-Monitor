@@ -20,6 +20,30 @@ vi.mock('echarts-for-react', () => ({
 }))
 
 describe('report charts', () => {
+  it('keeps drawdown paired with the right equity snapshot when deal timestamps repeat', () => {
+    const time = Date.UTC(2024, 0, 1, 10)
+    renderWithTheme(
+      <EquityChart
+        data={[
+          { time, value: 1 },
+          { time, value: 0.9 },
+          { time: time + 1000, value: 1.1 },
+        ]}
+        drawdownSeries={[
+          { time, value: 0 },
+          { time, value: -10 },
+          { time: time + 1000, value: 0 },
+        ]}
+        scaleMode="percent"
+      />,
+    )
+    const option = echartsSpy.mock.calls[0][0].option as {
+      tooltip: { formatter: (params: { dataIndex: number }[]) => string }
+    }
+    expect(option.tooltip.formatter([{ dataIndex: 0 }])).toContain('DD: 0.00%')
+    expect(option.tooltip.formatter([{ dataIndex: 1 }])).toContain('DD: -10.00%')
+  })
+
   beforeEach(() => {
     echartsSpy.mockClear()
   })
@@ -252,125 +276,134 @@ describe('report charts', () => {
     expect(option.tooltip.formatter([{ dataIndex: 1 }])).toContain('DD: -4.25%')
   })
 
-  it('renders realized fallback segments with warning styling and explains their source', () => {
-    const points = [
-      { time: Date.UTC(2024, 0, 1), value: 0 },
-      { time: Date.UTC(2024, 0, 2), value: -1 },
-      { time: Date.UTC(2024, 0, 3), value: -2 },
-    ]
-
+  it('colors one drawdown curve by source without overlaying another line or area', () => {
+    const points = [0, -1, -2].map((value, index) => ({
+      time: Date.UTC(2024, 0, index + 1),
+      value,
+    }))
     renderWithTheme(<DrawdownChart data={points} realizedFallback={[points[2]]} />)
-
     const option = echartsSpy.mock.calls[0][0].option as {
-      series: Array<{
-        name: string
-        data: Array<[number, number | null]>
-        lineStyle: { color: string }
-        areaStyle: { color: { colorStops: Array<{ offset: number; color: string }> } }
+      series: {
+        data: [number, number][]
+        areaStyle?: unknown
         markLine?: {
-          silent: boolean
-          symbol: string
-          z: number
+          data: { xAxis: number }[]
           label: { show: boolean }
-          lineStyle: { color: string; type: string; width: number }
-          data: Array<{ xAxis: number }>
+          lineStyle: { color: string; type: string }
         }
-      }>
-      tooltip: { formatter: (params: Array<{ dataIndex: number }>) => string }
+      }[]
+      visualMap: {
+        dimension: number
+        pieces: { gte: number; lt?: number; lte?: number; color: string }[]
+      }[]
+      tooltip: { formatter: (params: { dataIndex: number }[]) => string }
     }
-    expect(option.series).toHaveLength(2)
-    expect(option.series[1].markLine).toBeUndefined()
-    expect(option.series[0].data).toEqual([
-      [points[0].time, 0],
-      [points[1].time, -1],
-      [points[2].time, null],
+    expect(option.series).toHaveLength(1)
+    expect(option.series[0].data).toEqual(points.map((point) => [point.time, point.value]))
+    expect(option.series[0].areaStyle).toBeUndefined()
+    expect(option.visualMap[0].dimension).toBe(0)
+    expect(option.visualMap[0].pieces).toEqual([
+      { gte: points[0].time, lt: points[2].time, color: lightChartTheme.drawdown },
+      { gte: points[2].time, lte: points[2].time, color: lightChartTheme.drawdownFallback },
     ])
-    expect(option.series[1].data).toEqual([
-      [points[0].time, null],
-      [points[1].time, -1],
-      [points[2].time, -2],
-    ])
-    expect(option.series[1].lineStyle.color).toBe(lightChartTheme.drawdownFallback)
-    expect(option.series[1].areaStyle.color.colorStops[0].color).toBe(
-      lightChartTheme.drawdownFallback,
-    )
-    expect(option.series[0].markLine).toEqual({
-      silent: true,
-      symbol: 'none',
-      z: 8,
-      label: { show: false },
-      lineStyle: {
-        color: lightChartTheme.drawdownBoundary,
-        type: 'dashed',
-        width: 1,
-      },
-      data: [{ xAxis: points[2].time }],
+    expect(option.series[0].markLine?.data).toEqual([{ xAxis: points[2].time }])
+    expect(option.series[0].markLine?.label.show).toBe(false)
+    expect(option.series[0].markLine?.lineStyle).toMatchObject({
+      color: lightChartTheme.drawdownFallback,
+      type: 'dashed',
     })
     expect(option.tooltip.formatter([{ dataIndex: 2 }])).toContain(
       'Realized DD (candles unavailable for this period)',
     )
-    expect(echartsSpy.mock.calls[0][0].replaceMerge).toBe('series')
+    expect(echartsSpy.mock.calls[0][0].replaceMerge).toEqual(['series', 'visualMap'])
   })
 
-  it('does not propagate an initial realized fallback across MTM candle coverage', () => {
+  it('keeps recorded-only periods before and after coverage as disjoint color intervals', () => {
     const points = [0, -1, -2, -3].map((value, index) => ({
       time: Date.UTC(2024, 0, index + 1),
       value,
     }))
-
-    renderWithTheme(<DrawdownChart data={points} realizedFallback={[points[0]]} />)
-
+    renderWithTheme(
+      <DrawdownChart
+        data={points}
+        realizedFallback={[points[0], points[3]]}
+        fallbackSource="recorded"
+      />,
+    )
     const option = echartsSpy.mock.calls[0][0].option as {
-      series: Array<{ data: Array<[number, number | null]> }>
+      series: unknown[]
+      visualMap: { pieces: { gte: number; lt?: number; lte?: number; color: string }[] }[]
     }
-    expect(option.series[0].data).toEqual([
-      [points[0].time, null],
-      [points[1].time, -1],
-      [points[2].time, -2],
-      [points[3].time, -3],
+    expect(option.series).toHaveLength(1)
+    expect(option.visualMap[0].pieces).toEqual([
+      { gte: points[0].time, lt: points[1].time, color: lightChartTheme.drawdownFallback },
+      { gte: points[1].time, lt: points[3].time, color: lightChartTheme.drawdown },
+      { gte: points[3].time, lte: points[3].time, color: lightChartTheme.drawdownFallback },
     ])
-    expect(option.series[1].data).toEqual([
-      [points[0].time, 0],
-      [points[1].time, -1],
-      [points[2].time, null],
-      [points[3].time, null],
-    ])
+    for (const point of points) {
+      expect(
+        option.visualMap[0].pieces.filter(
+          (piece) =>
+            point.time >= piece.gte &&
+            (piece.lt == null || point.time < piece.lt) &&
+            (piece.lte == null || point.time <= piece.lte),
+        ),
+      ).toHaveLength(1)
+    }
   })
 
-  it('keeps one long-range drawdown-source boundary without monthly ticks', () => {
-    const points = [
-      { time: Date.UTC(2021, 6, 31), value: 0 },
-      { time: Date.UTC(2026, 6, 30), value: -1 },
-      { time: Date.UTC(2026, 6, 31), value: -2 },
-    ]
-
-    renderWithTheme(<DrawdownChart data={points} realizedFallback={[points[2]]} />)
-
+  it('marks only the uncovered sample edge when there are thousands of internal source gaps', () => {
+    const points = Array.from({ length: 4000 }, (_, index) => ({
+      time: Date.UTC(2024, 0, 1) + index * 3600000,
+      value: -(index % 3),
+    }))
+    renderWithTheme(
+      <DrawdownChart
+        data={points}
+        realizedFallback={points.filter((_, index) => index % 4 === 0)}
+        fallbackSource="recorded"
+      />,
+    )
     const option = echartsSpy.mock.calls[0][0].option as {
-      xAxis: { axisTick: { customValues: number[] } }
-      series: Array<{
-        markLine?: {
-          data: Array<{
-            xAxis: number
-            lineStyle?: { color: string; type: string; width: number }
-          }>
-        }
-      }>
+      series: {
+        data: unknown[]
+        markLine?: { data: { xAxis: number }[] }
+        areaStyle?: unknown
+      }[]
     }
-    const markLineData = option.series[0].markLine?.data ?? []
-    expect(option.xAxis.axisTick.customValues).toEqual([
-      points[0].time,
-      Date.UTC(2022, 0, 1),
-      Date.UTC(2023, 0, 1),
-      Date.UTC(2024, 0, 1),
-      Date.UTC(2025, 0, 1),
-      Date.UTC(2026, 0, 1),
-    ])
-    expect(markLineData).toEqual([
-      {
-        xAxis: points[2].time,
-      },
-    ])
-    expect(option.series[1].markLine).toBeUndefined()
+    expect(option.series).toHaveLength(1)
+    expect(option.series[0].data).toHaveLength(points.length)
+    const boundaries = option.series[0].markLine?.data ?? []
+    expect(boundaries).toHaveLength(1)
+    expect(boundaries[0]).toEqual({ xAxis: points[1].time })
+    expect(option.series[0].areaStyle).toBeUndefined()
+  })
+
+  it('does not draw markers for internal gaps when both sample edges have candle coverage', () => {
+    const points = Array.from({ length: 12 }, (_, index) => ({
+      time: Date.UTC(2024, 0, index + 1),
+      value: -index,
+    }))
+    renderWithTheme(
+      <DrawdownChart data={points} realizedFallback={[points[3], points[4], points[8]]} />,
+    )
+    const option = echartsSpy.mock.calls[0][0].option as { series: { markLine?: unknown }[] }
+    expect(option.series[0].markLine).toBeUndefined()
+  })
+
+  it('identifies recorded equity in the tooltip and clears source colors when coverage is absent', () => {
+    const points = [0, -2].map((value, index) => ({ time: Date.UTC(2024, 0, index + 1), value }))
+    const { rerender } = renderWithTheme(
+      <DrawdownChart data={points} realizedFallback={[points[1]]} fallbackSource="recorded" />,
+    )
+    const option = echartsSpy.mock.calls[0][0].option as {
+      tooltip: { formatter: (params: { dataIndex: number }[]) => string }
+    }
+    expect(option.tooltip.formatter([{ dataIndex: 1 }])).toContain(
+      'Recorded equity (no candle data for this trading day)',
+    )
+    expect(option.tooltip.formatter([{ dataIndex: 1 }])).not.toContain('Realized')
+    rerender(<DrawdownChart data={points} />)
+    expect(echartsSpy.mock.calls.at(-1)?.[0].option.visualMap).toEqual([])
   })
 })

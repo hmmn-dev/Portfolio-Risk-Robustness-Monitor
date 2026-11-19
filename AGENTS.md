@@ -278,11 +278,20 @@ Changes to calculations, parsing, charts, status, filtering, or report generatio
 - Handle empty, one-point, constant, missing, non-finite, and zero-denominator inputs.
 - Verify trading-day window boundaries and minimum-observation rules.
 - Keep realized and in-trade/MTM drawdown semantics distinct.
+- Keep realized balance separate from account equity, including floating hedge PnL. Label recorded
+  equity snapshots and candle-based estimates with their sampling source; account-wide snapshots
+  must not be attributed to individual sleeves or treated as a custom portfolio's equity. They may
+  supply the unchanged baseline denominator for return-exposure weights.
 - Bound MTM candle replay to the portfolio observation period; imported candle history must not
   expand report, metric, or chart date bounds.
-- When candle coverage spans only part of the portfolio period, use realized drawdown only outside
-  that coverage and preserve visible source provenance. Never extrapolate MTM values or label a
-  realized fallback as MTM.
+- Anchor candle estimates to recorded account equity when available and calculate drawdown on
+  the combined equity path with one high-water mark. Prefer native observations in recorded candle
+  periods and estimate only missing periods; do not insert extra extremes beside native snapshots.
+  Outside usable candle coverage, retain recorded
+  equity; use explicitly labeled realized fallback only when account equity is unavailable. Never
+  extrapolate missing candle valuations or label a realized fallback as MTM.
+- Preserve valid custom-portfolio equity marks when candle coverage is partial. A missing session
+  hour must not replace a priced day's equity with balance or discard the entire estimated series.
 - Treat sleeve weights as return-exposure multipliers applied to each sleeve's contribution
   against the preceding baseline portfolio equity. Do not reinterpret them as fixed-dollar
   historical PnL multipliers or re-denominate them against a custom weighted equity curve.

@@ -51,6 +51,7 @@ export type ReportSleevesContextValue = SharedChartState & {
 
 export type ReportPortfolioContextValue = SharedChartState & {
   report: ReportModel
+  rawContributions?: ReportModel['contributions']
   deals: DealRow[] | null
   appliedComposition: AppliedPortfolioComposition | null
   onApplyComposition: (composition: AppliedPortfolioComposition) => void

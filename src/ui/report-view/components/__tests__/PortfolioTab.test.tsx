@@ -1,3 +1,5 @@
+import { buildPortfolioReport } from '../../../../engine/portfolioSeries'
+import { useReportAnalytics } from '../../hooks/useReportAnalytics'
 // @vitest-environment jsdom
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -50,7 +52,120 @@ const StatefulPortfolioTab = () => {
   return <PortfolioTabHarness value={value} />
 }
 
+const candleDay = (offset: number) => Date.UTC(2024, 0, 1 + offset)
+const coverageDeals = [
+  {
+    deal: '1',
+    time: candleDay(0),
+    sleeve: 'Core',
+    symbol: 'EURUSD',
+    entryType: 'in' as const,
+    side: 'buy' as const,
+    price: 100,
+    volume: 1,
+    positionId: 1,
+    notional: 0,
+    balance: 1000,
+    equity: 1000,
+    _seq: 0,
+  },
+  {
+    deal: '2',
+    time: candleDay(1),
+    sleeve: 'Core',
+    symbol: 'EURUSD',
+    notional: 0,
+    balance: 1000,
+    equity: 995,
+    _seq: 1,
+  },
+  {
+    deal: '4',
+    time: candleDay(3) + 3600000,
+    sleeve: 'Core',
+    symbol: 'EURUSD',
+    entryType: 'out' as const,
+    price: 90,
+    volume: 1,
+    positionId: 1,
+    profit: -10,
+    notional: -10,
+    balance: 990,
+    equity: 990,
+    _seq: 3,
+  },
+]
+const coverageUnderlying = {
+  EURUSD: {
+    symbol: 'EURUSD',
+    timeframe: 'D1' as const,
+    candles: [
+      { time: candleDay(1), open: 95, high: 95, low: 95, close: 95 },
+      { time: candleDay(2), open: 90, high: 90, low: 90, close: 90 },
+    ],
+    daily: [],
+  },
+}
+const coverageReport = buildPortfolioReport(coverageDeals, {
+  initialCapital: 1000,
+  underlyingSeries: Object.values(coverageUnderlying),
+})
+
+const DrawdownSourceHarness = ({ cached = false }: { cached?: boolean }) => {
+  const report = cached
+    ? {
+        ...coverageReport,
+        portfolio: {
+          ...coverageReport.portfolio,
+          equity: undefined,
+        },
+      }
+    : coverageReport
+  const analytics = useReportAnalytics({
+    report,
+    deals: coverageDeals,
+    underlyingBySymbol: coverageUnderlying,
+    drawdownMode: 'mtm',
+    rollingWindow: 504,
+    selectedSleeve: null,
+    pdfObfuscate: false,
+    pdfPageWidth: 840,
+    pdfCellSize: 28,
+  })
+  const value = createReportContext({
+    report: analytics.report ?? report,
+    deals: coverageDeals,
+    drawdownMode: 'mtm',
+    underlyingSeries: Object.values(coverageUnderlying),
+    portfolioDrawdown: analytics.portfolioDrawdown,
+    portfolioDrawdownFallback: analytics.portfolioDrawdownFallback,
+    portfolioDrawdownSource: analytics.portfolioDrawdownSource,
+    portfolioSummary: analytics.portfolioSummary,
+  })
+  return <PortfolioTabHarness value={value} />
+}
+
 describe('PortfolioTab', () => {
+  it.each([false, true])(
+    'combines snapshots and candles with recorded-only provenance (cached: %s)',
+    (cached) => {
+      renderWithTheme(<DrawdownSourceHarness cached={cached} />)
+      expect(screen.queryByRole('combobox', { name: 'In-trade source' })).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Recorded equity only')).toHaveTextContent(
+        'Recorded equity · outside candle-covered days',
+      )
+      expect(screen.queryByLabelText('Realized drawdown fallback')).not.toBeInTheDocument()
+      expect(
+        screen.getByText('Recorded account equity · D1 estimates fill missing days'),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', {
+          name: 'Portfolio drawdown (recorded equity + D1 estimates)',
+        }),
+      ).toBeInTheDocument()
+    },
+  )
+
   beforeEach(() => {
     chartRenderSpies.equity.mockClear()
     chartRenderSpies.drawdown.mockClear()
@@ -69,13 +184,13 @@ describe('PortfolioTab', () => {
 
     expect(screen.getByText('2 out of 2 strategy sleeves selected')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Reset to baseline' })).not.toBeInTheDocument()
-    expect(screen.getByText('Portfolio equity')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Portfolio balance' })).toBeInTheDocument()
     expect(screen.getByText('Portfolio monthly returns')).toBeInTheDocument()
     expect(screen.getByText('Portfolio summary')).toBeInTheDocument()
     const health = screen.getByRole('region', { name: 'Portfolio health' })
     const factors = screen.getByRole('region', { name: 'Factor diagnostics' })
     const summary = screen.getByRole('region', { name: 'Portfolio summary' })
-    const equityHeading = screen.getByText('Portfolio equity')
+    const equityHeading = screen.getByRole('heading', { name: 'Portfolio balance' })
     const correlationHeading = screen.getByText('Cross-strategy correlation')
     expect(
       equityHeading.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -83,7 +198,10 @@ describe('PortfolioTab', () => {
     expect(
       correlationHeading.compareDocumentPosition(factors) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
-    expect(within(factors).getByText('Observations')).toBeInTheDocument()
+    expect(
+      within(factors).getByRole('button', { name: 'Explain Observations' }),
+    ).toBeInTheDocument()
+    expect(within(factors).getByRole('columnheader', { name: 'Observations' })).toBeInTheDocument()
     expect(within(factors).getByText('20')).toBeInTheDocument()
     expect(within(health).getByText('Healthy')).toBeInTheDocument()
     expect(within(health).getByText('Insufficient')).toBeInTheDocument()

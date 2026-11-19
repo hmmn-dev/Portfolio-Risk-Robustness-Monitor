@@ -1,5 +1,6 @@
+import { resolvePortfolioPerformance } from '../../engine/portfolioPerformance'
 import { computeDdShock } from '../../engine/ddShock'
-import { resolveMtmDrawdownCoverage } from '../../engine/drawdownCoverage'
+
 import {
   getPairCoverage,
   rollingOlsPairs,
@@ -93,23 +94,12 @@ export const findUnderlyingForSymbol = (
   return base ? (normalizedUnderlying[normalizeSymbol(base)] ?? null) : null
 }
 
-export const resolvePortfolioDrawdownSeries = (report: ReportModel | null, mode: DrawdownMode) => {
-  const realized = report?.portfolio.drawdown ?? []
-  return mode === 'mtm' && report?.portfolio.drawdownMtm?.length
-    ? resolveMtmDrawdownCoverage(realized, report.portfolio.drawdownMtm)
-    : { drawdown: realized, realizedFallback: [] }
-}
-
-export const resolvePortfolioDrawdown = (report: ReportModel | null, mode: DrawdownMode) =>
-  resolvePortfolioDrawdownSeries(report, mode).drawdown
-
-export const resolvePortfolioDrawdownFallback = (report: ReportModel | null, mode: DrawdownMode) =>
-  resolvePortfolioDrawdownSeries(report, mode).realizedFallback
-
-export const resolvePortfolioDrawdownSource = (report: ReportModel | null, mode: DrawdownMode) =>
-  mode === 'mtm' && report?.portfolio.drawdownMtmSource
-    ? report.portfolio.drawdownMtmSource
-    : report?.portfolio.drawdownSource
+export {
+  resolvePortfolioDrawdownSeries,
+  resolvePortfolioDrawdown,
+  resolvePortfolioDrawdownFallback,
+  resolvePortfolioDrawdownSource,
+} from '../../engine/portfolioDrawdown'
 
 export const resolveSleeveDrawdown = (
   item: ReportModel['contributions'][number] | null,
@@ -181,10 +171,12 @@ export const buildPortfolioSummary = (
   report: ReportModel,
   portfolioDrawdown: ReportModel['portfolio']['drawdown'],
   normalizedUnderlying: NormalizedUnderlying,
+  mode: DrawdownMode = 'deal',
 ): PortfolioSummary => {
-  const returns = report.portfolio.days.map((day) => day.return)
-  const firstIndexPoint = report.portfolio.index[0]
-  const lastIndexPoint = report.portfolio.index.at(-1)
+  const performance = resolvePortfolioPerformance(report, mode === 'mtm')
+  const returns = performance.returns.map((point) => point.value)
+  const firstIndexPoint = performance.index[0]
+  const lastIndexPoint = performance.index.at(-1)
   const totalReturnPct = lastIndexPoint ? (lastIndexPoint.value - 1) * 100 : Number.NaN
   const years =
     firstIndexPoint && lastIndexPoint
@@ -197,7 +189,12 @@ export const buildPortfolioSummary = (
     lastIndexPoint.value > 0 &&
     Number.isFinite(years) &&
     years > 0
-      ? (Math.pow(lastIndexPoint.value / firstIndexPoint.value, 1 / years) - 1) * 100
+      ? (Math.pow(
+          performance.source ? lastIndexPoint.value : lastIndexPoint.value / firstIndexPoint.value,
+          1 / years,
+        ) -
+          1) *
+        100
       : Number.NaN
   const maxDrawdown = portfolioDrawdown.reduce(
     (minimum, point) => (point.value < minimum ? point.value : minimum),
@@ -218,7 +215,11 @@ export const buildPortfolioSummary = (
     maxDrawdown,
     mar: maxDrawdown < 0 ? cagr / Math.abs(maxDrawdown) : Number.NaN,
     sharpe: computeSharpe(returns),
-    regression: portfolioRegression(report.portfolio.days, symbols, normalizedUnderlying),
+    regression: portfolioRegression(
+      performance.returns.map((point) => ({ time: point.time, return: point.value })),
+      symbols,
+      normalizedUnderlying,
+    ),
   }
 }
 

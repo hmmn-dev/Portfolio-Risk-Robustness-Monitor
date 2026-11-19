@@ -1,4 +1,4 @@
-import type { DailyPoint, ReportModel } from '../../../../engine/types'
+import type { DailyPoint, ReportModel, PortfolioEquitySource } from '../../../../engine/types'
 import PdfPage from '../PdfPage'
 import PortfolioChartsPanel from '../portfolio/PortfolioChartsPanel'
 
@@ -6,6 +6,7 @@ type PortfolioChartsPageProps = {
   pdfName: string
   width: number
   minHeight: number
+  equitySource?: PortfolioEquitySource
   index: DailyPoint[]
   drawdown: DailyPoint[]
   drawdownFallback: DailyPoint[]
@@ -19,6 +20,7 @@ const PortfolioChartsPage = ({
   width,
   minHeight,
   index,
+  equitySource,
   drawdown,
   drawdownFallback,
   drawdownSource,
@@ -26,13 +28,14 @@ const PortfolioChartsPage = ({
   baseCapital,
 }: PortfolioChartsPageProps) => (
   <PdfPage
-    title="Portfolio equity & drawdown"
+    title={equitySource ? 'Portfolio equity & drawdown' : 'Portfolio balance & drawdown'}
     pdfName={pdfName}
     width={width}
     minHeight={minHeight}
   >
     <PortfolioChartsPanel
       index={index}
+      equitySource={equitySource}
       drawdown={drawdown}
       drawdownFallback={drawdownFallback}
       drawdownSource={drawdownSource}

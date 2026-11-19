@@ -6,6 +6,8 @@ import { formatSigned } from '../../../formatters'
 import MetricGrid from './MetricGrid'
 import ReportSectionHeader from './ReportSectionHeader'
 import SummaryMetricCell from './SummaryMetricCell'
+import PortfolioFactorRelationships from './PortfolioFactorRelationships'
+import type { FactorRelationships } from '../../../portfolio/factorRelationships'
 
 const HelpLabel = ({ label, description }: { label: string; description: string }) => (
   <Stack direction="row" spacing={0.5} alignItems="center">
@@ -24,9 +26,11 @@ const HelpLabel = ({ label, description }: { label: string; description: string 
 
 const PortfolioRegressionSummary = ({
   regression,
+  relationships,
   formatSymbol = (symbol) => symbol,
 }: {
   regression: PortfolioRegression | null
+  relationships?: FactorRelationships
   formatSymbol?: (symbol: string) => string
 }) => {
   const isRegularized = (regression?.regularization ?? 0) > 0
@@ -76,10 +80,14 @@ const PortfolioRegressionSummary = ({
         </MetricGrid>
       ) : (
         <Typography variant="body2" color="text.secondary" sx={{ px: 2, pb: 2 }}>
-          Factor diagnostics are unavailable because there is not enough aligned underlying data.
+          Multivariate regression is unavailable because there is not enough aligned underlying
+          data.
         </Typography>
       )}
-      {regression && (
+      {relationships && (
+        <PortfolioFactorRelationships relationships={relationships} formatSymbol={formatSymbol} />
+      )}
+      {!relationships && regression && (
         <Box sx={{ px: 2, py: 2, borderTop: 1, borderColor: 'divider' }}>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}

@@ -1,6 +1,7 @@
+import { reconstructPortfolioEquity } from '../../../engine/reconstructPortfolioEquity'
 import { useCallback, useMemo } from 'react'
 import { stableSort } from '../../../engine/stableSort'
-import type { ReportModel, UnderlyingSeries } from '../../../engine/types'
+import type { DealRow, ReportModel, UnderlyingSeries } from '../../../engine/types'
 import { buildReturnMap, resolveBaseCapital } from '../helpers/series'
 import {
   buildCorrelationMatrix,
@@ -22,6 +23,7 @@ import {
 } from '../reportAnalytics'
 
 type UseReportAnalyticsOptions = {
+  deals?: DealRow[] | null
   report: ReportModel | null
   underlyingBySymbol: Record<string, UnderlyingSeries>
   drawdownMode: DrawdownMode
@@ -33,7 +35,8 @@ type UseReportAnalyticsOptions = {
 }
 
 export const useReportAnalytics = ({
-  report,
+  report: inputReport,
+  deals,
   underlyingBySymbol,
   drawdownMode,
   rollingWindow,
@@ -42,11 +45,26 @@ export const useReportAnalytics = ({
   pdfPageWidth,
   pdfCellSize,
 }: UseReportAnalyticsOptions) => {
-  const portfolioReturnMap = useMemo(() => buildReturnMap(report?.portfolio.days ?? []), [report])
   const baseCapital = useMemo(
-    () => resolveBaseCapital(report?.portfolio.days ?? [], 10000),
-    [report],
+    () => resolveBaseCapital(inputReport?.portfolio.days ?? [], 10000),
+    [inputReport],
   )
+  const report = useMemo(() => {
+    if (!inputReport || !deals?.length) return inputReport
+    const equity = reconstructPortfolioEquity(deals, Object.values(underlyingBySymbol), baseCapital)
+    return equity
+      ? {
+          ...inputReport,
+          portfolio: {
+            ...inputReport.portfolio,
+            equity,
+            drawdownMtm: equity.drawdown,
+            drawdownMtmSource: equity.source,
+          },
+        }
+      : inputReport
+  }, [inputReport, deals, underlyingBySymbol, baseCapital])
+  const portfolioReturnMap = useMemo(() => buildReturnMap(report?.portfolio.days ?? []), [report])
   const normalizedUnderlying = useMemo(
     () => normalizeUnderlyingBySymbol(underlyingBySymbol),
     [underlyingBySymbol],
@@ -58,14 +76,11 @@ export const useReportAnalytics = ({
   )
   const portfolioDrawdownSeries = useMemo(
     () => resolvePortfolioDrawdownSeries(report, drawdownMode),
-    [drawdownMode, report],
+    [report, drawdownMode],
   )
   const portfolioDrawdown = portfolioDrawdownSeries.drawdown
   const portfolioDrawdownFallback = portfolioDrawdownSeries.realizedFallback
-  const portfolioDrawdownSource = useMemo(
-    () => resolvePortfolioDrawdownSource(report, drawdownMode),
-    [drawdownMode, report],
-  )
+  const portfolioDrawdownSource = resolvePortfolioDrawdownSource(report, drawdownMode)
   const getSleeveDrawdown = useCallback(
     (item: ReportModel['contributions'][number] | null) =>
       resolveSleeveDrawdown(item, drawdownMode),
@@ -94,8 +109,11 @@ export const useReportAnalytics = ({
     [getUnderlyingForSymbol, portfolioReturnMap, report, rollingWindow],
   )
   const portfolioSummary = useMemo(
-    () => (report ? buildPortfolioSummary(report, portfolioDrawdown, normalizedUnderlying) : null),
-    [normalizedUnderlying, portfolioDrawdown, report],
+    () =>
+      report
+        ? buildPortfolioSummary(report, portfolioDrawdown, normalizedUnderlying, drawdownMode)
+        : null,
+    [drawdownMode, normalizedUnderlying, portfolioDrawdown, report],
   )
   const sleeves = useMemo(
     () =>
@@ -167,6 +185,7 @@ export const useReportAnalytics = ({
   )
 
   return {
+    report,
     portfolioReturnMap,
     baseCapital,
     underlyingSeries,
